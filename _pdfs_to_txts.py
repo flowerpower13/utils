@@ -6,7 +6,7 @@ from pdfminer.high_level import extract_pages
 from pdfminer.layout import LAParams, LTTextContainer
 
 
-from _pd_DataFrame import _pd_DataFrame
+from _pd_utils import _pd_DataFrame
 from _concat import _folder_to_filestems
 
 

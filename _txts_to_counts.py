@@ -5,7 +5,7 @@ from pathlib import Path
 #functions
 from _concat import _folder_to_filestems
 from _string_utils import _dicttopics_to_dictbags
-from _pd_DataFrame import _pd_DataFrame, _dict_to_valscols
+from _pd_utils import _pd_DataFrame, _dict_to_valscols
 from _txt_to_count import _txt_to_count, _firmlevelrisk_scores, _firmlevelrisk_dictbags
 
 

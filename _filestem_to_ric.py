@@ -3,7 +3,7 @@ import pandas as pd
 
 
 #functions
-from _pd_DataFrame import _pd_DataFrame
+from _pd_utils import _pd_DataFrame
 
 #extract ric
 def _extract_ric(row):

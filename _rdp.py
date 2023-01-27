@@ -9,7 +9,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 #functions
-from _pd_DataFrame import _pd_DataFrame
+from _pd_utils import _pd_DataFrame
 #import rdp
 import refinitiv.dataplatform as rdp
 import eikon as ek
