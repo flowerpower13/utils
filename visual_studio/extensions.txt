@@ -1,0 +1,23 @@
+#Matlab
+https://www.mathworks.com/help/matlab/matlab-engine-for-python.html
+
+
+
+#Fortran
+#compiler
+https://www.msys2.org/
+
+#vs studio
+https://marketplace.visualstudio.com/items?itemName=Gimly81.fortran
+
+#commanda
+cd "C:/Directory"
+gfortran dyn_dye_wrapper.f90 -o program.exe
+
+
+#R
+https://code.visualstudio.com/docs/languages/r
+Ctrl+Shift+P
+Create R Terminal
+
+

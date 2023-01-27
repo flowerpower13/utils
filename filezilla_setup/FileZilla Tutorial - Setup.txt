@@ -1,0 +1,18 @@
+
+
+#other instructions
+- assign host to Passive Mode
+- change passive mode range to 50000 and open the port
+- change FTP port to 21 and open the port
+- open ports both on router and windows firewall	
+
+- when changing router redefine firewall port forwarding
+
+
+#open ports
+http://vodafone.station/internet.html
+Associazione porte - Associazione porte
+press "+"
+Servizio: "TCP", Dispositivo: "PC-NICOLAFIORE", Tipo porte: "Porta", Porta pubblica: "21", Porta locale: "21" 
+Servizio: "TCP", Dispositivo: "PC-NICOLAFIORE", Tipo porte: "Porta", Porta pubblica: "50000", Porta locale: "50000" 
+press "Applica"
