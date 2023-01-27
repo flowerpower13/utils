@@ -15,7 +15,9 @@ def _extract_ric(row):
 
     return ric
 
-
+#file stems to rics
+#folders=["_concat", "_convert_symbols0"]
+#items=["_concat", "file_stem"]
 def _filestem_to_ric(folders, items):
     resources=folders[0]
     results=folders[1]

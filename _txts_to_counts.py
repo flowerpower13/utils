@@ -18,6 +18,8 @@ dict_sentiment_risk_covid, dict_politicalbigrams=_firmlevelrisk_dictbags(items)
 
 
 #compute counts
+#folders=["_pdfs_to_txts", "_txts_to_counts"]
+#items=["_txts_to_counts"]
 def _txts_to_counts(folders, items):
     resources=folders[0]
     results=folders[1]

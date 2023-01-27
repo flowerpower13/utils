@@ -79,6 +79,8 @@ def _pdf_to_txt(file, file_stem, file_suffix, output):
 
 
 #from pdfs to txts
+#create empty folder "_decrypt_pdf"
+#folders=["_advev", "_pdfs_to_txts"]
 def _pdfs_to_txts(folders): 
     resources=folders[0]
     results=folders[1]

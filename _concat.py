@@ -26,6 +26,9 @@ def _folder_to_filestems(folder):
 
 
 #concatenate csv files with word counts
+#folders=["_txts_to_counts", "_concat"]
+#items=["_concat"]
+#full_db="_advev"
 def _concat(folders, items, full_db):
     resources=folders[0]
     results=folders[1]

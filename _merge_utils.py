@@ -4,6 +4,7 @@ import pandas as pd
 from rapidfuzz import process, utils as fuzz_utils
 
 
+#read with colnames as lowercase
 def _readcsv_lowercols(df_name):
 
     #open
@@ -19,7 +20,8 @@ def _readcsv_lowercols(df_name):
 
     return df
 
-#get df and merging key
+
+#get df and merging key (left)
 def _df_left_on(df, vars, validate_left):
     df=df.fillna("")
 
@@ -35,6 +37,7 @@ def _df_left_on(df, vars, validate_left):
     return df, df_on
 
 
+#get df and merging key (right)
 def _df_right_on(df, vars, validate_right):
     df=df.dropna(subset=vars)
 
@@ -88,7 +91,7 @@ def _merge(folders, items, left, left_vars, right, right_vars, how, validate):
     df.to_csv(file_path, index=False)
 
 
-
+#extract similscore
 def _fuzzy_extractscore(row):
     score=row[0][1]
 
@@ -133,6 +136,7 @@ def fuzzy_merge(left, right, left_on, right_on, threshold, limit, how):
     return df
 
 
+#read with colnames and colvalues as lowercase
 def _fuzzy_readcsv(df_stem, df_on):
     file_path=f"{df_stem}.csv"
     df=pd.read_csv(
@@ -156,6 +160,7 @@ def _fuzzy_readcsv(df_stem, df_on):
     df=df.drop_duplicates(subset=df_on)
 
     return df
+
 
 '''folders=["_fuzzymatch"]
 items=["_fuzzymatch"]
@@ -184,6 +189,12 @@ def _fuzzymatch(folders, items, left_stem, left_on, right_stem, right_on, thresh
 
 
 #keep best match
+'''folders=["_fuzzymatch", "_keepfirst"]
+items=["_keepfirst"]
+left_on="coname"
+right_on="name"
+similscore="similscore"
+#'''
 def _keepfirst(folders, items, left_on, right_on, similscore):
     resources=folders[0]
     results=folders[1]
@@ -206,7 +217,6 @@ def _keepfirst(folders, items, left_on, right_on, similscore):
 
     #sort by left_on
     df=df.sort_values(by=left_on) 
-
 
     #save
     file_path=f"{results}/{result}.csv"

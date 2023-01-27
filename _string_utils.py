@@ -37,32 +37,6 @@ def _clean_text(text):
     return text
 
 
-#count words within n occurrences from each other
-#https://stackoverflow.com/questions/37331708/nltk-find-occurrences-of-a-word-within-5-words-left-right-of-context-words-in
-def _context_count(text, target_word, context_words, n_occur=10):
-    
-    idx_find=text.find(target_word)
-
-    #target word not found
-    if idx_find==-1:
-        y=0
-
-    #target word found
-    if idx_find!=-1:   
-        matches_up_to_n_words = '( [^ ]*){0,n} ?'
-        matches_up_to_n_words=matches_up_to_n_words.replace("n", f"{n_occur}")
-        matches_context_word = '(' + '|'.join(context_words) + ')'
-        matches_target_word = target_word
-        
-        context_before = matches_context_word + matches_up_to_n_words + matches_target_word
-        context_after = matches_target_word + matches_up_to_n_words + matches_context_word
-        pattern = re.compile('(' + context_before + '|' + context_after + ')')
-        y=re.findall(pattern, text)
-        y=len(y)
-
-    return y
-
-
 #create directed graph of text words
 def _create_wordgraph(list_tokens):
 
