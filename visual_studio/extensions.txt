@@ -1,23 +1,19 @@
-#Matlab
-https://www.mathworks.com/help/matlab/matlab-engine-for-python.html
-
-
-
 #Fortran
 #compiler
 https://www.msys2.org/
 
-#vs studio
+#vs code
 https://marketplace.visualstudio.com/items?itemName=Gimly81.fortran
 
-#commanda
+#commands
+open msys2 session
 cd "C:/Directory"
-gfortran dyn_dye_wrapper.f90 -o program.exe
+gfortran -fopenmp library.f90 file.f90 -o program.exe
+./program.exe
 
 
 #R
 https://code.visualstudio.com/docs/languages/r
 Ctrl+Shift+P
 Create R Terminal
-
 
