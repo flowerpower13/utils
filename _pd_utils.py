@@ -1,17 +1,56 @@
 
-import pandas as pd
-
-
 import numpy as np
 import pandas as pd
 
 
+#clean file stem
+def _clean_stem(file_stem):
+    for r in ['\\', '/', ':', '*', '"', '<', '>', '|']:
+        file_stem=file_stem.replace(r, '')
+    return file_stem
+
+
+#from df's column to list of values in column (drop nas and dups)
+def _dfcol_to_listcol(df, col_name):
+
+    #drop nas and dups
+    df=df.dropna(subset=[col_name])
+    df=df.drop_duplicates(subset=[col_name])
+
+    #convert  to list
+    col_values=df[col_name].to_list()
+
+    return col_values
+
+
+#for each column, create a separate csv
+def _df_to_csvcols(df, results, result):
+    
+    #iterate over df columns
+    for i, col_name in enumerate(df):
+
+        col_values=_dfcol_to_listcol(df, col_name)
+
+        df_i=pd.DataFrame()
+        df_i[col_name]=col_values
+
+        #clean col name
+        col_name=_clean_stem(col_name)
+
+        #save
+        file_path=f"{results}/{result}_{col_name}.csv"
+        df_i.to_csv(file_path, index=False)
+
+        file_path=f"{results}/{result}_{col_name}.txt"
+        df_i.to_csv(file_path, index=False)
+
+
+#from dictionary to values and keys
 def _dict_to_valscols(dict_data):
-        count_values=dict_data.values()
-        count_keys=dict_data.keys()
         
-        values=[[x] for x in count_values]
-        keys=[x for x in count_keys]
+        #values and keys list
+        values=[[x] for x in dict_data.values()]
+        keys=[x for x in dict_data.keys()]
 
         return values, keys
 
@@ -54,18 +93,26 @@ def _groupby(df, by, dict_agg_colfunctions):
 #rename col names
 def _colfunctions_to_colnames(col, functions):
 
+    #empty dictionary
     dict_cols={}
+
+    #iterate over functions
     for i, funct in enumerate(functions):
+
+        #function and col name
         funct_name=funct.__name__
         col_functname=f"{col}_{funct_name}"
 
+        #update dictionary
         dict_cols[funct_name]=col_functname
 
     return dict_cols
 
 
+#from columns and function to df
 def _colfunctions_to_df(df, cols, functions):
 
+    #n obs
     n_obs=len(cols)
     agg_frames=[None]*n_obs
 
@@ -84,6 +131,7 @@ def _colfunctions_to_df(df, cols, functions):
         #add to frames
         agg_frames[i]=df_agg
 
+    #frames
     frames=[df]+agg_frames
     df_concat=pd.concat(frames, axis=1)
 
