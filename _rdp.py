@@ -9,29 +9,22 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 #functions
-from _pd_utils import _pd_DataFrame
-#import rdp
-import refinitiv.dataplatform as rdp
+from _pd_utils import _clean_stem, _pd_DataFrame, _df_to_csvcols, _dfcol_to_listcol
+
+
+#copy to main.py
+#from _rdp import _convert_symbols
 import eikon as ek
+import refinitiv.dataplatform as rdp
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
-
-
 appkey="7203cad580454a948f17be1b595ef4884be257be"
 ek.set_app_key(appkey)
 rdp.open_desktop_session(appkey)
+#'''
 
 
-def _symbols_all(df, col_name):
-
-    df=df.dropna(subset=[col_name])
-    df=df.drop_duplicates(subset=[col_name])
-
-    symbols_all=df[col_name].to_list()
-
-    return symbols_all
-
-
+#retrieve n obs
 def _n_obs(IDs, df):
 
     n_obs=0
@@ -39,15 +32,72 @@ def _n_obs(IDs, df):
     for j, ID in enumerate(IDs):
         col_name=ID[0]
 
-        symbols_all=_symbols_all(df, col_name)
+        symbols_all=_dfcol_to_listcol(df, col_name)
 
-        n_obs=n_obs+len(symbols_all)
+        n_obs+=len(symbols_all)
 
     return n_obs
 
 
+#divide in chunks
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
+#from IDs to new symbols df
+def _convert_IDs(df, IDs):
+    #new symbols to find
+    to_symbol_types=[e for e in SymbolTypes]
+    enum_values=[e.value for e in SymbolTypes]
+
+    #n obs
+    n_obs=_n_obs(IDs, df)
+    frames=[None]*n_obs
+
+    i=0
+    for j, ID in enumerate(IDs):
+
+        #identifiers
+        col_name=ID[0]
+        from_symbol_type=ID[1]
+
+        #retrieve symbols list
+        symbols_all=_dfcol_to_listcol(df, col_name)
+
+        #divide in chucks
+        n_chunks=500
+        chunks=chunker(symbols_all, n_chunks)
+
+        for k, symbols in enumerate(chunks):
+            try:
+                df_i=rdp.convert_symbols(
+                    symbols=symbols, 
+                    from_symbol_type=from_symbol_type, 
+                    to_symbol_types=to_symbol_types,
+                    )
+                    
+            except Exception as e:
+                print(e)
+
+            #re index
+            df_i=df_i.reindex(columns=enum_values)
+            df_i=df_i.reindex(index=symbols_all)  
+
+            #drop nulls and duplicates
+            df_i=df_i.dropna(subset=["RIC"]) 
+            df_i=df_i.drop_duplicates(subset=["RIC"]) 
+
+            #franes
+            frames[i]=df_i
+            i+=1
+
+    #frames
+    df=pd.concat(frames)
+
+    #rename index
+    df=df.rename_axis("idx")
+
+    return df
 
 
 #CONVERT SYMBOLS
@@ -66,49 +116,20 @@ def _convert_symbols(folders, items, IDs):
     resource=items[0]
     result=items[1]
 
+    #read csv
     file_path=f"{resources}/{resource}.csv"
     df=pd.read_csv(file_path, dtype="string")
 
-    enum_values=[e.value for e in SymbolTypes]
-    to_symbol_types=[e for e in SymbolTypes]
+    #from IDs to new symbols df
+    df=_convert_IDs(df, IDs)
 
-    n_obs=_n_obs(IDs, df)
-    frames=[None]*n_obs
-
-    i=0
-    for j, ID in enumerate(IDs):
-        col_name=ID[0]
-        from_symbol_type=ID[1]
-
-        symbols_all=_symbols_all(df, col_name)
-
-        n_chunks=500
-        chunks=chunker(symbols_all, n_chunks)
-
-        for k, symbols in enumerate(chunks):
-            try:
-                df_i=rdp.convert_symbols(
-                    symbols=symbols, 
-                    from_symbol_type=from_symbol_type, 
-                    to_symbol_types=to_symbol_types,
-                    )
-                    
-            except Exception as e:
-                print(e)
-
-            df_i=df_i.reindex(columns=enum_values)
-            df_i=df_i.reindex(index=symbols_all)  
-            df_i=df_i.dropna(subset=["RIC"]) 
-            df_i=df_i.drop_duplicates(subset=["RIC"]) 
-    
-            frames[i]=df_i
-            i+=1
-
-    df=pd.concat(frames)
-    df=df.rename_axis("idx")
-
+    #save
     file_path=f"{results}/{result}.csv"
     df.to_csv(file_path)
+
+    #for each column, create a csv
+    _df_to_csvcols(df, results, result)
+
 
 
 #CREATE PORTFOLIOS FOR REFINITIV WORKSPACE'S APP "PAL"
@@ -126,7 +147,7 @@ def _pal(folders, items):
     df=pd.read_csv(file_path, dtype="string")
 
     col_name="RIC"
-    symbols_all=_symbols_all(df, col_name)
+    symbols_all=_dfcol_to_listcol(df, col_name)
 
     n_chunks=200
     chunks=chunker(symbols_all, n_chunks)
@@ -145,6 +166,7 @@ def _pal(folders, items):
         df.to_csv(file_path, index=False)
 
 
+#load items
 def _load_items(resources, item):
     idx=item.rindex("_")
     col_name=item[idx+1:]
@@ -160,13 +182,6 @@ def _load_items(resources, item):
     df_list=pd.read_csv(file_path, dtype="string")[col_name].to_list()
 
     return df_list
-
-
-#clean file stem
-def _clean_stem(file_stem):
-    for r in ['\\', '/', ':', '*', '"', '<', '>', '|']:
-        file_stem=file_stem.replace(r, '')
-    return file_stem
 
 
 #get data loop
@@ -413,7 +428,7 @@ def _rdp_data1(folders, items, col_symbol):
     #instruments_df
     item=items[0]
     instruments_df=pd.read_csv(f"{resources}/{item}.csv", dtype=None)
-    symbols_all=_symbols_all(instruments_df, col_name)
+    symbols_all=_dfcol_to_listcol(instruments_df, col_name)
 
     
     #fields_df
@@ -510,5 +525,7 @@ def _rdp_data2(folders):
     df.to_csv(file_path, index=False)
     
 
+#copy to main.py
 rdp.close_session()
 print("_rdp - done")
+#'''
