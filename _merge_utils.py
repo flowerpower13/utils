@@ -12,7 +12,7 @@ def _readcsv_lowercols(df_name):
     df=pd.read_csv(
         file_path,
         dtype="string",
-        #nrows=100000
+        #nrows=100000,
         )
     
     #all cols lowercase
@@ -22,54 +22,52 @@ def _readcsv_lowercols(df_name):
 
 
 #get df and merging key (left)
-def _df_left_on(df, vars, validate_left):
+def df_to_validdf(df, vars, validate):
+    #fill na
     df=df.fillna("")
 
+    #join keys in one string key
     df_on="_".join(vars)
     df[df_on]=df[vars].agg('_'.join, axis=1)
 
-    df=df.astype("string")
+    #lowercase
+    #df=df.astype("string")
     df[df_on]=df[df_on].str.lower()
 
-    if validate_left=="1":
-        df=df.drop_duplicates(subset=df_on)
-
-    return df, df_on
-
-
-#get df and merging key (right)
-def _df_right_on(df, vars, validate_right):
-    df=df.dropna(subset=vars)
-
-    df_on="_".join(vars)
-    df[df_on]=df[vars].agg('_'.join, axis=1)
-
-    df=df.astype("string")
-    df[df_on]=df[df_on].str.lower()
-
-    if validate_right=="1":
+    #remove dups
+    if validate=="1":
         df=df.drop_duplicates(subset=df_on)
 
     return df, df_on
 
 
 #merge datasets
-def _merge(folders, items, left, left_vars, right, right_vars, how, validate):
+'''folders=["_finaldb"]
+items=["_finaldb_cusip"]
+left="_timeid_calls/_timeid_calls1"
+left_vars=["year_quarter", "cusip"]
+right="_data_compustat/_data_compustat_cusip"
+right_vars=["datafqtr", "cusip"]
+how="inner"
+validate="1:1"
+#'''
+def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate):
     results=folders[0]
     result=items[0]
 
+    #remove dups left and right
     validate_left=validate[0:1]
     validate_right=validate[2:3]
 
-    #read
+    #read csvs
     left=_readcsv_lowercols(left)
     right=_readcsv_lowercols(right)
 
     #merging keys
-    left, left_on = _df_left_on(left, left_vars, validate_left)
-    right, right_on = _df_right_on(right, right_vars, validate_right)
+    left, left_on = df_to_validdf(left, left_vars, validate_left)
+    right, right_on = df_to_validdf(right, right_vars, validate_right)
 
-    #indicator
+    #args
     indicator=f"_merge_{result}"
     suffixes=('_left', '_right')
     validate=f"{validate_left}:{validate_right}"
@@ -85,6 +83,42 @@ def _merge(folders, items, left, left_vars, right, right_vars, how, validate):
         indicator=indicator,
         validate=validate,
         )
+
+    #save
+    file_path=f"{results}/{result}.csv"
+    df.to_csv(file_path, index=False)
+
+
+#concat with same rows/cols
+'''folders=["_finaldb"]
+items=["_finaldb"]
+left="_finaldb/_finaldb_isin"
+right="_finaldb/_finaldb_cusip"
+axis="index"
+join="outer"
+sort_id=["file_stem"]
+#'''
+def _pd_concat(folders, items, left, right, axis, join, sort_id):
+    results=folders[0]
+    result=items[0]
+
+    #read csvs
+    left=_readcsv_lowercols(left)
+    right=_readcsv_lowercols(right)
+
+    #frames
+    frames=[left, right]
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html
+    df=pd.concat(
+        objs=frames,
+        axis=axis,
+        join=join,
+        )
+
+    #drop dups and sort
+    df=df.drop_duplicates(subset=sort_id)
+    df=df.sort_values(by=sort_id)
 
     #save
     file_path=f"{results}/{result}.csv"

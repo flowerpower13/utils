@@ -3,18 +3,78 @@ from pathlib import Path
 
 
 #functions
+from _txt_to_count import _txt_to_count
 from _concat import _folder_to_filestems
 from _string_utils import _dicttopics_to_dictbags
 from _pd_utils import _pd_DataFrame, _dict_to_valscols
-from _txt_to_count import _txt_to_count, _firmlevelrisk_scores, _firmlevelrisk_dictbags
 
 
 #variables
 error="???"
 from _dict_topics import dict_topics
 dict_bags=_dicttopics_to_dictbags(dict_topics)
-items=["Loughran-McDonald_MasterDictionary_1993-2021.csv", "riskwords.txt", "covid.csv", "political_bigrams.csv"]
-dict_sentiment_risk_covid, dict_politicalbigrams=_firmlevelrisk_dictbags(items)
+
+
+
+#from file to converted
+def _file_to_converted(file, file_stem, output, i, tot):
+    try:
+        with open(
+            file=file, 
+            mode='r', 
+            encoding="utf-8", 
+            #errors="ignore", 
+            ) as f:
+            text=f.read()
+
+        if text==error:
+
+            #converted
+            converted=False
+
+            #print
+            print(f"{i}/{tot} - {file_stem} - error")
+
+        elif text!=error:
+            #converted
+            converted=True
+
+            #values and columns
+            values=[
+                [file_stem],
+                ]
+            columns=[
+                "file_stem", 
+                ]
+
+            #txt to count
+            dict_data=_txt_to_count(text, dict_bags)
+            Vs, Ks = _dict_to_valscols(dict_data)
+            values+=Vs
+            columns+=Ks
+
+            '''dict_data=_firmlevelrisk_scores(text, dict_sentiment_risk_covid, dict_politicalbigrams)
+            Vs, Ks = _dict_to_valscols(dict_data)
+            values+=Vs
+            columns+=Ks'''
+
+            #create df
+            df=_pd_DataFrame(values, columns)
+            df.to_csv(output, index=False)
+
+            #print
+            print(f"{i}/{tot} - {file_stem} - done")
+
+    except Exception as e:
+
+        #converted
+        converted=False
+
+        #print
+        print(f"{i}/{tot} - {file_stem} - exception")
+        print(e)
+    
+    return converted
 
 
 #compute counts
@@ -32,9 +92,11 @@ def _txts_to_counts(folders, items):
     #resources
     files, file_stems=_folder_to_filestems(resources)
 
+    #n obs
     n_obs=len(files)
     tot=n_obs-1
 
+    #empty lists
     file_stems=[None]*n_obs
     converteds=[None]*n_obs
 
@@ -43,60 +105,26 @@ def _txts_to_counts(folders, items):
 
         output=Path(f"{results}/{file_stem}.csv")
 
+        #file is NOT present
         if not output.is_file():
-            try:
-                with open(
-                    file=file, 
-                    mode='r', 
-                    encoding="utf-8", 
-                    #errors="ignore", 
-                    ) as f:
-                    text=f.read()
 
-                if text==error:
-                    converted=False
-                    print(f"{i}/{tot} - {file_stem} - error")
+            #converted
+            converted=_file_to_converted(file, file_stem, output, i, tot)
 
-                elif text!=error:
-                    converted=True
-
-                    #values and columns
-                    values=[
-                        [file_stem],
-                        ]
-                    columns=[
-                        "file_stem", 
-                        ]
-
-                    #functions
-                    #txt to count
-                    dict_data=_txt_to_count(text, dict_bags)
-                    Vs, Ks = _dict_to_valscols(dict_data)
-                    values+=Vs
-                    columns+=Ks
-
-                    '''dict_data=_firmlevelrisk_scores(text, dict_sentiment_risk_covid, dict_politicalbigrams)
-                    Vs, Ks = _dict_to_valscols(dict_data)
-                    values+=Vs
-                    columns+=Ks'''
-
-                    df=_pd_DataFrame(values, columns)
-                    df.to_csv(output, index=False)
-
-                    print(f"{i}/{tot} - {file_stem} - done")
-
-            except Exception as e:
-                converted=False
-                print(f"{i}/{tot} - {file_stem} - exception")
-                print(e)
-    
+        #file is present
         elif output.is_file():
+
+            #converted
             converted=True
+
+            #print
             print(f"{i}/{tot} - {file_stem} - already done")
 
+        #fill lists
         file_stems[i]=file_stem
         converteds[i]=converted
   
+    #create df
     values=[
         file_stems, 
         converteds, 
