@@ -1,7 +1,4 @@
 ##USER
-https://whatismyipaddress.com/
-2.44.90.172
-
 #open
 search on windows bar
 FileZilla
@@ -9,13 +6,19 @@ FileZilla
 #settings
 host:
 ftp://2.44.90.172
-(or local ftp://127.0.0.1)
+
+#only for local (ignore this)
+host:
+ftp://127.0.0.1)
+
 
 user:
 user1
 
+
 password:
 admin
+
 
 port:
 21
@@ -25,7 +28,7 @@ port:
 press "Quickconnect"
 
 
-#download
+#download and upload
 look down-right at "Remote site"
 drag and drop folders on own device
 
@@ -52,7 +55,6 @@ copy IP here:
 
 
 #start
-
 search on windows bar
 Start FileZilla Server
 
@@ -63,6 +65,8 @@ press "Ctrl+F"
 #1
 Rights management -> Users -> Available users -> Add
 Type "user1", set password "admin"
+Mount points -> Add
+Virtual path: set "/", Native path: set "C:\Filezilla"
 
 #2
 FTP and FTP over TLS -> Passive Mode -> Use custom port range
@@ -102,8 +106,6 @@ Stop FileZilla Server
 #start
 search on windows bar
 Start FileZilla Server
-
-
 
 
 
