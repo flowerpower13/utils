@@ -5,7 +5,7 @@ FileZilla
 
 #settings
 host:
-ftp://2.44.90.172
+ftp://5.88.24.252
 
 #only for local (ignore this)
 host:
