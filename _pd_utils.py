@@ -137,3 +137,17 @@ def _colfunctions_to_df(df, cols, functions):
 
     return df_concat
 
+
+#from csv to dict_bag (key: list of column values)
+def _csv_to_dictbag(file_path):
+
+    #read csv
+    df=pd.read_csv(f"{file_path}.csv", dtype="string")
+
+    #col values to list
+    col_values=df[file_path].str.lower().to_list()
+
+    #dict
+    dict_bag={file_path: col_values}
+
+    return dict_bag

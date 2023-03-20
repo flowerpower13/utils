@@ -1,23 +1,21 @@
 
+#import
 from pathlib import Path
 
 
 #functions
 from _txt_to_count import _txt_to_count
 from _concat import _folder_to_filestems
-from _string_utils import _dicttopics_to_dictbags
 from _pd_utils import _pd_DataFrame, _dict_to_valscols
 
 
 #variables
 error="???"
-from _dict_topics import dict_topics
-dict_bags=_dicttopics_to_dictbags(dict_topics)
-
+from _dict_bags import dict_bags
 
 
 #from file to converted
-def _file_to_converted(file, file_stem, output, i, tot):
+def _file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_keys, contextbag_keys, window_sizes):
     try:
         with open(
             file=file, 
@@ -48,19 +46,16 @@ def _file_to_converted(file, file_stem, output, i, tot):
                 ]
 
             #txt to count
-            dict_data=_txt_to_count(text, dict_bags)
+            dict_data=_txt_to_count(text, dict_bags, targetbag_keys, contextbag_keys, window_sizes)  
             Vs, Ks = _dict_to_valscols(dict_data)
             values+=Vs
             columns+=Ks
 
-            '''dict_data=_firmlevelrisk_scores(text, dict_sentiment_risk_covid, dict_politicalbigrams)
-            Vs, Ks = _dict_to_valscols(dict_data)
-            values+=Vs
-            columns+=Ks'''
-
             #create df
             df=_pd_DataFrame(values, columns)
             df.to_csv(output, index=False)
+
+            print(df)
 
             #print
             print(f"{i}/{tot} - {file_stem} - done")
@@ -80,7 +75,7 @@ def _file_to_converted(file, file_stem, output, i, tot):
 #compute counts
 #folders=["_pdfs_to_txts", "_txts_to_counts"]
 #items=["_txts_to_counts"]
-def _txts_to_counts(folders, items):
+def _txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_sizes):
     resources=folders[0]
     results=folders[1]
 
@@ -109,7 +104,7 @@ def _txts_to_counts(folders, items):
         if not output.is_file():
 
             #converted
-            converted=_file_to_converted(file, file_stem, output, i, tot)
+            converted=_file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_keys, contextbag_keys, window_sizes)
 
         #file is present
         elif output.is_file():
@@ -141,4 +136,5 @@ def _txts_to_counts(folders, items):
     #save
     file_path=f"{results}/{result}.csv"
     df.to_csv(file_path, index=False)
+
 

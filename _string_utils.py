@@ -30,11 +30,6 @@ def _clean_text(text):
     text=text.strip()
     text=re.sub(r"\s+", ' ', text)
 
-    #remove punctuation
-    #text=re.sub(r'[^\w\s]', '', text)
-    #remove newline
-    #text=text.replace("\n", " ")
-
     return text
 
 
@@ -49,187 +44,112 @@ def _txt_to_tokens(text):
     return list_tokens, n_words
 
 
-#from stringlist to proper set of keywords
-def _stringlist_to_set(text):
-    #lowercase
-    text=text.lower()
-
-    #remove whitespaces
-    text=text.strip()
-    text=re.sub(r"\s+", ' ', text)
-
-    #remove newline
-    text=text.replace("\n", " ")
-
-    #from list to set
-    sep=", "
-    keywords_list=text.split(sep)
-    keywords_set={x for x in keywords_list}
-
-    return keywords_set
-
-
-#from good/bad keywords to bag/n_bagwords
-def _keywords_to_dictbag(good_keywords, bad_keywords):
-    good_keywords_set=_stringlist_to_set(good_keywords)
-    bad_keywords_set=_stringlist_to_set(bad_keywords)
-
-    bag_topic={x for x in good_keywords_set if x not in bad_keywords_set}
-
-    return bag_topic
-
-
-#from dict topics to dict bags
-def _dicttopics_to_dictbags(dict_topics):
-    dict_bags={}
-    for j, (key_topic, value_topic) in enumerate(dict_topics.items()):
-
-        good_keywords=dict_topics[key_topic]["good_keywords"]
-        bad_keywords=dict_topics[key_topic]["bad_keywords"]
-
-        dict_bags[key_topic]=_keywords_to_dictbag(good_keywords, bad_keywords)
-    
-    return dict_bags
-
-
-#create directed graph of text words
-def _create_wordgraph(list_tokens):
-
-    word_graph = dict()
-    i = 0
-
-    while i < len(list_tokens):
-
-        if list_tokens[i] not in word_graph:
-            word_graph[list_tokens[i]] = [1, dict()]
-
-        else:
-            (word_graph[list_tokens[i]])[0] += 1
-        
-        if i < len(list_tokens) - 1:
-
-            if list_tokens[i+1] not in word_graph[list_tokens[i]][1]:
-                ((word_graph[list_tokens[i]])[1])[list_tokens[i+1]] = 0
-            ((word_graph[list_tokens[i]])[1])[list_tokens[i+1]] += 1
-        
-        i = i + 1 
-    
-    return word_graph
-
-
-#create prefix trie
-def _prefix_trie(word_graph):
-
-    prefix_trie=StringTrie()
-
-    for key in word_graph.keys():
-        prefix_trie[key]=key
-    
-    return prefix_trie
-
-
-#find prefix
-def _find_from_prefix_trie(keyword, word_graph, prefix_trie):
-    keyword = keyword[0:-1]
-    values = prefix_trie.values(keyword)
-
-    if len(values) > 0:
-
-        result = dict()
-
-        for keyword_found in values:
-            result[keyword_found] = (word_graph[keyword_found])[0]
-
-        return result
-
-    else:
-
-        return dict()
-
-
-#find tokens word in text's directed graph
-def _wordbag_in_wordgraph(tokens, word_graph):
-    if len(tokens) == 0:
-
-        return 0
-
-    elif len(tokens) == 1 and tokens[0] in word_graph:
-
-        return (word_graph[tokens[0]])[0]
-
-    elif tokens[0] in word_graph and tokens[1] in word_graph[tokens[0]][1]:
-
-        return min(word_graph[tokens[0]][0], _wordbag_in_wordgraph(tokens[1:], word_graph))
-
-    else:
-        return 0
-
-
-#bigrams + windows of n bigrams
-def _list_windows(list_tokens, ngram, window_size):
-
-    listtuples_ngrams=list(ngrams(list_tokens, ngram)) 
-    list_ngrams=[" ".join(x) for x in listtuples_ngrams]
-
-    list_windows=list(zip(*[list_ngrams[i:] for i in range(window_size+1)]))
-
-    return list_windows
-
-
-#from string to list tokens
-def _text_to_dicttext(text, ngram=2, window_size=20):
-    text=_clean_text(text)
-
-    #split text into words
-    list_tokens=tokenize.word_tokenize(text)
-
-    #remove stopwords
-    stopwords=set(corpus.stopwords.words('english'))
-    list_tokens=[x for x in list_tokens if x not in stopwords]
-
-    #word graph
-    word_graph=_create_wordgraph(list_tokens)
-
-    #prefix trie
-    prefix_trie=_prefix_trie(word_graph)
-
-    #total n of words
-    n_words=len(list_tokens)
-
-    #list of ngram windows
-    list_windows=_list_windows(list_tokens, ngram, window_size)
-
-    return list_tokens, word_graph, prefix_trie, n_words, list_windows
-
-
 #CONTEXTUAL SEARCH
-def create_ngrams_indexes(list_tokens, ngram):
+from typing import List, Tuple
+from nltk.util import ngrams
+
+def create_ngrams_indexes(list_tokens: List[str], ngram: int) -> Tuple[dict, dict]:
+    """
+    This function creates a dictionary of ngrams and their corresponding indexes in the given list of tokens.
+    
+    Parameters:
+    list_tokens (List[str]): A list of tokens to create ngrams from.
+    ngram (int): The number of tokens to include in each ngram.
+    
+    Returns:
+    Tuple[dict, dict]: A tuple of two dictionaries. The first dictionary maps each ngram to a list of its
+                       corresponding indexes in the ngrams list. The second dictionary maps each index to
+                       its corresponding ngram in the ngrams list.
+    """
+    
+    # Create a list of ngrams from the list of tokens
     ngrams_list = list(ngrams(list_tokens, ngram)) 
+    
+    # Convert each ngram tuple to a string
     ngrams_list = [' '.join(ngram_tuple) for ngram_tuple in ngrams_list]
+    
+    # Create two dictionaries for mapping ngrams to their indexes and vice versa
     ngrams_indexes = dict()
     indexes_ngrams = dict()
+    
+    # Iterate through the ngrams list
     for index, word in enumerate(ngrams_list):
+        
+        # If the ngram has not been encountered yet, create an empty list for its indexes
         if word not in ngrams_indexes:
             ngrams_indexes[word] = list()
-            
+        
+        # Append the current index to the list of indexes for the current ngram
         ngrams_indexes[word].append(index)
+        
+        # Map the current index to its corresponding ngram
         indexes_ngrams[index] = word
-
+    
+    # Return the two dictionaries as a tuple
     return ngrams_indexes, indexes_ngrams
 
 
+
+# Given two windows, this function finds all ngrams of different sizes that appear in the windows.
+# It uses an index of ngrams to look up ngrams quickly.
 def search_ngrams_in_window(left_window, right_window, ngrams2_indexes_container, ngrams_2):
+    # This dictionary will store the ngrams found in the windows along with their frequencies.
     ngrams_in_window = dict()
+    
+    # Iterate over all ngram sizes.
     for ngram_size in ngrams2_indexes_container.keys():
+        # Get the dictionary that maps indexes to ngrams for the current ngram size.
         indexes_ngrams = ngrams2_indexes_container[ngram_size][1]
+        
+        # Iterate over all positions in the windows.
         for index in range(left_window, right_window + 1):
+            # If the current position has an ngram of the current size.
             if index in indexes_ngrams:
+                # Get the ngram at the current position.
                 ngram_in_position = indexes_ngrams[index]
+                
+                # If the ngram is one of the target ngrams.
                 if ngram_in_position in ngrams_2:
+                    # If the ngram has not been seen before, add it to the dictionary.
                     if ngram_in_position not in ngrams_in_window:
                         ngrams_in_window[ngram_in_position] = 0
+                    # Increment the frequency of the ngram.
                     ngrams_in_window[ngram_in_position] += 1 
+                    
+    # Return the dictionary of ngrams and their frequencies.
     return ngrams_in_window
+
+
+def get_max_ngram(ngram_dict):
+    # Initialize the maximum ngram length to 0
+    max_ngram_len = 0
+    # Loop through each ngram in the ngram dictionary
+    for ngram in ngram_dict:
+        # Get the length of the current ngram
+        ngram_len = len(ngram.split())
+        # If the length of the current ngram is greater than the maximum ngram length
+        if ngram_len > max_ngram_len:
+            # Update the maximum ngram length to the length of the current ngram
+            max_ngram_len = ngram_len
+    # Return the maximum ngram length
+    return max_ngram_len
+
+
+def generate_multi_ngrams_indexes(max_ngram_len, list_tokens):
+    # Initialize an empty dictionary to hold n-grams and their indexes
+    ngrams_indexes_container = dict()
+    
+    # Loop through each possible n-gram length from 1 up to the maximum length specified
+    for ngrams in range(1, max_ngram_len + 1):
+        # Use the create_ngrams_indexes function to generate the n-grams and their indexes for the current n-gram length
+        ngrams_indexes, indexes_ngrams = create_ngrams_indexes(list_tokens, ngrams)
+        
+        # Add the n-gram indexes and index-n-gram mappings to the container dictionary
+        ngrams_indexes_container[ngrams] = (ngrams_indexes, indexes_ngrams)
+    
+    # Return the container dictionary
+    return ngrams_indexes_container
+
 
 
 def cross_ngrams_search(list_tokens, ngrams_1, ngrams_2, window_size):
@@ -247,7 +167,7 @@ def cross_ngrams_search(list_tokens, ngrams_1, ngrams_2, window_size):
         if ngram_word in ngrams_indexes:
             for index in ngrams_indexes[ngram_word]:
                 left_window = index - window_size
-                right_window = index + window_size + len(ngram_word) - 1
+                right_window = index + window_size + ngram_word_len - 1
                 if ngram_word not in ngrams2_found_near_ngrams1:
                     ngrams2_found_near_ngrams1[ngram_word] = list()
                 ngrams2_found_near_ngrams1[ngram_word].append(search_ngrams_in_window(left_window, right_window, ngrams2_indexes_container, ngrams_2))
@@ -255,36 +175,20 @@ def cross_ngrams_search(list_tokens, ngrams_1, ngrams_2, window_size):
     return ngrams2_found_near_ngrams1
 
 
-def get_max_ngram(ngram_dict):
-    max_ngram_len = 0
-    for ngram in ngram_dict:
-        ngram_len = len(ngram.split())
-        if ngram_len > max_ngram_len:
-            max_ngram_len = ngram_len
-    return max_ngram_len
-
-
-def generate_multi_ngrams_indexes(max_ngram_len, list_tokens):
-    ngrams_indexes_container = dict()
-    for ngrams in range(1, max_ngram_len + 1):
-        ngrams_indexes, indexes_ngrams = create_ngrams_indexes(list_tokens, ngrams)
-        ngrams_indexes_container[ngrams] = (ngrams_indexes, indexes_ngrams)
-    return ngrams_indexes_container
-
 
 def results_cross_ngrams_search(ngrams2_found_near_ngrams1):
-    total=0
-    contextual=0
+    total=0       # initialize the count of total occurrences
+    contextual=0  # initialize the count of contextual occurrences
 
-    for keyword in ngrams2_found_near_ngrams1.keys():
-        total_occurrences = len(ngrams2_found_near_ngrams1[keyword])
-        contextual_occurrences = len([l for l in ngrams2_found_near_ngrams1[keyword] if len(l) > 0])
-        #print(keyword + " -> total: " + str(total_occurrences) + " contextual: " + str(contextual_occurrences))
+    for keyword in ngrams2_found_near_ngrams1.keys():  # iterate through the keywords
+        total_occurrences = len(ngrams2_found_near_ngrams1[keyword])  # count the total occurrences of the keyword
+        contextual_occurrences = len([l for l in ngrams2_found_near_ngrams1[keyword] if len(l) > 0])  # count the contextual occurrences of the keyword
+        
+        total+=total_occurrences         # add the total occurrences to the running total count
+        contextual+=contextual_occurrences  # add the contextual occurrences to the running contextual count
 
-        total+=total_occurrences
-        contextual+=contextual_occurrences
+    return total, contextual  # return the total and contextual counts as a tuple
 
-    return total, contextual
 
 
 #from tokens and target/context bags, compute contextual score
