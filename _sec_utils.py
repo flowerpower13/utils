@@ -74,10 +74,6 @@ def _dwn(i, url, outcome, tot):
 #from secfile to filings
 #WRDS SEC Analytics Suite - SEC Filings Index 
 #https://wrds-www.wharton.upenn.edu/pages/get-data/wrds-sec-analytics-suite/wrds-sec-filings-index-data/sec-filings-index/
-#https://www.sec.gov/developer
-#https://www.sec.gov/edgar/sec-api-documentation
-#https://www.sec.gov/os/accessing-edgar-data
-#https://developer.edgar-online.com/docs
 #folders=["_secfile", "_secfile_to_filings"]
 #items=["_secfile", "_secfile_to_filings"]
 #forms=["DEFM14A", "DEF 14A", "DEFS14A", "DEFR14A"]
@@ -104,16 +100,11 @@ def _secfile_to_filings(folders, items, forms):
     colname_form="Form"
     colname_url="FName"
 
-    #or 1. 
-    #keep only if equal to requested filing ('10-K' only)
+    #keep only if belongs to list
     df=df[df[colname_form].isin(forms)]
 
-    #or 2. 
-    #keep multiple types of filing with same root (e.g., '10-K' includes '10-K/A' too)
-    #df=df.loc[df[colname_form].str.contains(filing)]
-
     #trials
-    df=df.head(1)
+    #df=df.head(1)
 
     #file urls
     file_urls=df[colname_url].tolist()
@@ -264,21 +255,6 @@ def _markup_to_txt(file_stem, input, outcome, i, tot):
             text=f.read()
 
         text=markupToText(text)
-      
-        #other
-        #remove non-english words
-        #word_tokens=tokenize.word_tokenize(text)
-        #filtered_sentence=[w for w in word_tokens if w in words]
-        #text=" ".join(filtered_sentence)
-        #remove singleton letters
-        #word_tokens=tokenize.word_tokenize(text)
-        #filtered_sentence=[w for w in word_tokens if len(w)>1] 
-        #text=" ".join(filtered_sentence)
-        #remove punctuation
-        #text=re.sub(r"[^\w\s]", "", text)
-        #remove whitespaces
-        #text=text.strip()
-        #text=re.sub(r"\s+", " ", text)
 
         #write
         with open(
