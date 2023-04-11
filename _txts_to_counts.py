@@ -55,7 +55,7 @@ def _file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_key
             df=_pd_DataFrame(values, columns)
             df.to_csv(output, index=False)
 
-            print(df)
+            #print(df)
 
             #print
             print(f"{i}/{tot} - {file_stem} - done")

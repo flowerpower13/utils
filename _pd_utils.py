@@ -1,6 +1,9 @@
 
+
+#imports
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 
 #clean file stem
@@ -151,3 +154,25 @@ def _csv_to_dictbag(file_path):
     dict_bag={file_path: col_values}
 
     return dict_bag
+
+
+#from folder to file stems' list
+def _folder_to_filestems(folder):
+
+    #global path
+    p=Path(folder).glob('**/*')
+
+    #file paths
+    files=[
+        x for x in p 
+        if x.is_file() and not x.name==f"{folder}.csv"
+        ]
+    
+    #sort
+    files.sort()
+
+    #file stems
+    file_stems=[x.stem for x in files]
+
+
+    return files, file_stems

@@ -1,4 +1,5 @@
 
+
 #preliminary
 #import nltk
 #nltk.download()
@@ -6,18 +7,35 @@
 #nltk.download('punkt')
 #nltk.download('words')
 
+
+#imports
 import re
 from nltk.util import ngrams
-from pytrie import StringTrie
-from nltk import corpus, tokenize
+from nltk import tokenize
 
 
 #variables
 marker="###"
 
 
+#replace tuples in text
+def _replace_txt(text, tuples_replace):
+
+    #for each tuple
+    for i, tuple in enumerate(tuples_replace):
+
+        #old and new
+        (old, new) = tuple
+
+        #replace
+        text=text.replace(old, new)
+    
+    return text
+
+
 #clean text
 def _clean_text(text):
+
     #remove text btw markers
     text=re.sub(f'{marker}.*?{marker}', '', text)
 
@@ -27,7 +45,6 @@ def _clean_text(text):
     #remove non-characters
     text=re.sub(r'[^a-zA-Z ]', '', text)
     #remove whitespaces
-    text=text.strip()
     text=re.sub(r"\s+", ' ', text)
 
     return text
@@ -35,19 +52,26 @@ def _clean_text(text):
 
 #from txt to list tokens and n words
 def _txt_to_tokens(text):
-
-    text=_clean_text(text)
     
+    #list tokens
     list_tokens=tokenize.word_tokenize(text)
+
+    #n words
     n_words=len(list_tokens)
 
-    return list_tokens, n_words
+    #list bigrams
+    list_bigrams=list(ngrams(list_tokens, 2)) 
+    list_bigrams=[' '.join(ngram_tuple) for ngram_tuple in list_bigrams]
+
+    #n bigrams
+    n_bigrams=len(list_bigrams)
+
+    return list_tokens, n_words, list_bigrams, n_bigrams
 
 
 #CONTEXTUAL SEARCH
 from typing import List, Tuple
 from nltk.util import ngrams
-
 def create_ngrams_indexes(list_tokens: List[str], ngram: int) -> Tuple[dict, dict]:
     """
     This function creates a dictionary of ngrams and their corresponding indexes in the given list of tokens.

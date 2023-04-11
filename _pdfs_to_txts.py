@@ -1,16 +1,19 @@
-import shutil
+
+
+#imports
 import pikepdf
-import pandas as pd
 from pathlib import Path
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LAParams, LTTextContainer
 
 
-from _pd_utils import _pd_DataFrame
-from _concat import _folder_to_filestems
+#functions
+from _string_utils import _clean_text, _replace_txt
+from _pd_utils import _pd_DataFrame, _folder_to_filestems
 
 
 #variables
+from _dict_bags import tuples_replace_beforeclean, tuples_replace_afterclean
 error="???"
 marker="###"
 
@@ -56,13 +59,69 @@ def _pdfminer(decrypted_file, output):
     #text
     text=''.join(text_list)       
 
-    #save
-    with open(output, mode='w', encoding="utf-8-sig", errors="ignore") as file_object:
+    #write
+    with open(
+        output, 
+        mode='w', 
+        encoding="utf-8-sig", 
+        errors="ignore",
+        ) as file_object:
+        file_object.write(text)
+
+    return text
+
+
+#read and write file
+def _readwrite_txt(file, noncleaned_file):
+
+    #read
+    with open(
+        file, 
+        mode='r', 
+        encoding="utf-8-sig", 
+        errors="ignore",
+        ) as file_object:
+        text=file_object.read()
+
+    #write
+    with open(
+        noncleaned_file, 
+        mode='w', 
+        encoding="utf-8-sig", 
+        errors="ignore",
+        ) as file_object:
+        file_object.write(text)
+
+    return text
+
+
+#clean and save txt
+def _cleansave_txt(noncleaned_text, output):
+
+    #remove words before clean
+    noncleaned_text=_replace_txt(noncleaned_text, tuples_replace_beforeclean)
+
+    #clean text
+    text=_clean_text(noncleaned_text)
+
+    #remove words after clean
+    text=_replace_txt(text, tuples_replace_afterclean)
+
+    #write
+    with open(
+        output, 
+        mode='w', 
+        encoding="utf-8-sig", 
+        errors="ignore",
+        ) as file_object:
         file_object.write(text)
 
 
 #from decrypted pdf to txt
 def _pdf_to_txt(file, file_stem, file_suffix, output):
+
+    #noncleaned file path
+    noncleaned_file=Path(f"_noncleaned_txt/{file_stem}.txt")
 
     #decrypt and save
     if file_suffix==".pdf":
@@ -70,20 +129,27 @@ def _pdf_to_txt(file, file_stem, file_suffix, output):
         #decrypt pdf to pdf
         decrypted_file=_decrypt_pdf(file, file_stem)
 
-        #pdf to txt
-        _pdfminer(decrypted_file, output)
+        #pdf to noncleaned txt
+        noncleaned_text=_pdfminer(decrypted_file, noncleaned_file)
 
-    #simple copy
+    #simple copy to txt
     elif file_suffix==".txt":
-        shutil.copy(file, output) 
+
+        #txt to noncleaned txt
+        noncleaned_text=_readwrite_txt(file, noncleaned_file)
+
+    #noncleaned txt to cleaned txt
+    _cleansave_txt(noncleaned_text, output)
 
 
 #from pdfs to txts
 #create empty folder "_decrypt_pdf"
 #folders=["_advev", "_pdfs_to_txts"]
-def _pdfs_to_txts(folders): 
+def _pdfs_to_txts(folders, items): 
     resources=folders[0]
     results=folders[1]
+
+    result=items[0]
 
     #colname
     colname_filestems="file_stem"
@@ -92,15 +158,14 @@ def _pdfs_to_txts(folders):
     files, file_stems=_folder_to_filestems(resources)
 
     #trial
-    #files=files[:1]
+    files=files[:2]
+    file_stems=file_stems[:2]
 
     #n obs
     n_files=len(files)
     tot=n_files-1
 
-    #ordered cols
-    file_stems_ordered=[None]*n_files
-    files_ordered=[None]*n_files
+    #empty lists
     outputs=[None]*n_files
     converteds=[None]*n_files
 
@@ -115,6 +180,7 @@ def _pdfs_to_txts(folders):
 
         #file is present
         if output.is_file():
+
             #converted
             converted=True
 
@@ -145,15 +211,13 @@ def _pdfs_to_txts(folders):
                 print(f"{e}")
 
         #ordered cols
-        file_stems_ordered[i]=file_stem
-        files_ordered[i]=file
         outputs[i]=output
         converteds[i]=converted
 
     #create df
     values=[
-        file_stems_ordered, 
-        files_ordered, 
+        file_stems, 
+        files, 
         outputs,
         converteds,
         ]
@@ -169,5 +233,5 @@ def _pdfs_to_txts(folders):
     df=df.sort_values(by=colname_filestems)
 
     #save
-    file_path=f"{results}/_report.csv"
+    file_path=f"{results}/{result}.csv"
     df.to_csv(file_path, index=False)

@@ -1,8 +1,4 @@
 
-import re
-import pandas as pd
-from nltk import tokenize
-
 
 #functions
 from _string_utils import _txt_to_tokens, _tokensbags_to_scores
@@ -44,13 +40,5 @@ def _txt_to_count(text, dict_bags, targetbag_keys, contextbag_keys, window_sizes
     #print(dict_data)
     
     return dict_data
-
-
-
-
-
-
-
-
 
 

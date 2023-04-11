@@ -1,28 +1,11 @@
 
+
+#import
 import pandas as pd
-from pathlib import Path
 
 
-#from folder to file stems' list
-def _folder_to_filestems(folder):
-
-    #global path
-    p=Path(folder).glob('**/*')
-
-    #file paths
-    files={
-        x for x in p 
-        if x.is_file() and not x.name==f"{folder}.csv"
-        }
-
-    #file stems
-    file_stems={x.stem for x in files}
-
-    #sort
-    files=sorted(files)
-    file_stems=sorted(file_stems)
-
-    return files, file_stems
+#functions
+from _pd_utils import _folder_to_filestems
 
 
 #concatenate csv files with word counts
