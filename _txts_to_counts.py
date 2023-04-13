@@ -11,7 +11,7 @@ from _pd_utils import _pd_DataFrame, _dict_to_valscols
 
 #variables
 error="???"
-from _dict_bags import dict_bags
+from _hassan_vars import dict_bags
 
 
 #from file to converted

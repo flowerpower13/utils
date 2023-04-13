@@ -10,12 +10,23 @@
 
 #imports
 import re
-from nltk.util import ngrams
 from nltk import tokenize
+from nltk.util import ngrams
+from nltk.tag.perceptron import PerceptronTagger
+
 
 
 #variables
+error="???"
 marker="###"
+pretrain=PerceptronTagger()
+from _hassan_vars import nltk_conditions
+bad_tokens=[
+    "i", "ive", "youve", "weve", "im", "youre", "were", "id", "youd", "wed", "thats",
+    ]
+bad_bigrams=[
+    "princeton university",
+    ]
 
 
 #replace tuples in text
@@ -52,21 +63,64 @@ def _clean_text(text):
 
 #from txt to list tokens and n words
 def _txt_to_tokens(text):
+
+    #lowercase
+    text=text.lower()
     
     #list tokens
     list_tokens=tokenize.word_tokenize(text)
+
+    #remove bad tokens
+    list_tokens=[x for x in list_tokens if x not in bad_tokens]
 
     #n words
     n_words=len(list_tokens)
 
     #list bigrams
-    list_bigrams=list(ngrams(list_tokens, 2)) 
-    list_bigrams=[' '.join(ngram_tuple) for ngram_tuple in list_bigrams]
+    list_tuplesbigrams=list(ngrams(list_tokens, 2)) 
+    list_bigrams=[' '.join(bigram_tuple) for bigram_tuple in list_tuplesbigrams]
+
+    #remove bad bigrams
+    list_bigrams=[x for x in list_bigrams if x not in bad_bigrams]
 
     #n bigrams
     n_bigrams=len(list_bigrams)
 
     return list_tokens, n_words, list_bigrams, n_bigrams
+
+
+#remove parts of speech - #https://www.nltk.org/api/nltk.tag.perceptron.html
+def _remove_partsofspeech(list_tokens, list_bigrams):
+
+    #tuples tagged tokens
+    listtuples_taggedtokens=pretrain.tag(list_tokens)
+
+    #empty list
+    n_obs=len(listtuples_taggedtokens)-1
+    list_cleanbigrams=[None]*n_obs
+
+    #for
+    for i, bigram in enumerate(list_bigrams):
+
+        #tags
+        tag0=listtuples_taggedtokens[i][1]
+        tag1=listtuples_taggedtokens[i+1][1]
+
+        #if meet conditions
+        if eval(nltk_conditions):
+            list_cleanbigrams[i]=None
+
+        else:
+            #update
+            list_cleanbigrams[i]=bigram
+        
+        print(i)
+
+    #remove None
+    list_cleanbigrams=[x for x in list_cleanbigrams if x is not None]
+
+    #print(listtuples_taggedtokens)
+    return list_cleanbigrams
 
 
 #CONTEXTUAL SEARCH
@@ -112,10 +166,8 @@ def create_ngrams_indexes(list_tokens: List[str], ngram: int) -> Tuple[dict, dic
     # Return the two dictionaries as a tuple
     return ngrams_indexes, indexes_ngrams
 
-
-
-# Given two windows, this function finds all ngrams of different sizes that appear in the windows.
-# It uses an index of ngrams to look up ngrams quickly.
+#Given two windows, this function finds all ngrams of different sizes that appear in the windows.
+#It uses an index of ngrams to look up ngrams quickly.
 def search_ngrams_in_window(left_window, right_window, ngrams2_indexes_container, ngrams_2):
     # This dictionary will store the ngrams found in the windows along with their frequencies.
     ngrams_in_window = dict()
@@ -143,7 +195,6 @@ def search_ngrams_in_window(left_window, right_window, ngrams2_indexes_container
     # Return the dictionary of ngrams and their frequencies.
     return ngrams_in_window
 
-
 def get_max_ngram(ngram_dict):
     # Initialize the maximum ngram length to 0
     max_ngram_len = 0
@@ -157,7 +208,6 @@ def get_max_ngram(ngram_dict):
             max_ngram_len = ngram_len
     # Return the maximum ngram length
     return max_ngram_len
-
 
 def generate_multi_ngrams_indexes(max_ngram_len, list_tokens):
     # Initialize an empty dictionary to hold n-grams and their indexes
@@ -174,10 +224,8 @@ def generate_multi_ngrams_indexes(max_ngram_len, list_tokens):
     # Return the container dictionary
     return ngrams_indexes_container
 
-
-
 def cross_ngrams_search(list_tokens, ngrams_1, ngrams_2, window_size):
-
+    #cotainer[2] -> ngrams_indexes=("I am" -> 1,2,3), indexes_ngrams ->(1 -> "I am","I am the")
     max_ngrams1_len = get_max_ngram(ngrams_1)
     ngrams1_indexes_container = generate_multi_ngrams_indexes(max_ngrams1_len, list_tokens)
 
@@ -198,8 +246,6 @@ def cross_ngrams_search(list_tokens, ngrams_1, ngrams_2, window_size):
 
     return ngrams2_found_near_ngrams1
 
-
-
 def results_cross_ngrams_search(ngrams2_found_near_ngrams1):
     total=0       # initialize the count of total occurrences
     contextual=0  # initialize the count of contextual occurrences
@@ -213,8 +259,6 @@ def results_cross_ngrams_search(ngrams2_found_near_ngrams1):
 
     return total, contextual  # return the total and contextual counts as a tuple
 
-
-
 #from tokens and target/context bags, compute contextual score
 def _tokensbags_to_scores(list_tokens, ngrams_1, ngrams_2, window_size):
 
@@ -225,5 +269,3 @@ def _tokensbags_to_scores(list_tokens, ngrams_1, ngrams_2, window_size):
     total, contextual=results_cross_ngrams_search(ngrams2_found_near_ngrams1)  
 
     return total, contextual
-
-

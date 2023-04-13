@@ -13,9 +13,8 @@ from _pd_utils import _pd_DataFrame, _folder_to_filestems
 
 
 #variables
-from _dict_bags import tuples_replace_beforeclean, tuples_replace_afterclean
-error="???"
-marker="###"
+from _hassan_vars import tuples_replace_beforeclean, tuples_replace_afterclean
+from _string_utils import error, marker
 
 
 #decrypt pdf

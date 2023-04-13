@@ -141,6 +141,26 @@ def _colfunctions_to_df(df, cols, functions):
     return df_concat
 
 
+#from csv to dict_df (key: df as dictionary)
+def _csv_to_dictdf(file_path, index_col, dict_name):
+
+    #read_csv
+    df=pd.read_csv(
+        file_path, 
+        #dtype="string",
+        )
+
+    #set index
+    df=df.set_index(index_col)
+
+    df_to_dict=df.to_dict("index")
+
+    #dict df
+    dict_df={dict_name: df_to_dict}
+
+    return dict_df
+
+
 #from csv to dict_bag (key: list of column values)
 def _csv_to_dictbag(file_path):
 
@@ -150,8 +170,11 @@ def _csv_to_dictbag(file_path):
     #col values to list
     col_values=df[file_path].str.lower().to_list()
 
+    #list to set
+    set_values=set(col_values)
+
     #dict
-    dict_bag={file_path: col_values}
+    dict_bag={file_path: set_values}
 
     return dict_bag
 
