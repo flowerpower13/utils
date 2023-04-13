@@ -1,10 +1,11 @@
 
 #functions
 from _concat import _concat
-from _merge_utils import _pd_merge, _pd_concat
 from _pdfs_to_txts import _pdfs_to_txts
 from _txts_to_counts import _txts_to_counts
 from _filestem_to_ric import _filestem_to_ric
+from _merge_utils import _pd_merge, _pd_concat
+from _hassan import _txts_to_hassan, _topicbigrams
 
 
 #import rdp
@@ -31,25 +32,50 @@ rdp.open_desktop_session(appkey)
 
 
 #from pdf to txt
-#create empty folder "_decrypt_pdf"
+#create empty folders "_decrypt_pdf", "_noncleaned_txt"
 folders=["_advev", "_pdfs_to_txts"]
-_pdfs_to_txts(folders)
+items=["_pdfs_to_txts"]
+#_pdfs_to_txts(folders, items)
+
+
+#from pdf to txt
+#create empty folders "_decrypt_pdf", "_noncleaned_txt"
+folders=["_traininglibraries_pdf", "_traininglibraries_txt"]
+items=["_traininglibraries_txt"]
+#_pdfs_to_txts(folders, items)
 
 
 #from txt to score
-folders=["_pdfs_to_txts_sample", "_txts_to_counts"]
+folders=["_pdfs_to_txts", "_txts_to_counts"]
 items=["_txts_to_counts"]
 #bags and window size (count within n before, n after)
 targetbag_keys=[
     "sovereign",
     ]
 contextbag_keys=[
-    #"loughran_positive", 
-    #"loughran_negative", 
+    "loughran_positive", 
+    "loughran_negative", 
     "synonyms_uncertainty"
     ]
 window_sizes=[10, 20]
 #_txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_sizes)
+
+
+#training library's TF
+folders=["_traininglibraries_txt", "_topicbigrams"]
+items={
+    "_topicbigrams_p": ("abbas2019", "_topicbigrams_pn"),
+    "_topicbigrams_n": ("libby2011", "_topicbigrams_np"),
+    }
+_topicbigrams(folders, items)
+
+
+#from txt to hassan-type score
+#https://www.firmlevelrisk.com/
+#https://github.com/mschwedeler/firmlevelrisk
+folders=["_pdfs_to_txts", "_txts_to_hassan"]
+items=["_txts_to_hassan"]
+#_txts_to_hassan(folders, items)
 
 
 #aggregate txt files
@@ -80,13 +106,13 @@ IDs=[
 #https://wrds-www.wharton.upenn.edu/pages/get-data/compustat-capital-iq-standard-poors/compustat/global-daily/fundamentals-quarterly/
 #2019-01 to 2021-12
 #upload "_convert_symbols1/symbols_IssueISIN.txt", donwload all variables, .csv, .zip, submit to email
-#save as "_data_compustat_isin.csv"
+#save as "_data_compustat_isin.csv", put in folder "_data_compustat"
 
 #download compustat quarterly data
 #https://wrds-www.wharton.upenn.edu/pages/get-data/compustat-capital-iq-standard-poors/compustat/north-america-daily/fundamentals-quarterly/
 #2019-01 to 2021-12
 #upload "_convert_symbols1/symbols_CUSIP.txt", donwload all variables, .csv, .zip, submit to email
-#save as "_data_compustat_cusip.csv"
+#save as "_data_compustat_cusip.csv", put in folder "_data_compustat"
 
 
 #set e-calls database
