@@ -68,7 +68,7 @@ items={
     "p": ("libraries_p", "_topicbigrams_p", "_topicbigrams_pn"),
     "n": ("libraries_n", "_topicbigrams_n", "_topicbigrams_np"),
     }
-_topicbigrams(folders, items)
+#_topicbigrams(folders, items)
 
 
 #from txt to hassan-type score
@@ -76,7 +76,7 @@ _topicbigrams(folders, items)
 #https://github.com/mschwedeler/firmlevelrisk
 folders=["_pdfs_to_txts", "_txts_to_hassan"]
 items=["_txts_to_hassan"]
-#_txts_to_hassan(folders, items)
+_txts_to_hassan(folders, items)
 
 
 #aggregate txt files

@@ -10,7 +10,7 @@ from _pd_utils import _csv_to_dictbag, _csv_to_dictdf
 
 
 #REMOVE PARTS OF SPEECH - #https://www.nltk.org/api/nltk.tag.perceptron.html
-#Hassan et al. 2019 QJE- Appendix B - https://doi.org/10.1093/qje/qjz021
+#Hassan et al. 2019 QJE - Appendix B - https://doi.org/10.1093/qje/qjz021
 
 
 #see parts of speech
@@ -162,6 +162,7 @@ bad_bigrams={
     "university press",
     }
 
+
 #Loughran-McDonald sentiment words
 #https://sraf.nd.edu/loughranmcdonald-master-dictionary/
 file_path="Loughran-McDonald_MasterDictionary_1993-2021"
@@ -181,39 +182,47 @@ def _loughran_sentiment(sentiment):
     return loughran_sentiment
 
 
-#synonyms_uncertainty
-#https://github.com/mschwedeler/firmlevelrisk/blob/master/input/riskwords/synonyms.txt
-file_path="synonyms_uncertainty"
-bad_keywords={"question", "questions", "venture"}
-set_synonyms_uncertainty=_csv_to_dictbag(file_path, bad_keywords)
+#general sets
+def get_generalsets():
 
+    #uncertainty
+    #https://github.com/mschwedeler/firmlevelrisk/blob/master/input/riskwords/synonyms.txt
+    file_path="synonyms_uncertainty"
+    bad_keywords={"question", "questions", "venture"}
+    set_synonyms_uncertainty=_csv_to_dictbag(file_path, bad_keywords)
 
-
-
-#loughran
-sentiment="Positive"
-set_loughran_positive=_loughran_sentiment(sentiment)
-sentiment="Negative"
-set_loughran_negative=_loughran_sentiment(sentiment)
-
-
-#sovereign
-file_path="sovereign"
-bad_keywords=set()
-set_sovereign=_csv_to_dictbag(file_path, bad_keywords)
-
-#dict bags
-dict_bags={
+    #loughran
+    sentiment="Positive"
+    set_loughran_positive=_loughran_sentiment(sentiment)
+    sentiment="Negative"
+    set_loughran_negative=_loughran_sentiment(sentiment)
 
     #sovereign
-    **set_sovereign,
-    
-    #loughran
-    **set_loughran_positive,
-    **set_loughran_negative,
+    file_path="sovereign"
+    bad_keywords=set()
+    set_sovereign=_csv_to_dictbag(file_path, bad_keywords)
 
-    #synonyms uncertainty
-    **set_synonyms_uncertainty,
+    #add others here
+    #
 
-    }
+    return set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign
+
+
+#topic dicts
+def get_topicdicts():
+
+    #index col
+    index_col="bigram"
+
+    #topic bigrams P\N
+    file_path="_topicbigrams/_topicbigrams_pn.csv"
+    dict_name="dict_topicbigrams_pn"
+    dict_topicbigrams_pn=_csv_to_dictdf(file_path, index_col, dict_name)
+
+    #topic bigrams N\P
+    file_path="_topicbigrams/_topicbigrams_np.csv"
+    dict_name="dict_topicbigrams_np"
+    dict_topicbigrams_np=_csv_to_dictdf(file_path, index_col, dict_name)
+
+    return dict_topicbigrams_pn, dict_topicbigrams_np
 

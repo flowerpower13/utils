@@ -270,3 +270,81 @@ def _tokensbags_to_scores(list_tokens, ngrams_1, ngrams_2, window_size):
     total, contextual=results_cross_ngrams_search(ngrams2_found_near_ngrams1)  
 
     return total, contextual
+
+
+#binary search
+from bisect import bisect_left
+def BinarySearch(elements_list, element_to_find):
+    i = bisect_left(elements_list, element_to_find)
+    if i != len(elements_list) and elements_list[i] == element_to_find:
+        return i
+    else:
+        return -1
+
+
+# This function counts the number of occurrences of a given bigram within a specified context.
+# The bigram is represented by its starting index in a list of tokens.
+# The context is represented by a list of lists of token indexes.
+# The window_size parameter specifies the maximum distance (in tokens) between the bigram and any other token in the context.
+def _bigram_in_context(bigram_index, context_indexes, window_size):
+    # Initialize a variable to keep track of the number of occurrences found.
+    occurrences_found = 0
+    
+    # Initialize a boolean variable to control skipping tokens that have already been counted.
+    skip = False
+    
+    # Loop over all the contexts in the list of context_indexes.
+    for context in context_indexes:
+        # If the last token in the context is too far from the bigram, skip this context.
+        if context[-1] < bigram_index-window_size:
+            continue
+        
+        # Loop over all the tokens in the current context.
+        for position in context:
+            # If we just counted the token in the previous iteration, skip it.
+            if skip:
+                skip = False
+                continue
+            
+            # If the current token is too far from the bigram, exit the loop.
+            if position > bigram_index+window_size:
+                break
+            
+            # If the current token is within the window_size distance from the bigram,
+            # count it as an occurrence of the bigram and skip the next token (since it's too close).
+            if position >= bigram_index-window_size and position <= bigram_index+window_size:
+                occurrences_found += 1
+                skip = True
+            
+    # Return the total number of occurrences found.
+    return occurrences_found
+
+
+
+# This function generates a list of context indexes for each word in a given bag of words.
+# The context indexes for a word are the indexes of that word and its neighboring words in a list of tokens.
+# The list of tokens is represented as a list of strings.
+def _gen_context_indexes(context_bag, list_tokens):
+    # Initialize an empty list to store the context indexes for each word.
+    context_indexes = list()
+    
+    # Loop over all the words in the context bag.
+    for word in context_bag:
+        # Initialize an empty set to store the indexes of the current word and its neighbors.
+        word_indexes = set()
+        
+        # Loop over all the tokens in the list of tokens.
+        for i, token in enumerate(list_tokens):
+            # If the current token matches the current word, add its index and the index of its left neighbor to the set.
+            if token == word:
+                word_indexes.add(i)
+                word_indexes.add(i-1)
+        
+        # If any indexes were found for the current word, sort them and add them to the list of context indexes.
+        if len(word_indexes) > 0:
+            sorted_context = list(word_indexes)
+            sorted_context.sort()
+            context_indexes.append(sorted_context)
+    
+    # Return the list of context indexes for all words in the context bag.
+    return context_indexes

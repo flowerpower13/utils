@@ -10,28 +10,17 @@ from pathlib import Path
 #functions
 from _concat import _folder_to_filestems
 from _pd_utils import _pd_DataFrame, _dict_to_valscols, _csv_to_dictdf
-from _string_utils import _clean_text, _txt_to_tokens, _remove_partsofspeech, error, marker
-
+from _string_utils import _clean_text, _txt_to_tokens, _remove_partsofspeech, _bigram_in_context, _gen_context_indexes
 
 #variables
 from _string_utils import error, marker
-#list bigrams pn
-file_path="_topicbigrams/_topicbigrams_pn.csv"
-index_col="bigram"
-dict_name="topicbigrams_pn"
-#list bigrams np
-file_path="_topicbigrams/_topicbigrams_np.csv"
-index_col="bigram"
-dict_name="topicbigrams_np"
+from _hassan_vars import get_generalsets, get_topicdicts
+set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
+dict_topicbigrams_pn, dict_topicbigrams_np = get_topicdicts()
+window_size=10
 
 
-from _hassan_vars import dict_bags
-set_synonyms_uncertainty=dict_bags["synonyms_uncertainty"]
-set_loughran_positive=dict_bags["loughran_positive"]
-set_loughran_negative=dict_bags["loughran_negative"]
-
-
-#create santa barbara corpus
+#from txts to unique txt corpus
 def _txts_to_corpus(folder_corpus, path_aggregatecorpus):
 
     file_exclude="exclude"
@@ -168,45 +157,8 @@ def _topicbigrams(folders, items):
     df_np.to_csv(filepath_np, index=False)
 
 
-#binary search
-from bisect import bisect_left
-def BinarySearch(elements_list, element_to_find):
-    i = bisect_left(elements_list, element_to_find)
-    if i != len(elements_list) and elements_list[i] == element_to_find:
-        return i
-    else:
-        return -1
-    
-
-#bigram in context
-def _bigram_in_context(bigram_index, context_indexes, window_size):
-    occurrences_found = 0
-    skip = False
-    for index in range(bigram_index-window_size, bigram_index+window_size+1):
-        if index <= bigram_index:
-            if BinarySearch(context_indexes, index) >= 0:
-                occurrences_found += 1   
-    return occurrences_found
-
-
-#generate context indexes
-def _gen_context_indexes(context_bag, list_tokens):
-    context_indexes = list()
-    for word in context_bag:
-        for i, token in enumerate(list_tokens):
-            if token == word:
-                context_indexes.append(i)
-    context_indexes.sort() 
-    return context_indexes
-
-
 #txt to hassan scores
-window_size=3
-def _txt_to_hassan(text, dict_bigrams):
-
-    #variables
-    dict_topicbigrams_pn=dict_bigrams["dict_topicbigrams_pn"]
-    dict_topicbigrams_np=dict_bigrams["dict_topicbigrams_np"]
+def _txt_to_hassan(text):
 
     #text
     list_tokens, n_words, list_bigrams, n_bigrams = _txt_to_tokens(text)
@@ -256,7 +208,7 @@ def _txt_to_hassan(text, dict_bigrams):
 
         #if within 20 words from uncertainty
         words_count = _bigram_in_context(i, context_indexes_uncertainty, window_size)
-        print(bigram, words_count)
+        #print(bigram, words_count)
         if words_count > 0:
             indicator_within_uncertainty=1
         else:
@@ -271,7 +223,7 @@ def _txt_to_hassan(text, dict_bigrams):
         #if within 20 words from sentiment
         sum_within_positive=_bigram_in_context(i, context_indexes_positive, window_size)
         sum_within_negative=_bigram_in_context(i, context_indexes_negative, window_size)
-        #print("positive words count \n", bigram, categorical_within_sentiment)
+        print(bigram, sum_within_positive)
 
         #if contained in sentiment
         if bigram in set_loughran_positive:
@@ -356,15 +308,9 @@ def _txt_to_hassan(text, dict_bigrams):
     
     return dict_data
 
-text="blaone blatwo blathree blafour uncertain blafive blasix blaseven blaeight blanine"
-#_txt_to_hassan(text)
-
-
-
-
 
 #from file to converted
-def _file_to_converted(file, file_stem, output, i, tot, dict_bigrams):
+def _file_to_converted(file, file_stem, output, i, tot):
     try:
         with open(
             file=file, 
@@ -393,7 +339,7 @@ def _file_to_converted(file, file_stem, output, i, tot, dict_bigrams):
                 ]
 
             #txt to count
-            dict_data=_txt_to_hassan(text, dict_bigrams)  
+            dict_data=_txt_to_hassan(text)  
             Vs, Ks = _dict_to_valscols(dict_data)
             values+=Vs
             columns+=Ks
@@ -429,15 +375,6 @@ def _txts_to_hassan(folders, items):
     resource=items[0]
     result=items[1]
 
-    #variables
-    dict_topicbigrams_pn=_csv_to_dictdf(file_path, index_col, dict_name)
-    dict_topicbigrams_np=_csv_to_dictdf(file_path, index_col, dict_name)
-
-    dict_bigrams={
-        **dict_topicbigrams_pn
-        **dict_topicbigrams_np
-        }
-
     #colname
     colname_filestems="file_stem"
 
@@ -461,7 +398,7 @@ def _txts_to_hassan(folders, items):
         if not output.is_file():
 
             #converted
-            converted=_file_to_converted(file, file_stem, output, i, tot, dict_bigrams)
+            converted=_file_to_converted(file, file_stem, output, i, tot)
 
         #file is present
         elif output.is_file():
