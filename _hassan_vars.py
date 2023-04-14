@@ -1,6 +1,7 @@
 
 
 #imports
+import nltk
 import pandas as pd
 
 
@@ -12,29 +13,32 @@ from _pd_utils import _csv_to_dictbag, _csv_to_dictdf
 #Hassan et al. 2019 QJE- Appendix B - https://doi.org/10.1093/qje/qjz021
 
 
-#update parts of speech
-#import nltk
+#see parts of speech
 #nltk.help.upenn_tagset()
 
 
-#parts of speech
+#non-relevant parts of speech
 pronouns=["PRP", "PRP$"]
 prepositions=["TO", "IN"]
 adverbs=["RB", "RBR", "RBS"]
 wh_adverbs=["WRB"]
 determiners=["DT", "PDT"] 
+foreign_words=["FW"]
+adjectives=["JJ", "JJR", "JJS"]
+nouns=["NN", "NNP", "NNPS", "NNS"]
+verbs=["VB", "VBD", "VBG", "VBN", "VBP", "VBZ"]
 
 
-#parts of speech
-#pronouns
+#non-relevant
+#pronoun
 pronoun_tag0=f'(tag0=="{pronouns[0]}" or tag0=="{pronouns[1]}")'
 pronoun_tag1=f'(tag1=="{pronouns[0]}" or tag1=="{pronouns[1]}")'
 
-#prepositions
+#preposition
 preposition_tag0=f'(tag0=="{prepositions[0]}" or tag0=="{prepositions[1]}")'
 preposition_tag1=f'(tag1=="{prepositions[0]}" or tag1=="{prepositions[1]}")'
 
-#adverbs
+#adverb
 adverb_tag0=f'(tag0=="{adverbs[0]}" or tag0=="{adverbs[1]}" or tag0=="{adverbs[2]}")'
 adverb_tag1=f'(tag1=="{adverbs[0]}" or tag1=="{adverbs[1]}" or tag1=="{adverbs[2]}")'
 
@@ -45,6 +49,22 @@ wh_adverb_tag1=f'(tag1=="{wh_adverbs[0]}")'
 #determiner
 determiner_tag0=f'(tag0=="{determiners[0]}" or tag0=="{determiners[1]}")'
 determiner_tag1=f'(tag1=="{determiners[0]}" or tag1=="{determiners[1]}")'
+
+#foreign word
+foreign_word_tag0=f'(tag0=="{foreign_words[0]}")'
+foreign_word_tag1=f'(tag1=="{foreign_words[0]}")'
+
+#adjective
+adjective_tag0=f'(tag0=="{adjectives[0]}" or tag0=="{adjectives[1]}" or tag0=="{adjectives[2]}")'
+adjective_tag1=f'(tag1=="{adjectives[0]}" or tag1=="{adjectives[1]}" or tag1=="{adjectives[2]}")'
+
+#noun
+noun_tag0=f'(tag0=="{nouns[0]}" or tag0=="{nouns[1]}" or tag0=="{nouns[2]}" or tag0=="{nouns[3]}")'
+noun_tag1=f'(tag1=="{nouns[0]}" or tag1=="{nouns[1]}" or tag1=="{nouns[2]}" or tag1=="{nouns[3]}")'
+
+#verb
+verb_tag0=f'(tag0=="{verbs[0]}" or tag0=="{verbs[1]}" or tag0=="{verbs[2]}" or tag0=="{verbs[3]}" or tag0=="{verbs[4]}" or tag0=="{verbs[5]}")'
+verb_tag1=f'(tag1=="{verbs[0]}" or tag1=="{verbs[1]}" or tag1=="{verbs[2]}" or tag1=="{verbs[3]}" or tag1=="{verbs[5]}" or tag1=="{verbs[5]}")'
 
 
 #0, 1, 2
@@ -73,9 +93,8 @@ condition8_2=f"{determiner_tag0} and {adverb_tag1}"
 condition9_1=f"{wh_adverb_tag0} and {determiner_tag1}"
 condition9_2=f"{determiner_tag0} and {wh_adverb_tag1}"
 
-
-#all conditions
-nltk_conditions=f'''
+#all negative conditions
+nltk_negative_conditions=f'''
 ({condition0}) or \
 ({condition1}) or \
 ({condition2}) or \
@@ -91,6 +110,22 @@ nltk_conditions=f'''
 ({condition8_2}) or \
 ({condition9_1}) or \
 ({condition9_2})
+'''
+
+
+#fiore
+#0, 1, 2, 3, 
+condition0=f"{foreign_word_tag0} or {foreign_word_tag1}"
+condition1=f"{adjective_tag0} or {adjective_tag1}"
+condition2=f"{noun_tag0} or {noun_tag1}"
+condition3=f"{verb_tag0} or {verb_tag1}"
+
+#all positive conditions
+nltk_positive_conditions=f'''
+({condition0}) or \
+({condition1}) or \
+({condition2}) or \
+({condition3})
 '''
 
 
@@ -112,10 +147,20 @@ tuples_replace_afterclean=[
     ]
 
 
-#remove bad keywords from synonyms uncertainty
-#Hassan et al. 2019 QJE- Appendix B - https://doi.org/10.1093/qje/qjz021
-bad_sentiment=["question", "questions", "venture"]
-
+#remove tokens and bigrams (also stopwords and single letters)
+from nltk.corpus import stopwords
+stop_words=set(stopwords.words('english'))
+import string
+alphabet = set(string.ascii_lowercase)
+bad_tokens={
+    "i", "ive", "youve", "weve", "im", "youre", "were", "id", "youd", "wed", "thats",
+    *stop_words,
+    *alphabet,
+    }
+bad_bigrams={
+    "princeton university",
+    "university press",
+    }
 
 #Loughran-McDonald sentiment words
 #https://sraf.nd.edu/loughranmcdonald-master-dictionary/
@@ -136,19 +181,13 @@ def _loughran_sentiment(sentiment):
     return loughran_sentiment
 
 
-#sovereign
-file_path="sovereign"
-set_sovereign=_csv_to_dictbag(file_path)
-
-
 #synonyms_uncertainty
 #https://github.com/mschwedeler/firmlevelrisk/blob/master/input/riskwords/synonyms.txt
 file_path="synonyms_uncertainty"
-set_synonyms_uncertainty=_csv_to_dictbag(file_path)
-set_synonyms_uncertainty[file_path]=[
-    x for x in set_synonyms_uncertainty[file_path] 
-    if x not in bad_sentiment
-    ]
+bad_keywords={"question", "questions", "venture"}
+set_synonyms_uncertainty=_csv_to_dictbag(file_path, bad_keywords)
+
+
 
 
 #loughran
@@ -157,6 +196,11 @@ set_loughran_positive=_loughran_sentiment(sentiment)
 sentiment="Negative"
 set_loughran_negative=_loughran_sentiment(sentiment)
 
+
+#sovereign
+file_path="sovereign"
+bad_keywords=set()
+set_sovereign=_csv_to_dictbag(file_path, bad_keywords)
 
 #dict bags
 dict_bags={

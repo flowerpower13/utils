@@ -162,7 +162,7 @@ def _csv_to_dictdf(file_path, index_col, dict_name):
 
 
 #from csv to dict_bag (key: list of column values)
-def _csv_to_dictbag(file_path):
+def _csv_to_dictbag(file_path, bad_keywords):
 
     #read csv
     df=pd.read_csv(f"{file_path}.csv", dtype="string")
@@ -171,7 +171,7 @@ def _csv_to_dictbag(file_path):
     col_values=df[file_path].str.lower().to_list()
 
     #list to set
-    set_values=set(col_values)
+    set_values=set(col_values)-bad_keywords
 
     #dict
     dict_bag={file_path: set_values}

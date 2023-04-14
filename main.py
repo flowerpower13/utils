@@ -5,7 +5,7 @@ from _pdfs_to_txts import _pdfs_to_txts
 from _txts_to_counts import _txts_to_counts
 from _filestem_to_ric import _filestem_to_ric
 from _merge_utils import _pd_merge, _pd_concat
-from _hassan import _txts_to_hassan, _topicbigrams
+from _hassan import _txts_to_hassan, _txts_to_corpus, _topicbigrams
 
 
 #import rdp
@@ -32,16 +32,9 @@ rdp.open_desktop_session(appkey)
 
 
 #from pdf to txt
-#create empty folders "_decrypt_pdf", "_noncleaned_txt"
+#create empty folders "_decrypt_pdf", "_raw_txt"
 folders=["_advev", "_pdfs_to_txts"]
 items=["_pdfs_to_txts"]
-#_pdfs_to_txts(folders, items)
-
-
-#from pdf to txt
-#create empty folders "_decrypt_pdf", "_noncleaned_txt"
-folders=["_traininglibraries_pdf", "_traininglibraries_txt"]
-items=["_traininglibraries_txt"]
 #_pdfs_to_txts(folders, items)
 
 
@@ -61,11 +54,19 @@ window_sizes=[10, 20]
 #_txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_sizes)
 
 
+#from pdf to txt
+#create empty folders "_decrypt_pdf", "_raw_txt"
+folders=["_traininglibraries_pdf", "_traininglibraries_txt"]
+items=["_traininglibraries_txt"]
+#_pdfs_to_txts(folders, items)
+
+
 #training library's TF
+#move libraries  from "_traininglibraries_txt" in correct folders either "libraries_p" or "libraries_p"
 folders=["_traininglibraries_txt", "_topicbigrams"]
 items={
-    "_topicbigrams_p": ("abbas2019", "_topicbigrams_pn"),
-    "_topicbigrams_n": ("libby2011", "_topicbigrams_np"),
+    "p": ("libraries_p", "_topicbigrams_p", "_topicbigrams_pn"),
+    "n": ("libraries_n", "_topicbigrams_n", "_topicbigrams_np"),
     }
 _topicbigrams(folders, items)
 

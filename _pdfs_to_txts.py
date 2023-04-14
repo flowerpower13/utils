@@ -15,7 +15,8 @@ from _pd_utils import _pd_DataFrame, _folder_to_filestems
 #variables
 from _hassan_vars import tuples_replace_beforeclean, tuples_replace_afterclean
 from _string_utils import error, marker
-
+encoding="utf-8"
+errors="strict"
 
 #decrypt pdf
 def _decrypt_pdf(file, file_stem):
@@ -23,9 +24,16 @@ def _decrypt_pdf(file, file_stem):
     #NEW file_path
     decrypted_file=Path(f"_decrypt_pdf/{file_stem}.pdf")
 
-    #decrypt and save
-    decrypted_pdf=pikepdf.open(file)
-    decrypted_pdf.save(decrypted_file)
+    #try
+    try:
+
+        #decrypt and save
+        decrypted_pdf=pikepdf.open(file)
+        decrypted_pdf.save(decrypted_file)
+    
+    except Exception as e:
+        print(e)
+        print(decrypted_file)
 
     return decrypted_file
 
@@ -35,35 +43,49 @@ def _pdfminer(decrypted_file, output):
 
     #parameters
     laparams=LAParams(line_overlap=0.5, char_margin=2.0, line_margin=0.5, word_margin=0.1, boxes_flow=0.5, detect_vertical=False, all_texts=True)
-    pages=extract_pages(decrypted_file, password='', page_numbers=None, maxpages=0, caching=True, laparams=laparams)
-    
+
     #create empty text list
     text_list=[]
 
-    #iterate through pae
+    #extract pages
+    pages=extract_pages(decrypted_file, password='', page_numbers=None, maxpages=0, caching=True, laparams=laparams)
+    
+    #for page
     for i, page_layout in enumerate(pages):
-        text_list.append(f"\n{marker}page_layout - {i}{marker}\n")
+
+        #marker page
+        marker_page=f"\n{marker}page_layout - {i}{marker}\n"
+        text_list.append(marker_page)
         
-        for j, element in enumerate(page_layout):  
+        #for element
+        for j, element in enumerate(page_layout): 
+
+            #is instance
             if isinstance(element, LTTextContainer):
 
+                #marker element
+                marker_element=f"\n{marker}element.get_text() - {j}{marker}\n"
+                text_list.append(marker_element)
+
+                #try
                 try:
-                    text_list.append(f"\n{marker}element.get_text() - {j}{marker}\n")
-                    text_list.append(element.get_text())   
+                    #text element
+                    text_element=element.get_text()
+                    text_list.append(text_element)   
                 
                 except Exception as e:
                     print(e)
                     text_list.append(error)
 
     #text
-    text=''.join(text_list)       
+    text=' '.join(text_list)       
 
     #write
     with open(
         output, 
         mode='w', 
-        encoding="utf-8-sig", 
-        errors="ignore",
+        encoding=encoding, 
+        errors=errors,
         ) as file_object:
         file_object.write(text)
 
@@ -71,37 +93,37 @@ def _pdfminer(decrypted_file, output):
 
 
 #read and write file
-def _readwrite_txt(file, noncleaned_file):
+def _readwrite_txt(file, raw_file):
 
     #read
     with open(
         file, 
         mode='r', 
-        encoding="utf-8-sig", 
-        errors="ignore",
+        encoding=encoding, 
+        errors=errors,
         ) as file_object:
-        text=file_object.read()
+        raw_text=file_object.read()
 
     #write
     with open(
-        noncleaned_file, 
+        raw_file, 
         mode='w', 
-        encoding="utf-8-sig", 
-        errors="ignore",
+        encoding=encoding, 
+        errors=errors,
         ) as file_object:
-        file_object.write(text)
+        file_object.write(raw_text)
 
-    return text
+    return raw_text
 
 
 #clean and save txt
-def _cleansave_txt(noncleaned_text, output):
+def _cleansave_txt(raw_text, output):
 
     #remove words before clean
-    noncleaned_text=_replace_txt(noncleaned_text, tuples_replace_beforeclean)
+    raw_text=_replace_txt(raw_text, tuples_replace_beforeclean)
 
     #clean text
-    text=_clean_text(noncleaned_text)
+    text=_clean_text(raw_text)
 
     #remove words after clean
     text=_replace_txt(text, tuples_replace_afterclean)
@@ -110,8 +132,8 @@ def _cleansave_txt(noncleaned_text, output):
     with open(
         output, 
         mode='w', 
-        encoding="utf-8-sig", 
-        errors="ignore",
+        encoding=encoding, 
+        errors=errors,
         ) as file_object:
         file_object.write(text)
 
@@ -119,26 +141,39 @@ def _cleansave_txt(noncleaned_text, output):
 #from decrypted pdf to txt
 def _pdf_to_txt(file, file_stem, file_suffix, output):
 
-    #noncleaned file path
-    noncleaned_file=Path(f"_noncleaned_txt/{file_stem}.txt")
+    #raw file path
+    raw_file=Path(f"_raw_txt/{file_stem}.txt")
 
-    #decrypt and save
-    if file_suffix==".pdf":
+    #try
+    try:
 
-        #decrypt pdf to pdf
-        decrypted_file=_decrypt_pdf(file, file_stem)
+        #decrypt and save
+        if file_suffix==".pdf":
 
-        #pdf to noncleaned txt
-        noncleaned_text=_pdfminer(decrypted_file, noncleaned_file)
+            #decrypt and convert
+            decrypted_file=_decrypt_pdf(file, file_stem)
+            raw_text=_pdfminer(decrypted_file, raw_file)
 
-    #simple copy to txt
-    elif file_suffix==".txt":
+            #converted
+            converted=True
 
-        #txt to noncleaned txt
-        noncleaned_text=_readwrite_txt(file, noncleaned_file)
+        #simple copy to txt
+        elif file_suffix==".txt":
 
-    #noncleaned txt to cleaned txt
-    _cleansave_txt(noncleaned_text, output)
+            #txt to raw txt
+            raw_text=_readwrite_txt(file, raw_file)
+
+        #raw txt to cleaned txt
+        _cleansave_txt(raw_text, output)
+    
+    except Exception as e:
+        print(e)
+        print(file)
+
+        #converted
+        converted=False
+
+    return converted
 
 
 #from pdfs to txts
@@ -155,10 +190,10 @@ def _pdfs_to_txts(folders, items):
 
     #file stems
     files, file_stems=_folder_to_filestems(resources)
-
+    
     #trial
-    files=files[:2]
-    file_stems=file_stems[:2]
+    #files=files[:2]
+    #file_stems=file_stems[:2]
 
     #n obs
     n_files=len(files)
@@ -189,25 +224,11 @@ def _pdfs_to_txts(folders, items):
         #file is NOT present
         if not output.is_file():
 
-            try:
+            #try to convert
+            converted=_pdf_to_txt(file, file_stem, file_suffix, output)
 
-                #try to convert
-                _pdf_to_txt(file, file_stem, file_suffix, output)
-
-                #converted
-                converted=True
-
-                #print
-                print(f"{i}/{tot} - {file} - done")
-
-            except Exception as e:
-
-                #converted
-                converted=False
-
-                #print
-                print(f"{i}/{tot} - {file} - error")
-                print(f"{e}")
+            #print
+            print(f"{i}/{tot} - {file} - done")
 
         #ordered cols
         outputs[i]=output
@@ -234,3 +255,4 @@ def _pdfs_to_txts(folders, items):
     #save
     file_path=f"{results}/{result}.csv"
     df.to_csv(file_path, index=False)
+    

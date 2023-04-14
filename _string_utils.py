@@ -15,18 +15,11 @@ from nltk.util import ngrams
 from nltk.tag.perceptron import PerceptronTagger
 
 
-
 #variables
 error="???"
 marker="###"
 pretrain=PerceptronTagger()
-from _hassan_vars import nltk_conditions
-bad_tokens=[
-    "i", "ive", "youve", "weve", "im", "youre", "were", "id", "youd", "wed", "thats",
-    ]
-bad_bigrams=[
-    "princeton university",
-    ]
+from _hassan_vars import nltk_negative_conditions, nltk_positive_conditions, bad_tokens, bad_bigrams
 
 
 #replace tuples in text
@@ -45,10 +38,10 @@ def _replace_txt(text, tuples_replace):
 
 
 #clean text
-def _clean_text(text):
+def _clean_text(raw_text):
 
     #remove text btw markers
-    text=re.sub(f'{marker}.*?{marker}', '', text)
+    text=re.sub(f'{marker}.*?{marker}', '', raw_text)
 
     #lowercase
     text=text.lower()
@@ -56,7 +49,7 @@ def _clean_text(text):
     #remove non-characters
     text=re.sub(r'[^a-zA-Z ]', '', text)
     #remove whitespaces
-    text=re.sub(r"\s+", ' ', text)
+    #text=re.sub(r"\s+", ' ', text)
 
     return text
 
@@ -64,9 +57,6 @@ def _clean_text(text):
 #from txt to list tokens and n words
 def _txt_to_tokens(text):
 
-    #lowercase
-    text=text.lower()
-    
     #list tokens
     list_tokens=tokenize.word_tokenize(text)
 
@@ -94,9 +84,10 @@ def _remove_partsofspeech(list_tokens, list_bigrams):
 
     #tuples tagged tokens
     listtuples_taggedtokens=pretrain.tag(list_tokens)
-
+    
     #empty list
-    n_obs=len(listtuples_taggedtokens)-1
+    n_obs=len(list_bigrams)
+    tot=n_obs-1
     list_cleanbigrams=[None]*n_obs
 
     #for
@@ -107,20 +98,30 @@ def _remove_partsofspeech(list_tokens, list_bigrams):
         tag1=listtuples_taggedtokens[i+1][1]
 
         #if meet conditions
-        if eval(nltk_conditions):
-            list_cleanbigrams[i]=None
+        if (eval(nltk_positive_conditions)) and not (eval(nltk_negative_conditions)):
+            
+            #include
+            list_cleanbigrams[i]=bigram 
+
+            #print
+            print(f"{i}/{tot} - {bigram}")
 
         else:
-            #update
-            list_cleanbigrams[i]=bigram
-        
-        print(i)
 
+            #print
+            print(f"{i}/{tot} - {bigram} - skipped")
+        
     #remove None
     list_cleanbigrams=[x for x in list_cleanbigrams if x is not None]
 
     #print(listtuples_taggedtokens)
     return list_cleanbigrams
+
+'''
+text="twelve percent of the black male population"
+list_tokens, n_words, list_bigrams, n_bigrams = _txt_to_tokens(text)
+_remove_partsofspeech(list_tokens, list_bigrams)
+'''
 
 
 #CONTEXTUAL SEARCH
