@@ -6,7 +6,7 @@ import pandas as pd
 
 
 #functions
-from _pd_utils import _csv_to_dictbag, _csv_to_dictdf
+from _pd_utils import _csv_to_setvalues, _csv_to_dictdf
 
 
 #REMOVE PARTS OF SPEECH - #https://www.nltk.org/api/nltk.tag.perceptron.html
@@ -129,57 +129,140 @@ nltk_positive_conditions=f'''
 '''
 
 
-#remove words before clean 
-#Hassan et al. 2019 QJE- Appendix A.1 - https://doi.org/10.1093/qje/qjz021
-tuples_replace_beforeclean=[
-    ("Bill", "bbill"),
-    ("Constitution", "cconstitution"),
-    ]
-tuples_replace_afterclean=[
-    ("risk officer", ""),
-    ("risk credit officer", ""),
-    ("unknown speaker", ""),
-    ("unknown participant", ""),
-    ("unknown caller", ""),
-    ("unknown operator", ""),
-    ("unknown firm analyst", ""),
-    ("in the states", ""),
-    ]
-
-
-#remove tokens and bigrams (also stopwords and single letters)
+#stopwords and alphabet letters
 from nltk.corpus import stopwords
 stop_words=set(stopwords.words('english'))
 import string
-alphabet = set(string.ascii_lowercase)
-bad_tokens={
-    "i", "ive", "youve", "weve", "im", "youre", "were", "id", "youd", "wed", "thats",
-    *stop_words,
-    *alphabet,
-    }
-bad_bigrams={
-    "princeton university",
-    "university press",
-    }
+alphabet=set(string.ascii_lowercase)
+
+
+#add university names
+#https://github.com/Hipo/university-domains-list/
+def _tuples_universities():
+
+    #imports
+    import json
+
+    #file_path
+    file_path="world_universities_and_domains.json"
+
+    #read
+    with open(
+        file=file_path,
+        mode="r",
+        encoding="utf8",
+        ) as file_object:
+        data = json.load(file_object)
+
+    #tuples
+    tuples_universities=[(item['name'], '') for item in data]
+
+    return tuples_universities
+
+
+#remove words, tokens, and bigrams
+#Hassan et al. 2019 QJE- Appendix - https://doi.org/10.1093/qje/qjz021
+def _get_badkeywords():
+    #lowercase sensitive
+    tuples_replace_beforelowercase=[
+
+        #hassan
+        ("Bill", "bbill"),
+        ("Constitution", "cconstitution"),
+
+        #epub-related
+        ("Return to reference", ""), ("(accessed", ""), ("(all accessed", ""), ("th ed.", ""), ("Note ", ""), 
+        ("Alamy Stock Photo", ""), ("Getty Images", ""), ("et al.", ""), ("Practice Quiz Questions", ""),  
+        #press-specific
+        ("University Press", ""), ("Princeton, NJ", ""), ("University of Chicago Press", ""), ("Los Angeles: CQ Press", ""), 
+        ("Dryden Press", ""), ("Associated Press", ""), ("Beacon Press", ""), ("University of Notre Dame Press", ""),
+        ("National Geographic Press", ""), ("University of Oklahoma Press", ""), ("University of Tennessee Press", ""), 
+        ("Brookings Institution Press", ""), ("University of North Carolina Press", ""), ("University of Michigan Press", ""),
+        ("St. Martin's Press", ""), ("Westview Press", ""), ("Penguin Press", ""), ("New York Press", ""), ("Seven Stories Press", ""), 
+        ("Monthly Review Press", ""), ("Westview Press", ""), ("www.people-press.org", ""), ("SUNY Press", ""), ("Atherton Press", ""), 
+        (" University of Virginia Press", ""), ("Free Press", ""),  ("Belknap Press", ""), 
+
+        #abbas2019
+        ("OUP CORRECTED PROOF", ""), ("FINAL, 01/10/19, SPi", ""), ("SPi", ""), ("Case Study", ""), 
+        ("Washington, DC: International Monetary Fund", ""), ("American Economic Review", ""), 
+        ("European Economic Review", ""), ("IMF Economic Review", ""),  ("Economic Review", ""), 
+        ("Journal of Economic", ""), ("Journal of International", ""), ("Journal of Monetary", ""), 
+        #authors
+        ("Ali Abbas", ""), ("Alex Pienkowski", ""), ("Kenneth Rogoff", ""),  
+        ("Carmen Reinhart", ""), ("Reinhart", ""), ("Rogoff", ""), 
+        ("Eichengreen, El-Ganainy, Esteves, and Mitchener", ""), ("Arslanalp, Bergthaler, Stokoe, and Tieman", ""), 
+        ("Fatás, Ghosh, Panizza, and Presbitero", ""), ("Debrun, Ostry, Willems, and Wyplosz", ""), 
+        ("Jonasson, Papaioannou, and Williams", ""), ("Best, Bush, Eyraud, and Sbrancia", ""), 
+        ("Ams, Baqir, Gelpern, and Trebesch", ""), ("Buchheit, Chabert, DeLong, and Zettelmeyer", ""), 
+        ("Bredenkamp, Hausmann, Pienkowski, and Reinhart", ""),  
+
+        ]
+
+    #get university names
+    tuples_universities=_tuples_universities()
+
+    #add university names
+    tuples_replace_beforelowercase=tuples_replace_beforelowercase+tuples_universities
+
+    #lowercase indifferent
+    tuples_replace_afterlowercase=[
+
+        #hassan
+        ("risk officer", ""),
+        ("risk credit officer", ""),
+        ("unknown speaker", ""),
+        ("unknown participant", ""),
+        ("unknown caller", ""),
+        ("unknown operator", ""),
+        ("unknown firm analyst", ""),
+        ("in the states", ""),
+        
+        #epub-relevant
+        ("see also", ""), ("see figure", ""), 
+        
+        #abbasa2019
+        ("working paper", ""),
+        ]
+
+    #remove tokens and bigrams (also stopwords and single letters)
+    bad_tokens={
+
+        #hassan
+        "i", "ive", "youve", "weve", "im", "youre", "were", "id", "youd", "wed", "thats",
+
+        #added
+        *stop_words,
+        *alphabet,
+        
+        }
+    bad_bigrams={
+        
+        #hassan
+        "princeton university",
+
+        }
+    
+    return tuples_replace_beforelowercase, tuples_replace_afterlowercase, bad_tokens, bad_bigrams
 
 
 #Loughran-McDonald sentiment words
 #https://sraf.nd.edu/loughranmcdonald-master-dictionary/
-file_path="Loughran-McDonald_MasterDictionary_1993-2021"
-df=pd.read_csv(f"{file_path}.csv", dtype="string")
-df=df.dropna(subset=["Word"])
 def _loughran_sentiment(sentiment):
 
-    #key
-    dict_key=f"loughran_{sentiment.lower()}"
+    #read csv
+    file_path="Loughran-McDonald_MasterDictionary_1993-2021"
+    df=pd.read_csv(f"{file_path}.csv", dtype="string")
 
-    #value
-    dict_value=df.loc[df[sentiment]!="0", "Word"].str.lower().to_list()
+    #drop na
+    df=df.dropna(subset=["Word"])
 
-    #dict
-    loughran_sentiment={dict_key: dict_value}
+    #list values
+    list_values=df.loc[df[sentiment]!="0", "Word"].str.lower().to_list()
 
-    return loughran_sentiment
+    #set values
+    set_values=set(list_values)
+
+    return set_values
 
 
 #general sets
@@ -189,7 +272,7 @@ def get_generalsets():
     #https://github.com/mschwedeler/firmlevelrisk/blob/master/input/riskwords/synonyms.txt
     file_path="synonyms_uncertainty"
     bad_keywords={"question", "questions", "venture"}
-    set_synonyms_uncertainty=_csv_to_dictbag(file_path, bad_keywords)
+    set_synonyms_uncertainty=_csv_to_setvalues(file_path, bad_keywords)
 
     #loughran
     sentiment="Positive"
@@ -200,7 +283,7 @@ def get_generalsets():
     #sovereign
     file_path="sovereign"
     bad_keywords=set()
-    set_sovereign=_csv_to_dictbag(file_path, bad_keywords)
+    set_sovereign=_csv_to_setvalues(file_path, bad_keywords)
 
     #add others here
     #
@@ -216,13 +299,11 @@ def get_topicdicts():
 
     #topic bigrams P\N
     file_path="_topicbigrams/_topicbigrams_pn.csv"
-    dict_name="dict_topicbigrams_pn"
-    dict_topicbigrams_pn=_csv_to_dictdf(file_path, index_col, dict_name)
+    dict_topicbigrams_pn=_csv_to_dictdf(file_path, index_col)
 
     #topic bigrams N\P
     file_path="_topicbigrams/_topicbigrams_np.csv"
-    dict_name="dict_topicbigrams_np"
-    dict_topicbigrams_np=_csv_to_dictdf(file_path, index_col, dict_name)
+    dict_topicbigrams_np=_csv_to_dictdf(file_path, index_col)
 
     return dict_topicbigrams_pn, dict_topicbigrams_np
 

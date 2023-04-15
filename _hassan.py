@@ -12,12 +12,14 @@ from _concat import _folder_to_filestems
 from _pd_utils import _pd_DataFrame, _dict_to_valscols, _csv_to_dictdf
 from _string_utils import _clean_text, _txt_to_tokens, _remove_partsofspeech, _bigram_in_context, _gen_context_indexes
 
+
 #variables
-from _string_utils import error, marker
-from _hassan_vars import get_generalsets, get_topicdicts
-set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
-dict_topicbigrams_pn, dict_topicbigrams_np = get_topicdicts()
 window_size=10
+from _string_utils import error, marker, encoding, errors
+from _hassan_vars import get_generalsets
+set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
+from _hassan_vars import get_topicdicts
+dict_topicbigrams_pn, dict_topicbigrams_np = get_topicdicts()
 
 
 #from txts to unique txt corpus
@@ -46,8 +48,10 @@ def _txts_to_corpus(folder_corpus, path_aggregatecorpus):
 
         #open
         with open(
-            file, 
-            mode='r', 
+            file=file, 
+            mode='r',
+            encoding="latin-1",
+            errors=errors,
             ) as file_object:
             raw_text=file_object.read()
         
@@ -77,8 +81,10 @@ def _txts_to_corpus(folder_corpus, path_aggregatecorpus):
 
     #write
     with open(
-        path_aggregatecorpus,
+        file=path_aggregatecorpus,
         mode='w', 
+        encoding=encoding,
+        errors=errors,
         ) as f:
         f.write(text)
 
@@ -157,35 +163,47 @@ def _topicbigrams(folders, items):
     df_np.to_csv(filepath_np, index=False)
 
 
+#indicator bigram in set values
+def _bigram_in_set(gram0, gram1, set_values):
+
+    #expressions
+    gram0_exp = (gram0 in set_values)
+    gram1_exp = (gram1 in set_values)
+
+    #if bigram contained in set values
+    if gram0_exp or gram1_exp:
+        indicator=1
+    else:
+        indicator=0
+
+    return indicator
+
+
 #txt to hassan scores
 def _txt_to_hassan(text):
 
     #text
     list_tokens, n_words, list_bigrams, n_bigrams = _txt_to_tokens(text)
-    print("list tokens \n", list_tokens)
-    print("list bigrams \n", list_bigrams)
 
     #initialize sum
     #exposure and risk
-    PSimpleExposure_sum=0
-    PExposure_sum=0
-    PRisk_sum=0
+    P_SimpleExposure_sum=0
+    P_Exposure_sum=0
+    P_Risk_sum=0
     Risk_sum=0
-    NPRisk_sum=0
+    NP_Risk_sum=0
     #sentiment
-    PPositiveSentiment_sum=0
-    PNegativeSentiment_sum=0
-    PSentiment_sum=0
+    P_PositiveSentiment_sum=0
+    P_NegativeSentiment_sum=0
+    P_Sentiment_sum=0
     PositiveSentiment_sum=0
     NegativeSentiment_sum=0
     Sentiment_sum=0
-    NPSentiment_sum=0
-    
-    context_indexes_uncertainty = _gen_context_indexes(set_synonyms_uncertainty, list_tokens) #list_bigrams
+    NP_Sentiment_sum=0
+
+    context_indexes_uncertainty = _gen_context_indexes(set_synonyms_uncertainty, list_tokens) 
     context_indexes_positive = _gen_context_indexes(set_loughran_positive, list_tokens)    
     context_indexes_negative = _gen_context_indexes(set_loughran_negative, list_tokens)     
-    print(context_indexes_uncertainty)
-    print(context_indexes_positive)
 
     #for
     for i, bigram in enumerate(list_bigrams):
@@ -208,172 +226,123 @@ def _txt_to_hassan(text):
 
         #if within 20 words from uncertainty
         words_count = _bigram_in_context(i, context_indexes_uncertainty, window_size)
-        #print(bigram, words_count)
+        
         if words_count > 0:
             indicator_within_uncertainty=1
         else:
             indicator_within_uncertainty=0
 
-        #if contained in uncertainty
-        if bigram in set_synonyms_uncertainty:
-            indicator_uncertainty=1
-        else:
-            indicator_uncertainty=0
-    
         #if within 20 words from sentiment
         sum_within_positive=_bigram_in_context(i, context_indexes_positive, window_size)
         sum_within_negative=_bigram_in_context(i, context_indexes_negative, window_size)
-        print(bigram, sum_within_positive)
 
-        #if contained in sentiment
-        if bigram in set_loughran_positive:
-            indicator_positive=1
-            indicator_negative=0
-        elif bigram in set_loughran_negative:
-            indicator_positive=0
-            indicator_negative=1
-        else:
-            indicator_positive=0
-            indicator_negative=0
+        #monograms grom bigram
+        [gram0, gram1] = bigram.split()
 
-        #update i
-        #exposure and risk
-        PSimpleExposure_i=      indicator_pn
-        PExposure_i=            indicator_pn*TF_pn
-        PRisk_i=                indicator_pn*indicator_within_uncertainty*TF_pn
-        Risk_i=                 indicator_uncertainty
-        NPRisk_i=               indicator_np*indicator_within_uncertainty*TF_np
-        #   
-        PPositiveSentiment_i=   indicator_pn*TF_pn*sum_within_positive
-        PNegativeSentiment_i=   indicator_pn*TF_pn*sum_within_negative
-        PSentiment_i=           indicator_pn*TF_pn*(sum_within_positive - sum_within_negative)
-        PositiveSentiment_i=    indicator_positive
-        NegativeSentiment_i=    indicator_negative
-        Sentiment_i=            (indicator_positive - indicator_negative)
-        NPSentiment_i=          indicator_np*TF_np*(sum_within_positive - sum_within_negative)
+        #bigram indicator uncertainty
+        indicator_uncertainty=_bigram_in_set(gram0, gram1, set_synonyms_uncertainty)
+
+        #bigram indicator uncertainty
+        indicator_positive=_bigram_in_set(gram0, gram1, set_loughran_positive)
+        indicator_negative=_bigram_in_set(gram0, gram1, set_loughran_negative)
 
         #update sum
         #exposure and risk
-        PSimpleExposure_sum     +=PSimpleExposure_i
-        PExposure_sum           +=PExposure_i
-        PRisk_sum               +=PRisk_i
-        Risk_sum                +=Risk_i
-        NPRisk_sum              +=NPRisk_i
-        #sentiment
-        PPositiveSentiment_sum  +=PPositiveSentiment_i
-        PNegativeSentiment_sum  +=PNegativeSentiment_i
-        PSentiment_sum          +=PSentiment_i
-        PositiveSentiment_sum   +=PositiveSentiment_i
-        NegativeSentiment_sum   +=NegativeSentiment_i
-        Sentiment_sum           +=Sentiment_i
-        NPSentiment_sum         +=NPSentiment_i
-    
-    #file-level score
-    #exposure and risk
-    PSimpleExposure     =PSimpleExposure_sum/n_bigrams
-    PExposure           =PExposure_sum/n_bigrams
-    PRisk               =PRisk_sum/n_bigrams
-    Risk                =Risk_sum/n_bigrams
-    NPRisk              =NPRisk_sum/n_bigrams
-    #sentiment
-    PPositiveSentiment  =PPositiveSentiment_sum/n_bigrams
-    PNegativeSentiment  =PNegativeSentiment_sum/n_bigrams
-    PSentiment          =PSentiment_sum/n_bigrams
-    PositiveSentiment   =PositiveSentiment_sum/n_bigrams
-    NegativeSentiment   =NegativeSentiment_sum/n_bigrams
-    Sentiment           =Sentiment_sum/n_bigrams
-    NPSentiment         =PSentiment_sum/n_bigrams
+        P_SimpleExposure_sum        +=indicator_pn
+        P_Exposure_sum              +=indicator_pn*TF_pn
+        P_Risk_sum                  +=indicator_pn*indicator_within_uncertainty*TF_pn
+        Risk_sum                    +=indicator_uncertainty
+        NP_Risk_sum                 +=indicator_np*indicator_within_uncertainty*TF_np
+        #sentime        
+        P_PositiveSentiment_sum     +=indicator_pn*TF_pn*sum_within_positive
+        P_NegativeSentiment_sum     +=indicator_pn*TF_pn*sum_within_negative
+        P_Sentiment_sum             +=indicator_pn*TF_pn*(sum_within_positive - sum_within_negative)
+        PositiveSentiment_sum       +=indicator_positive
+        NegativeSentiment_sum       +=indicator_negative
+        Sentiment_sum               +=(indicator_positive - indicator_negative)
+        NP_Sentiment_sum            +=indicator_np*TF_np*(sum_within_positive - sum_within_negative)
 
     #create empty dict for storing data
     dict_data={
+
         #exposure and risk
-        "PSimpleExposure":      PSimpleExposure,
-        "PExposure":            PExposure,
-        "PRisk":                PRisk,
-        "Risk":                 Risk,
-        "NPRisk":               NPRisk,
+        "PSimpleExposure":      P_SimpleExposure_sum/n_bigrams,
+        "PExposure":            P_Exposure_sum/n_bigrams,
+        "PRisk":                P_Risk_sum/n_bigrams,
+        "Risk":                 Risk_sum/n_bigrams,
+        "NPRisk":               NP_Risk_sum/n_bigrams,
         #sentiment
-        "PPositiveSentiment":   PPositiveSentiment,
-        "PNegativeSentiment":   PNegativeSentiment,
-        "PSentiment":           PSentiment,
-        "PositiveSentiment":    PositiveSentiment,
-        "NegativeSentiment":    NegativeSentiment,
-        "Sentiment":            Sentiment,
-        "NPSentiment":          NPSentiment,
+        "PPositiveSentiment":   P_PositiveSentiment_sum/n_bigrams,
+        "PNegativeSentiment":   P_NegativeSentiment_sum/n_bigrams,
+        "PSentiment":           P_Sentiment_sum/n_bigrams,
+        "PositiveSentiment":    PositiveSentiment_sum/n_bigrams,
+        "NegativeSentiment":    NegativeSentiment_sum/n_bigrams,
+        "Sentiment":            Sentiment_sum/n_bigrams,
+        "NPSentiment":          NP_Sentiment_sum/n_bigrams,
         #n bigrams and words
         "n_bigrams":            n_bigrams,
         "n_words":              n_words,
+        
         }
-    #print(dict_data)
-    
+
     return dict_data
 
 
 #from file to converted
 def _file_to_converted(file, file_stem, output, i, tot):
-    try:
-        with open(
-            file=file, 
-            mode='r', 
-            ) as file_object:
-            text=file_object.read()
 
-        if text==error:
+    with open(
+        file=file, 
+        mode='r', 
+        encoding=encoding,
+        errors=errors,
+        ) as file_object:
+        text=file_object.read()
 
-            #converted
-            converted=False
-
-            #print
-            print(f"{i}/{tot} - {file_stem} - error")
-
-        elif text!=error:
-            #converted
-            converted=True
-
-            #values and columns
-            values=[
-                [file_stem],
-                ]
-            columns=[
-                "file_stem", 
-                ]
-
-            #txt to count
-            dict_data=_txt_to_hassan(text)  
-            Vs, Ks = _dict_to_valscols(dict_data)
-            values+=Vs
-            columns+=Ks
-
-            #create df
-            df=_pd_DataFrame(values, columns)
-            df.to_csv(output, index=False)
-
-            #print(df)
-
-            #print
-            print(f"{i}/{tot} - {file_stem} - done")
-
-    except Exception as e:
+    if text==error:
 
         #converted
         converted=False
 
         #print
-        print(f"{i}/{tot} - {file_stem} - exception")
-        print(e)
-    
+        print(f"{i}/{tot} - {file_stem} - error")
+
+    elif text!=error:
+        #converted
+        converted=True
+
+        #values and columns
+        values=[
+            [file_stem],
+            ]
+        columns=[
+            "file_stem", 
+            ]
+
+        #txt to count
+        dict_data=_txt_to_hassan(text)  
+        Vs, Ks = _dict_to_valscols(dict_data)
+        values+=Vs
+        columns+=Ks
+
+        #create df
+        df=_pd_DataFrame(values, columns)
+        df.to_csv(output, index=False)
+
+        #print
+        print(f"{i}/{tot} - {file_stem} - done")
+
     return converted
 
 
 #compute hassan scores
 #folders=["_pdfs_to_txts", "_txts_to_hassan"]
 #items=["_txts_to_hassan"]
-def _txts_to_hassan(folders, items):
+def _txts_to_hassan(folders, items, start, stop):
     resources=folders[0]
     results=folders[1]
 
-    resource=items[0]
-    result=items[1]
+    result=items[0]
 
     #colname
     colname_filestems="file_stem"
@@ -381,12 +350,15 @@ def _txts_to_hassan(folders, items):
     #resources
     files, file_stems=_folder_to_filestems(resources)
 
+    #start and stop
+    files=files[start:stop]
+    file_stems=file_stems[start:stop]
+
     #n obs
     n_obs=len(files)
     tot=n_obs-1
 
     #empty lists
-    file_stems=[None]*n_obs
     converteds=[None]*n_obs
 
     for i, file in enumerate(files):
@@ -410,7 +382,6 @@ def _txts_to_hassan(folders, items):
             print(f"{i}/{tot} - {file_stem} - already done")
 
         #fill lists
-        file_stems[i]=file_stem
         converteds[i]=converted
   
     #create df

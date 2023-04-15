@@ -8,6 +8,10 @@ from _merge_utils import _pd_merge, _pd_concat
 from _hassan import _txts_to_hassan, _txts_to_corpus, _topicbigrams
 
 
+#variables
+from _hassan_vars import get_generalsets
+set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
+
 #import rdp
 '''
 from _rdp import _convert_symbols
@@ -42,23 +46,21 @@ items=["_pdfs_to_txts"]
 folders=["_pdfs_to_txts", "_txts_to_counts"]
 items=["_txts_to_counts"]
 #bags and window size (count within n before, n after)
-targetbag_keys=[
-    "sovereign",
+targetbags=[
+    set_sovereign,
     ]
-contextbag_keys=[
-    "loughran_positive", 
-    "loughran_negative", 
-    "synonyms_uncertainty"
+contextbags=[
+    set_synonyms_uncertainty, 
+    set_loughran_positive, 
+    set_loughran_negative, 
     ]
 window_sizes=[10, 20]
-#_txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_sizes)
+#_txts_to_counts(folders, items, targetbags, contextbags, window_sizes)
 
 
-#from pdf to txt
-#create empty folders "_decrypt_pdf", "_raw_txt"
-folders=["_traininglibraries_pdf", "_traininglibraries_txt"]
-items=["_traininglibraries_txt"]
-#_pdfs_to_txts(folders, items)
+#from pdf/epub to txt
+folders=["_traininglibraries_pdf_epub", "_traininglibraries_txt"]
+#convert epub to txt with convertio.co
 
 
 #training library's TF
@@ -76,7 +78,19 @@ items={
 #https://github.com/mschwedeler/firmlevelrisk
 folders=["_pdfs_to_txts", "_txts_to_hassan"]
 items=["_txts_to_hassan"]
-_txts_to_hassan(folders, items)
+
+#1
+start, stop = 0, 15000
+#_txts_to_hassan(folders, items, start, stop)
+#2
+start, stop = 15000+1, 30000
+#_txts_to_hassan(folders, items, start, stop)
+#3
+start, stop = 30000+1, 45000
+#_txts_to_hassan(folders, items, start, stop)
+#4
+start, stop = 45000+1, 60000
+_txts_to_hassan(folders, items, start, stop)
 
 
 #aggregate txt files

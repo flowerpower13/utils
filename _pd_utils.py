@@ -141,8 +141,8 @@ def _colfunctions_to_df(df, cols, functions):
     return df_concat
 
 
-#from csv to dict_df (key: df as dictionary)
-def _csv_to_dictdf(file_path, index_col, dict_name):
+#from csv to dict_df (df as dictionary)
+def _csv_to_dictdf(file_path, index_col):
 
     #read_csv
     df=pd.read_csv(
@@ -153,30 +153,28 @@ def _csv_to_dictdf(file_path, index_col, dict_name):
     #set index
     df=df.set_index(index_col)
 
-    df_to_dict=df.to_dict("index")
+    #convert to dict
+    df_to_dict=df.to_dict(orient="index")
 
-    #dict df
-    dict_df={dict_name: df_to_dict}
-
-    return dict_df
+    return df_to_dict
 
 
-#from csv to dict_bag (key: list of column values)
-def _csv_to_dictbag(file_path, bad_keywords):
+#from csv to set values ()
+def _csv_to_setvalues(file_path, bad_keywords):
 
     #read csv
-    df=pd.read_csv(f"{file_path}.csv", dtype="string")
+    df=pd.read_csv(
+        f"{file_path}.csv", 
+        dtype="string",
+        )
 
     #col values to list
     col_values=df[file_path].str.lower().to_list()
 
-    #list to set
+    #list to set minus bad keywords
     set_values=set(col_values)-bad_keywords
 
-    #dict
-    dict_bag={file_path: set_values}
-
-    return dict_bag
+    return set_values
 
 
 #from folder to file stems' list

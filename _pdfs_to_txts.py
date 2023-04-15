@@ -13,10 +13,10 @@ from _pd_utils import _pd_DataFrame, _folder_to_filestems
 
 
 #variables
-from _hassan_vars import tuples_replace_beforeclean, tuples_replace_afterclean
-from _string_utils import error, marker
-encoding="utf-8"
-errors="strict"
+from _string_utils import error, marker, encoding, errors
+laparams=LAParams(line_overlap=0.5, char_margin=2.0, line_margin=0.5, word_margin=0.1, boxes_flow=0.5, detect_vertical=False, all_texts=True)
+
+
 
 #decrypt pdf
 def _decrypt_pdf(file, file_stem):
@@ -39,10 +39,7 @@ def _decrypt_pdf(file, file_stem):
 
 
 #extract text from pdf
-def _pdfminer(decrypted_file, output):
-
-    #parameters
-    laparams=LAParams(line_overlap=0.5, char_margin=2.0, line_margin=0.5, word_margin=0.1, boxes_flow=0.5, detect_vertical=False, all_texts=True)
+def _pdfminer(decrypted_file, raw_file):
 
     #create empty text list
     text_list=[]
@@ -54,7 +51,7 @@ def _pdfminer(decrypted_file, output):
     for i, page_layout in enumerate(pages):
 
         #marker page
-        marker_page=f"\n{marker}page_layout - {i}{marker}\n"
+        marker_page=f"\n {marker}page_layout - {i}{marker} \n "
         text_list.append(marker_page)
         
         #for element
@@ -64,7 +61,7 @@ def _pdfminer(decrypted_file, output):
             if isinstance(element, LTTextContainer):
 
                 #marker element
-                marker_element=f"\n{marker}element.get_text() - {j}{marker}\n"
+                marker_element=f"\n {marker}element.get_text() - {j}{marker} \n "
                 text_list.append(marker_element)
 
                 #try
@@ -82,8 +79,8 @@ def _pdfminer(decrypted_file, output):
 
     #write
     with open(
-        output, 
-        mode='w', 
+        file=raw_file, 
+        mode='w',
         encoding=encoding, 
         errors=errors,
         ) as file_object:
@@ -93,7 +90,7 @@ def _pdfminer(decrypted_file, output):
 
 
 #read and write file
-def _readwrite_txt(file, raw_file):
+def _copy_txt(file, raw_file):
 
     #read
     with open(
@@ -105,6 +102,7 @@ def _readwrite_txt(file, raw_file):
         raw_text=file_object.read()
 
     #write
+    '''
     with open(
         raw_file, 
         mode='w', 
@@ -112,21 +110,16 @@ def _readwrite_txt(file, raw_file):
         errors=errors,
         ) as file_object:
         file_object.write(raw_text)
+    #'''
 
     return raw_text
 
 
 #clean and save txt
-def _cleansave_txt(raw_text, output):
-
-    #remove words before clean
-    raw_text=_replace_txt(raw_text, tuples_replace_beforeclean)
+def _cleanwrite_txt(raw_text, output):
 
     #clean text
     text=_clean_text(raw_text)
-
-    #remove words after clean
-    text=_replace_txt(text, tuples_replace_afterclean)
 
     #write
     with open(
@@ -154,17 +147,17 @@ def _pdf_to_txt(file, file_stem, file_suffix, output):
             decrypted_file=_decrypt_pdf(file, file_stem)
             raw_text=_pdfminer(decrypted_file, raw_file)
 
-            #converted
-            converted=True
-
         #simple copy to txt
         elif file_suffix==".txt":
 
             #txt to raw txt
-            raw_text=_readwrite_txt(file, raw_file)
+            raw_text=_copy_txt(file, raw_file)
 
         #raw txt to cleaned txt
-        _cleansave_txt(raw_text, output)
+        _cleanwrite_txt(raw_text, output)
+
+        #converted
+        converted=True
     
     except Exception as e:
         print(e)

@@ -18,8 +18,12 @@ from nltk.tag.perceptron import PerceptronTagger
 #variables
 error="???"
 marker="###"
+encoding="utf8"
+errors="strict"
 pretrain=PerceptronTagger()
-from _hassan_vars import nltk_negative_conditions, nltk_positive_conditions, bad_tokens, bad_bigrams
+from _hassan_vars import _get_badkeywords
+tuples_replace_beforelowercase, tuples_replace_afterlowercase, bad_tokens, bad_bigrams = _get_badkeywords()
+from _hassan_vars import nltk_negative_conditions, nltk_positive_conditions
 
 
 #replace tuples in text
@@ -43,11 +47,18 @@ def _clean_text(raw_text):
     #remove text btw markers
     text=re.sub(f'{marker}.*?{marker}', '', raw_text)
 
+    #remove words before lowercase
+    text=_replace_txt(text, tuples_replace_beforelowercase)
+
     #lowercase
     text=text.lower()
 
+    #remove words after lowercase
+    text=_replace_txt(text, tuples_replace_afterlowercase)
+
     #remove non-characters
     text=re.sub(r'[^a-zA-Z ]', '', text)
+    
     #remove whitespaces
     #text=re.sub(r"\s+", ' ', text)
 
@@ -63,9 +74,6 @@ def _txt_to_tokens(text):
     #remove bad tokens
     list_tokens=[x for x in list_tokens if x not in bad_tokens]
 
-    #n words
-    n_words=len(list_tokens)
-
     #list bigrams
     list_tuplesbigrams=list(ngrams(list_tokens, 2)) 
     list_bigrams=[' '.join(bigram_tuple) for bigram_tuple in list_tuplesbigrams]
@@ -75,6 +83,9 @@ def _txt_to_tokens(text):
 
     #n bigrams
     n_bigrams=len(list_bigrams)
+
+    #n words
+    n_words=n_bigrams+1
 
     return list_tokens, n_words, list_bigrams, n_bigrams
 
@@ -282,6 +293,35 @@ def BinarySearch(elements_list, element_to_find):
         return -1
 
 
+# This function generates a list of context indexes for each word in a given bag of words.
+# The context indexes for a word are the indexes of that word and its neighboring words in a list of tokens.
+# The list of tokens is represented as a list of strings.
+def _gen_context_indexes(context_bag, list_tokens):
+    # Initialize an empty list to store the context indexes for each word.
+    context_indexes = list()
+    
+    # Loop over all the words in the context bag.
+    for word in context_bag:
+        # Initialize an empty set to store the indexes of the current word and its neighbors.
+        word_indexes = set()
+        
+        # Loop over all the tokens in the list of tokens.
+        for i, token in enumerate(list_tokens):
+            # If the current token matches the current word, add its index and the index of its left neighbor to the set.
+            if token == word:
+                word_indexes.add(i)
+                word_indexes.add(i-1)
+        
+        # If any indexes were found for the current word, sort them and add them to the list of context indexes.
+        if len(word_indexes) > 0:
+            sorted_context = list(word_indexes)
+            sorted_context.sort()
+            context_indexes.append(sorted_context)
+    
+    # Return the list of context indexes for all words in the context bag.
+    return context_indexes
+
+
 # This function counts the number of occurrences of a given bigram within a specified context.
 # The bigram is represented by its starting index in a list of tokens.
 # The context is represented by a list of lists of token indexes.
@@ -321,30 +361,3 @@ def _bigram_in_context(bigram_index, context_indexes, window_size):
 
 
 
-# This function generates a list of context indexes for each word in a given bag of words.
-# The context indexes for a word are the indexes of that word and its neighboring words in a list of tokens.
-# The list of tokens is represented as a list of strings.
-def _gen_context_indexes(context_bag, list_tokens):
-    # Initialize an empty list to store the context indexes for each word.
-    context_indexes = list()
-    
-    # Loop over all the words in the context bag.
-    for word in context_bag:
-        # Initialize an empty set to store the indexes of the current word and its neighbors.
-        word_indexes = set()
-        
-        # Loop over all the tokens in the list of tokens.
-        for i, token in enumerate(list_tokens):
-            # If the current token matches the current word, add its index and the index of its left neighbor to the set.
-            if token == word:
-                word_indexes.add(i)
-                word_indexes.add(i-1)
-        
-        # If any indexes were found for the current word, sort them and add them to the list of context indexes.
-        if len(word_indexes) > 0:
-            sorted_context = list(word_indexes)
-            sorted_context.sort()
-            context_indexes.append(sorted_context)
-    
-    # Return the list of context indexes for all words in the context bag.
-    return context_indexes

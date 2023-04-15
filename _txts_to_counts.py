@@ -4,18 +4,57 @@ from pathlib import Path
 
 
 #functions
-from _txt_to_count import _txt_to_count
 from _concat import _folder_to_filestems
 from _pd_utils import _pd_DataFrame, _dict_to_valscols
+from _string_utils import _txt_to_tokens, _tokensbags_to_scores
 
 
 #variables
-error="???"
-from _hassan_vars import dict_bags
+from _string_utils import error
+
+
+#txt to bags' scores
+def _txt_to_count(text, targetbags, contextbags, window_sizes):
+
+    #clean, tokenize, and count n words in text
+    list_tokens, n_words = _txt_to_tokens(text)
+
+    #create empty dict for storing data
+    dict_data={}
+
+    #iter through target bags
+    for k, targetbag_key in enumerate(targetbags):
+
+        #target bag's value
+        targetbag_value=targetbag_key.values()
+
+        #iter through context bags
+        for j, contextbag_key in enumerate(contextbags):
+                
+            #iter through window sizes
+            for i, window_size in enumerate(window_sizes):
+
+                #context bag's value
+                contextbag_value=contextbag_key.values()
+
+                #compute bag's score
+                total, contextual = _tokensbags_to_scores(list_tokens, targetbag_value, contextbag_value, window_size)
+
+                #fill dict with total occurrences
+                dict_data[targetbag_key]=total
+                #fill dict with contextual occurrences
+                dict_data[f"{targetbag_key}__{contextbag_key}__{window_size}"]=contextual
+
+    dict_data["n_words"]=n_words
+    #print(dict_data)
+    
+    return dict_data
+
+
 
 
 #from file to converted
-def _file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_keys, contextbag_keys, window_sizes):
+def _file_to_converted(file, file_stem, output, i, tot, targetbags, contextbags, window_sizes):
     try:
         with open(
             file=file, 
@@ -46,7 +85,7 @@ def _file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_key
                 ]
 
             #txt to count
-            dict_data=_txt_to_count(text, dict_bags, targetbag_keys, contextbag_keys, window_sizes)  
+            dict_data=_txt_to_count(text, targetbags, contextbags, window_sizes)  
             Vs, Ks = _dict_to_valscols(dict_data)
             values+=Vs
             columns+=Ks
@@ -75,7 +114,7 @@ def _file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_key
 #compute counts
 #folders=["_pdfs_to_txts", "_txts_to_counts"]
 #items=["_txts_to_counts"]
-def _txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_sizes):
+def _txts_to_counts(folders, items, targetbags, contextbags, window_sizes):
     resources=folders[0]
     results=folders[1]
 
@@ -104,7 +143,7 @@ def _txts_to_counts(folders, items, targetbag_keys, contextbag_keys, window_size
         if not output.is_file():
 
             #converted
-            converted=_file_to_converted(file, file_stem, output, i, tot, dict_bags, targetbag_keys, contextbag_keys, window_sizes)
+            converted=_file_to_converted(file, file_stem, output, i, tot, targetbags, contextbags, window_sizes)
 
         #file is present
         elif output.is_file():
