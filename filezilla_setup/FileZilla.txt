@@ -87,8 +87,8 @@ outbound rules -> same ...  -> "allow the connection"
 http://vodafone.station/internet.html
 Internet -> associazione porte
 press "+"
-Servizio: "TCP", Dispositivo: "PC-NINNO", Tipo porte: "Porta", Porta pubblica: "21", Porta locale: "21" 
-Servizio: "TCP", Dispositivo: "PC-NINNO", Tipo porte: "Porta", Porta pubblica: "50000-50010", Porta locale: "50000-50010" 
+Servizio: "TCP", Dispositivo: "Ninno", Tipo porte: "Porta", Porta pubblica: "21", Porta locale: "21" 
+Servizio: "TCP", Dispositivo: "Ninno", Tipo porte: "Porta", Porta pubblica: "50000-50010", Porta locale: "50000-50010" 
 press "Applica"
 
 
