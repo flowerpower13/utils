@@ -5,7 +5,7 @@ FileZilla
 
 #settings
 host:
-ftp://5.88.24.252
+ftp://188.217.211.158
 
 #only for local (ignore this)
 host:
@@ -51,7 +51,7 @@ drag and drop folders on own device
 #what's my ip
 https://whatismyipaddress.com/
 copy IP here:
-93.146.169.89
+188.217.211.158
 
 
 #start
@@ -85,7 +85,7 @@ outbound rules -> same ...  -> "allow the connection"
 
 #4
 http://vodafone.station/internet.html
-Internet -> mappatura delle porte -> associazione porte
+Internet -> associazione porte
 press "+"
 Servizio: "TCP", Dispositivo: "PC-NINNO", Tipo porte: "Porta", Porta pubblica: "21", Porta locale: "21" 
 Servizio: "TCP", Dispositivo: "PC-NINNO", Tipo porte: "Porta", Porta pubblica: "50000-50010", Porta locale: "50000-50010" 
