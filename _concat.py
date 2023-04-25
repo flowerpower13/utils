@@ -76,3 +76,4 @@ def _concat(folders, items, full_db):
     #save
     file_path=f"{results}/{result}.csv"
     df.to_csv(file_path, index=False)
+    

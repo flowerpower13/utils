@@ -117,7 +117,7 @@ def _remove_partsofspeech(list_tokens, list_bigrams):
             #print
             print(f"{i}/{tot} - {bigram}")
 
-        else:
+        elif not ( (eval(nltk_positive_conditions)) and not (eval(nltk_negative_conditions)) ):
 
             #print
             print(f"{i}/{tot} - {bigram} - skipped")

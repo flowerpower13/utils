@@ -70,7 +70,7 @@ def _txts_to_corpus(folder_corpus, path_aggregatecorpus):
             #print
             print(f"{i}/{tot} - {file_stem} - done")
         
-        else:
+        elif file_stem in set_exclude:
 
             #print
             print(f"{i}/{tot} - {file_stem} - excluded")
@@ -173,17 +173,14 @@ def _bigram_in_set(gram0, gram1, set_values):
     #if bigram contained in set values
     if gram0_exp or gram1_exp:
         indicator=1
-    else:
+    elif not (gram0_exp or gram1_exp):
         indicator=0
 
     return indicator
 
 
 #txt to hassan scores
-def _txt_to_hassan(text):
-
-    #text
-    list_tokens, n_words, list_bigrams, n_bigrams = _txt_to_tokens(text)
+def _txt_to_hassan(list_tokens, n_words, list_bigrams, n_bigrams):
 
     #initialize sum
     #exposure and risk
@@ -212,7 +209,7 @@ def _txt_to_hassan(text):
         if bigram in dict_topicbigrams_pn:
             indicator_pn=1
             TF_pn=dict_topicbigrams_pn[bigram]["TF"]
-        else:
+        elif not (bigram in dict_topicbigrams_pn):
             indicator_pn=0
             TF_pn=0
 
@@ -220,7 +217,7 @@ def _txt_to_hassan(text):
         if bigram in dict_topicbigrams_np:
             indicator_np=1
             TF_np=dict_topicbigrams_np[bigram]["TF"]
-        else:
+        elif not (bigram in dict_topicbigrams_np):
             indicator_np=0
             TF_np=0
 
@@ -229,7 +226,7 @@ def _txt_to_hassan(text):
         
         if words_count > 0:
             indicator_within_uncertainty=1
-        else:
+        elif  words_count == 0:
             indicator_within_uncertainty=0
 
         #if within 20 words from sentiment
@@ -266,19 +263,19 @@ def _txt_to_hassan(text):
     dict_data={
 
         #exposure and risk
-        "PSimpleExposure":      P_SimpleExposure_sum/n_bigrams,
-        "PExposure":            P_Exposure_sum/n_bigrams,
-        "PRisk":                P_Risk_sum/n_bigrams,
+        "P_SimpleExposure":      P_SimpleExposure_sum/n_bigrams,
+        "P_Exposure":            P_Exposure_sum/n_bigrams,
+        "P_Risk":                P_Risk_sum/n_bigrams,
         "Risk":                 Risk_sum/n_bigrams,
-        "NPRisk":               NP_Risk_sum/n_bigrams,
+        "NP_Risk":               NP_Risk_sum/n_bigrams,
         #sentiment
-        "PPositiveSentiment":   P_PositiveSentiment_sum/n_bigrams,
-        "PNegativeSentiment":   P_NegativeSentiment_sum/n_bigrams,
-        "PSentiment":           P_Sentiment_sum/n_bigrams,
+        "P_PositiveSentiment":   P_PositiveSentiment_sum/n_bigrams,
+        "P_NegativeSentiment":   P_NegativeSentiment_sum/n_bigrams,
+        "P_Sentiment":           P_Sentiment_sum/n_bigrams,
         "PositiveSentiment":    PositiveSentiment_sum/n_bigrams,
         "NegativeSentiment":    NegativeSentiment_sum/n_bigrams,
         "Sentiment":            Sentiment_sum/n_bigrams,
-        "NPSentiment":          NP_Sentiment_sum/n_bigrams,
+        "NP_Sentiment":          NP_Sentiment_sum/n_bigrams,
         #n bigrams and words
         "n_bigrams":            n_bigrams,
         "n_words":              n_words,
@@ -308,29 +305,43 @@ def _file_to_converted(file, file_stem, output, i, tot):
         print(f"{i}/{tot} - {file_stem} - error")
 
     elif text!=error:
-        #converted
-        converted=True
 
-        #values and columns
-        values=[
-            [file_stem],
-            ]
-        columns=[
-            "file_stem", 
-            ]
+        #text
+        list_tokens, n_words, list_bigrams, n_bigrams = _txt_to_tokens(text)
 
-        #txt to count
-        dict_data=_txt_to_hassan(text)  
-        Vs, Ks = _dict_to_valscols(dict_data)
-        values+=Vs
-        columns+=Ks
+        if n_words>=50:
 
-        #create df
-        df=_pd_DataFrame(values, columns)
-        df.to_csv(output, index=False)
+            #values and columns
+            values=[
+                [file_stem],
+                ]
+            columns=[
+                "file_stem", 
+                ]
 
-        #print
-        print(f"{i}/{tot} - {file_stem} - done")
+            #txt to count
+            dict_data=_txt_to_hassan(list_tokens, n_words, list_bigrams, n_bigrams)  
+            Vs, Ks = _dict_to_valscols(dict_data)
+            values+=Vs
+            columns+=Ks
+
+            #create df
+            df=_pd_DataFrame(values, columns)
+            df.to_csv(output, index=False)
+
+            #converted
+            converted=True
+
+            #print
+            print(f"{i}/{tot} - {file_stem} - done")
+
+        elif n_words<50:
+
+            #converted
+            converted=False
+
+            #print
+            print(f"{i}/{tot} - {file_stem} - blank <50 words")
 
     return converted
 
@@ -351,8 +362,9 @@ def _txts_to_hassan(folders, items, start, stop):
     files, file_stems=_folder_to_filestems(resources)
 
     #start and stop
-    files=files[start:stop]
-    file_stems=file_stems[start:stop]
+    end=len(files)
+    files=files[start:end]
+    file_stems=file_stems[start:end]
 
     #n obs
     n_obs=len(files)

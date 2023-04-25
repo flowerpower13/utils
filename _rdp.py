@@ -175,7 +175,7 @@ def _load_items(resources, item):
     if col_name in col_names:
         pass
 
-    else:
+    elif not (col_name in col_names):
         col_name="RIC"
 
     file_path=f"{resources}/{item}.csv"
