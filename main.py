@@ -1,4 +1,5 @@
 
+
 #functions
 from _concat import _concat
 from _pdfs_to_txts import _pdfs_to_txts
@@ -12,7 +13,8 @@ from _hassan import _txts_to_hassan, _txts_to_corpus, _topicbigrams
 from _hassan_vars import get_generalsets
 set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
 
-#import rdp
+
+#imports rdp
 '''
 from _rdp import _convert_symbols
 import eikon as ek
@@ -76,25 +78,29 @@ items={
 #from txt to hassan-type score
 #https://www.firmlevelrisk.com/
 #https://github.com/mschwedeler/firmlevelrisk
-folders=["_pdfs_to_txts", "_txts_to_hassan"]
+#folders=["_pdfs_to_txts", "_txts_to_hassan"]
+folders=["_pdfs_to_txts", "_txts_to_hassan_biodiversity"]
 items=["_txts_to_hassan"]
 
 #1
-start, stop = 0, 15000
-#_txts_to_hassan(folders, items, start, stop)
+start, stop = 0, 20000
+_txts_to_hassan(folders, items, start, stop)
 #2
-start, stop = 15000+1, 30000
+start, stop = 20000+1, 40000
 #_txts_to_hassan(folders, items, start, stop)
 #3
-start, stop = 30000+1, 45000
+start, stop = 40000+1, 60000
 #_txts_to_hassan(folders, items, start, stop)
 #4
-start, stop = 45000+1, 60000
-_txts_to_hassan(folders, items, start, stop)
+start, stop = 60000+1, 80000
+#_txts_to_hassan(folders, items, start, stop)
+#all
+start, stop = 0, 88725
+#_txts_to_hassan(folders, items, start, stop)
 
 
 #aggregate txt files
-folders=["_txts_to_counts", "_concat"]
+folders=["_txts_to_hassan_biodiversity", "_concat"]
 items=["_concat"]
 full_db="_advev"
 #_concat(folders, items, full_db)
@@ -117,16 +123,18 @@ IDs=[
 #_convert_symbols(folders, items, IDs)
 
 
-#download compustat quarterly data
+#download compustat quarterly data - global
 #https://wrds-www.wharton.upenn.edu/pages/get-data/compustat-capital-iq-standard-poors/compustat/global-daily/fundamentals-quarterly/
-#2019-01 to 2021-12
-#upload "_convert_symbols1/symbols_IssueISIN.txt", donwload all variables, .csv, .zip, submit to email
+#2019-01 to 2022-12
+#select "isin" as company code, upload "_convert_symbols1/symbols_IssueISIN.txt", donwload all variables, .csv, .zip, 
+#email to ninnofiore@outlook.com
 #save as "_data_compustat_isin.csv", put in folder "_data_compustat"
 
-#download compustat quarterly data
+#download compustat quarterly data - US
 #https://wrds-www.wharton.upenn.edu/pages/get-data/compustat-capital-iq-standard-poors/compustat/north-america-daily/fundamentals-quarterly/
-#2019-01 to 2021-12
-#upload "_convert_symbols1/symbols_CUSIP.txt", donwload all variables, .csv, .zip, submit to email
+#2019-01 to 2022-12
+#select "cusip" as company code, upload "_convert_symbols1/symbols_CUSIP.txt", donwload all variables, .csv, .zip
+#email to ninnofiore@outlook.com
 #save as "_data_compustat_cusip.csv", put in folder "_data_compustat"
 
 
@@ -188,9 +196,18 @@ sort_id=["file_stem"]
 #_pd_concat(folders, items, left, right, axis, join, sort_id)
 
 
+#hassan covid measure (cross sectional split: covid risk vs business opportunity)
+
+
 '''
 rdp.close_session()
 print("_rdp - done")
 #'''
+
+
+#irs
+
+
+
 
 print("done")
