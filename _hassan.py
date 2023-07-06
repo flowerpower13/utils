@@ -239,7 +239,7 @@ def _txt_to_hassan(list_tokens, n_words, list_bigrams, n_bigrams):
         #bigram indicator uncertainty
         indicator_uncertainty=_bigram_in_set(gram0, gram1, set_synonyms_uncertainty)
 
-        #bigram indicator uncertainty
+        #bigram indicator sentiment
         indicator_positive=_bigram_in_set(gram0, gram1, set_loughran_positive)
         indicator_negative=_bigram_in_set(gram0, gram1, set_loughran_negative)
 

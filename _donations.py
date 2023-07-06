@@ -7,6 +7,10 @@ import pandas as pd
 import dask.dataframe as dd
 
 
+#functions
+from _pd_utils import _groupby
+
+
 #variables
 from _string_utils import encoding
 #read PolOrgsFileLayout.doc
@@ -19,6 +23,16 @@ buffer_size=8192
 #new csv separator
 new_sep=","
 quotechar='"'
+#std organization names
+dictreplace_organizations={
+    "democratic attorneys general association, inc.": "democratic attorneys general association",
+    "republican attorneys general association, inc.": "republican attorneys general association",
+    }
+#std company names
+dictreplace_companies={
+    "3m company": "3m",
+    "3m company, inc.": "3m",
+    }
 
 
 #code and columns
@@ -156,7 +170,6 @@ def _txtcodes_to_csvs(resources, resource, results):
             #if i==2: break
 
 
-
 #irstxt to dfs
 #folders=["donations", "_irstxt_to_dfs"]
 #items=["FullDataFile", "_irstxt_to_dfs"]
@@ -173,12 +186,159 @@ def _irstxt_to_dfs(folders, items):
     #txts to dfs
 
 
+#folders=["_irstxt_to_dfs", "_unique_donors"]
+#items=["A", "_unique_donors"]
+def _unique_donors(folders, items):
+    resources=folders[0]
+    results=folders[1]
 
+    resource=items[0]
+    result=items[1]
+
+    #read
+    file_path=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        file_path, 
+        dtype="string",
+        on_bad_lines='skip',
+        )
+
+    columns=["A__org_name", "A__contributor_name", "A__contributor_employer"]
+    df=df[columns]
+
+    #n_obs
+    n_obs=len(columns)
+
+    #col
+    colname="donor"
+    orig_col="original_col"
+
+    #for
+    frames=[None]*n_obs
+    for i, col in enumerate(columns):
+
+        #data
+        data=df[col].to_list()
+
+        #crate df_frame
+        df_frame=pd.DataFrame(data, columns=[colname])
+
+        #original column
+        df_frame[orig_col]=col
+
+        #updateframe
+        frames[i]=df_frame
+        
+    #create df
+    df=pd.concat(frames)    
+
+    #drop na
+    df=df.dropna()
+
+    #unique values
+    df=df.drop_duplicates(subset=colname)
+
+    #lowercase
+    df[colname]=df[colname].str.lower()
+
+    #sort   
+    df=df.sort_values(by=[orig_col, colname])
+
+    #save
+    file_path=f"{results}/{result}.csv"
+    df.to_csv(file_path, index=False)
+
+
+#folders=["_irstxt_to_dfs", "_contributors"]
+#items=["A", "A_clean"]
+def _contributors(folders, items):
+    resources=folders[0]
+    results=folders[1]
+
+    resource=items[0]
+    result=items[1]
+
+    #read
+    file_path=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        file_path, 
+        dtype="string",
+        #nrows=10**7,
+        na_values=[""],
+        keep_default_na=False,
+        on_bad_lines='skip',
+        )
+    
+    #lowercase col values
+    for i, col in enumerate(df.columns):
+        df[col]=df[col].str.lower()
+
+    #old vars
+    organization="A__org_name"
+    contributor="A__contributor_name"
+    contributor_employer="A__contributor_employer"
+    contribution_amount="A__contribution_amount"
+    contribution_date="A__contribution_date"
+    agg_contribution_ytd="A__agg_contribution_ytd"
+
+    #new vars
+    contributiondate_format="contribution_date"
+    organization_dummy="organization_dummy"
+
+    #keep only attorneys general associations
+    df=df[df[organization].str.contains("attorneys general")]
+
+    #standardize names
+    df[organization]=df[organization].replace(dictreplace_organizations)
+    df[contributor]=df[contributor].replace(dictreplace_companies)
+    
+    #fillna
+    df=df.fillna("nan")
+
+    #drop duplicates
+    cols_duplicates=[organization, contributor, agg_contribution_ytd, contribution_date]
+    df=df.drop_duplicates(subset=cols_duplicates)
+
+    #date variables
+    df[contributiondate_format]=pd.to_datetime(df[contribution_date], format="%Y%m%d")
+    df["contribution_year"]=pd.DatetimeIndex(df[contributiondate_format]).year
+    df["contribution_month"]=pd.DatetimeIndex(df[contributiondate_format]).month
+    df["contribution_day"]=pd.DatetimeIndex(df[contributiondate_format]).day
+
+    #dummy contributor is organization or individual
+    s=df[contributor_employer]
+    condlist=[
+        (s=="nan"),
+        (s=="n/a"),
+        (s!="n/a"),
+        ]   
+    choicelist=[
+        None,
+        1, 
+        0,
+        ]
+    condlist = [cond.astype("bool") for cond in condlist]
+    df[organization_dummy]=np.select(condlist, choicelist, default="error")
+
+    #sort by name and date 
+    cols_sort=[organization, contributiondate_format]
+    df=df.sort_values(by=cols_sort)
+
+    #groupby contributor-527-year
+    df[contribution_amount]=pd.to_numeric(df[contribution_amount], errors="ignore")
+    by=[contributor, organization, "contribution_year"]
+    dict_agg_colfunctions={contribution_amount: [sum]}
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    #save
+    file_path=f"{results}/{result}.csv"
+    df.to_csv(file_path, index=False)
 
 
 #IRS 527
 #https://en.wikipedia.org/wiki/527_organization
 #https://www.irs.gov/charities-non-profits/political-organizations/political-organization-filing-and-disclosure
+#https://www.irs.gov/charities-non-profits/political-organizations/form-8872-contents-of-report
 #https://www.politicalaccountability.net/reports/cpa-reports/527data
 #https://www.politicalmoneyline.com/
 
@@ -203,6 +363,10 @@ def _irstxt_to_dfs(folders, items):
 #FEC
 #https://www.fec.gov/data/browse-data/?tab=bulk-data
 
+#DOJ cases
+
+#OSHA violations
+
 #Climate change litigation   
 #https://climate.law.columbia.edu/content/climate-change-litigation
 
@@ -218,7 +382,19 @@ def _irstxt_to_dfs(folders, items):
 
 folders=["donations", "_irstxt_to_dfs"]
 items=["FullDataFile", "_irstxt_to_dfs"]
-_irstxt_to_dfs(folders, items)
+#_irstxt_to_dfs(folders, items)
+
+
+
+folders=["_irstxt_to_dfs", "_unique_donors"]
+items=["A", "_unique_donors"]
+#_unique_donors(folders, items)
+
+
+folders=["_irstxt_to_dfs", "_contributors"]
+items=["A", "A_clean"]
+_contributors(folders, items)
+
 
 
 print("done")

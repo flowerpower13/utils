@@ -75,7 +75,6 @@ def _pd_DataFrame(values, columns):
     return df
 
 
-#e.g.,
 #by=["var0"]
 #dict_agg_colfunctions={"var1": [sum], "var2": [" ".join]}
 def _groupby(df, by, dict_agg_colfunctions):
