@@ -41,6 +41,26 @@ def _replace_txt(text, tuples_replace):
     return text
 
 
+
+#simple clean text
+def _simpleclean_text(raw_text):
+
+    #remove text btw markers
+    text=re.sub(f'{marker}.*?{marker}', '', raw_text)
+
+    #lowercase
+    text=text.lower()
+
+    #remove non-characters
+    text=re.sub(r'[^a-zA-Z ]', '', text)
+    
+    #remove whitespaces
+    text=re.sub(r"\s+", ' ', text)
+
+    return text
+
+
+
 #clean text
 def _clean_text(raw_text):
 
