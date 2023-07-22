@@ -92,6 +92,38 @@ def _groupby(df, by, dict_agg_colfunctions):
     return df
 
 
+#by=["var0"]
+#dict_agg_colfunctions={"var1": sum, "var2": " ".join}
+def _groupby_noagg(df, by, dict_agg_colfunctions):
+
+    #dropna
+    for i, col in enumerate(by):
+        df=df.dropna(subset=col)
+
+    #to string    
+    for i, col in enumerate(by):
+        df[col]=df[col].astype("string")
+
+    #gen id
+    by_var="_".join(by)
+    df[by_var]=df[by].agg("_".join, axis="columns")
+
+    #to numeric  
+    #df[old_var]=pd.to_numeric(df[old_var])
+
+    #groupby  
+    for i, (key, value) in enumerate(dict_agg_colfunctions.items()):
+
+        #group var
+        grouped=df.groupby(by=by_var)[key].apply(value)
+
+        #gen new var
+        new_var=f"{key}_{value.__name__}"
+        df[new_var]=df[by_var].map(grouped)
+
+    return df
+
+
 #rename col names
 def _colfunctions_to_colnames(col, functions):
 

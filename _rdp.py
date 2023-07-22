@@ -10,18 +10,20 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 #functions
 from _pd_utils import _clean_stem, _pd_DataFrame, _df_to_csvcols, _dfcol_to_listcol
+from _standardize_names import _standardize_query
 
 
-#copy to main.py
-#from _rdp import _convert_symbols
+#imports
 import eikon as ek
 import refinitiv.dataplatform as rdp
+import refinitiv.data as rd
+from refinitiv.data.content import search
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
 appkey="7203cad580454a948f17be1b595ef4884be257be"
 ek.set_app_key(appkey)
 rdp.open_desktop_session(appkey)
-#'''
+rd.open_session(app_key=appkey)
 
 
 #retrieve n obs
@@ -525,7 +527,166 @@ def _rdp_data2(folders):
     df.to_csv(file_path, index=False)
     
 
+#search loop
+def _search_loop(view, query, filter, select, top, i, tot):
+
+    #search
+    df=rd.discovery.search(
+        view=view,
+        query=query,
+        filter=filter,
+        select=select,
+        top=top,
+        )
+    
+    #not empty
+    if not df.empty:
+    
+        #converted
+        converted=True
+
+        #sleep
+        time.sleep(1/5)
+
+        #print
+        print(f"{i}/{tot} - {query} - done")
+    
+    #empty
+    elif df.empty:
+
+        #df
+        df=pd.DataFrame()
+
+        #converted
+        converted=False
+
+    return df, converted
+
+
+#SEARCH
+folders=["_contributors_screen", "_search"]
+items=["A_screen", "A_search"]
+colname="A__company_involved"
+def _search(folders, items, colname):
+    #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Query.ipynb
+    #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Filter.ipynb
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #read csv
+    file_path=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        file_path, 
+        dtype="string",
+        #nrows=15,
+        )
+    
+    #list names
+    list_names=sorted(df[colname].unique())
+
+    #trial
+    #list_names=list_names[:10]
+
+    #n obs
+    n_obs=len(list_names)
+    tot=n_obs-1
+    frames=[None]*n_obs
+
+    #parameters
+    #filter="HeadquartersCountry eq 'United States of America'"
+    filter=None
+    select="DocumentTitle, CompositeDescriptiveName, BusinessEntity, AssetType, CompanyName, RIC, IssueISIN, CUSIP, SEDOL, TickerSymbol, IssuerOAPermID, LipperID, PermID"
+    top=1
+
+    #for names
+    for i, query in enumerate(list_names):
+
+        #clean query
+        stardardized_query=_standardize_query(query)
+
+        #try
+        try:
+
+            #equity
+            view=search.Views.EQUITY_QUOTES
+            df, converted = _search_loop(view, query, filter, select, top, i, tot)
+
+            #empty
+            if df.empty:
+
+                #non equity
+                view=search.Views.EQUITY_QUOTES
+                df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
+
+                #empty
+                if df.empty:
+
+                    view=search.Views.SEARCH_ALL
+                    df, converted = _search_loop(view, query, filter, select, top, i, tot)
+
+                    #empty
+                    if df.empty:
+
+                        view=search.Views.SEARCH_ALL
+                        df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
+
+                        #empty
+                        if df.empty:
+
+                            #df
+                            df=pd.DataFrame()
+
+                            #converted
+                            converted=False
+
+                            #print
+                            print(f"{i}/{tot} - {query} - empty")
+        
+        #except
+        except Exception as e:
+
+            #df
+            df=pd.DataFrame()
+
+            #converted
+            converted=False
+
+            #print
+            print(f"{i}/{tot} - {query} - exception")
+            print(e)
+
+        #create df0
+        d={
+            "query": [query],
+            "stardardized_query": [stardardized_query],
+            "converted": [converted],
+            }
+        df_0=pd.DataFrame(data=d)
+
+        #create df_i
+        df_i=pd.concat([df_0, df], axis="columns")
+
+        #update frame
+        frames[i]=df_i
+
+    #concat
+    df=pd.concat(frames)
+
+    #save
+    file_path=f"{results}/{result}.csv"
+    df.to_csv(file_path, index=False)
+
+
+    
+
 #copy to main.py
 rdp.close_session()
+rd.close_session()
 print("_rdp - done")
 #'''
