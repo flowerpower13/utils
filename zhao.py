@@ -7,7 +7,7 @@ import pandas as pd
 
 
 #functions
-from _pd_utils import _groupby
+from _pd_utils import _groupby, _df_to_uniquecol
 from _merge_utils import _fuzzymatch, _pd_merge
 from _rdp import _search
 
@@ -20,9 +20,10 @@ from refinitiv.data.content import search
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
 appkey="7203cad580454a948f17be1b595ef4884be257be"
-ek.set_app_key(appkey)
-rdp.open_desktop_session(appkey)
+ek.set_app_key(app_key=appkey)
+rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
+
 
 
 #variables
@@ -48,8 +49,11 @@ def _codecolumns(resources):
     codecol_sep="__"
 
     #read
-    file_path=f"{resources}/{filename}.csv"
-    df=pd.read_csv(file_path, dtype="string")
+    filepath=f"{resources}/{filename}.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        )
 
     #replace pipe delimiter with nan
     df=df.replace(columns_replace, np.nan)
@@ -89,9 +93,9 @@ def _new_txts(dict_codecolumns, results):
     for j, (code, columns) in enumerate(dict_codecolumns.items()):
 
         #write
-        file_path=f"{results}/{code}.csv"
+        filepath=f"{results}/{code}.csv"
         with open(
-            file=file_path,
+            file=filepath,
             mode="w",
             encoding=encoding,
             errors="strict",
@@ -102,8 +106,22 @@ def _new_txts(dict_codecolumns, results):
             file_object.write(text)
 
 
-#txt to df
-def _txtcodes_to_csvs(resources, resource, results):
+
+#irstxt to dfs
+#folders=["_donations", "_irstxt_to_dfs"]
+#items=["FullDataFile"]
+def _irstxt_to_dfs(folders, items):
+
+    #Download form data file (entire database of Forms 8871 and Forms 8872)
+    #https://forms.irs.gov/app/pod/dataDownload/dataDownload
+    #https://forms.irs.gov/app/pod/dataDownload/fullData 
+
+
+    resources=folders[0]
+    results=folders[1]
+
+    resource=items[0]
+    result=items[1]
 
     #variables
     len_sep=len(sep)
@@ -115,9 +133,9 @@ def _txtcodes_to_csvs(resources, resource, results):
     _new_txts(dict_codecolumns, results)
 
     #read
-    file_path=f"{resources}/{resource}.txt"
+    filepath=f"{resources}/{resource}.txt"
     with open(
-        file=file_path,
+        file=filepath,
         mode="r",
         encoding=encoding,
         errors="strict",
@@ -152,9 +170,9 @@ def _txtcodes_to_csvs(resources, resource, results):
                 if (val0==code) and (len_values==len_columns):
 
                     #write
-                    file_path=f"{results}/{code}.csv"
+                    filepath=f"{results}/{code}.csv"
                     with open(
-                        file=file_path,
+                        file=filepath,
                         mode="ab",
                         ) as file_object:
 
@@ -174,22 +192,6 @@ def _txtcodes_to_csvs(resources, resource, results):
             #if i==2: break
 
 
-#irstxt to dfs
-#folders=["donations", "_irstxt_to_dfs"]
-#items=["FullDataFile", "_irstxt_to_dfs"]
-def _irstxt_to_dfs(folders, items):
-    resources=folders[0]
-    results=folders[1]
-
-    resource=items[0]
-    result=items[1]
-
-    #txt to txts
-    _txtcodes_to_csvs(resources, resource, results)
-
-    #txts to dfs
-
-
 #folders=["_irstxt_to_dfs", "_unique_donors"]
 #items=["A", "_unique_donors"]
 def _unique_donors(folders, items):
@@ -200,9 +202,9 @@ def _unique_donors(folders, items):
     result=items[1]
 
     #read
-    file_path=f"{resources}/{resource}.csv"
+    filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
-        file_path, 
+        filepath, 
         dtype="string",
         on_bad_lines='skip',
         )
@@ -249,64 +251,8 @@ def _unique_donors(folders, items):
     df=df.sort_values(by=[orig_col, colname])
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
-
-
-#std names
-#folders=["_std_names"]
-#items=["_std_names"]
-def _std_names(folders, items):
-
-    resources=folders[0]
-
-    resource=items[0]
-
-    #read
-    file_path=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        file_path, 
-        dtype="string",
-        )
-    
-    #keys and values
-    keys=df["A__contributor_name"]
-    values=df["std_name"]
-
-    #dict replace
-    dict_replace=dict(zip(keys, values))
-
-    return dict_replace
-
-
-
-from _standardize_names import _standardize_query, fuzz_similarity, company_clusters_modified
-def _series_to_df(df, colname):
-
-    #unique and sort
-    s=sorted(df[colname].unique())
-
-    #Cleaned_name
-    Cleaned_name=s.apply(_standardize_query)
-
-    #similarity_array
-    similarity_array=fuzz_similarity(Cleaned_name)
-
-    #create df left
-    d={
-        colname: s,
-        "Cleaned_name": Cleaned_name,
-        }
-    df_left=pd.DataFrame(data=d)
-
-    #create new df
-    df=company_clusters_modified(df_left, s, colname, similarity_array)
-    
-    #mode
-    grouped = df.groupby('Cluster')[colname].apply(lambda x: x.mode()[0])
-    df["std_name"]=df['Cluster'].map(grouped)
-
-    return df
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
 #contributors screen by ein
@@ -319,9 +265,9 @@ def _contributors_screen(folders, items):
     result_comp=items[2]
 
     #read
-    file_path=f"{resources}/{resource}.csv"
+    filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
-        file_path, 
+        filepath, 
         dtype="string",
         #nrows=10**6,
         na_values=[""],
@@ -386,11 +332,11 @@ def _contributors_screen(folders, items):
     df[company_involved]=y
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
-#contributors aggreagte by firm-year
+#contributors aggregate by firm-year
 def _contributors_aggregate(folders, items):
     resources=folders[0]
     results=folders[1]
@@ -399,9 +345,9 @@ def _contributors_aggregate(folders, items):
     result=items[1]
 
     #read
-    file_path=f"{resources}/{resource}.csv"
+    filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
-        file_path, 
+        filepath, 
         dtype="string",
         #nrows=10**7,
         na_values=[""],
@@ -453,39 +399,62 @@ def _contributors_aggregate(folders, items):
     df=df.sort_values(by=cols_sort)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath
+              , index=False)
 
 
-folders=["donations", "_irstxt_to_dfs"]
+
+#download data from https://forms.irs.gov/app/pod/dataDownload/dataDownload
+folders=["zhao/_donations", "zhao/_irstxt_to_dfs"]
 items=["FullDataFile", "_irstxt_to_dfs"]
 #_irstxt_to_dfs(folders, items)
 
 
 #https://medium.com/analytics-vidhya/supplier-name-standardization-using-unsupervised-learning-adb27bed9e0d
-folders=["_irstxt_to_dfs", "_contributors_screen"]
+folders=["zhao/_irstxt_to_dfs", "zhao/_contributors_screen"]
 items=["A", "A_screen", "companies"]
 #_contributors_screen(folders, items)
 
 
 #search companies cusips (donations)
-folders=["_contributors_screen", "_search"]
+folders=["zhao/_contributors_screen", "zhao/_search"]
 items=["A_screen", "A_search"]
 colname="A__company_involved"
-_search(folders, items, colname)
+#_search(folders, items, colname)
 
 
-#manually add cusip
-folders=["_search", "_search"]
-items=["A_search", "A_search_manual"]
+#compustat name/cusip matching table
+folders=["zhao/_data", "zhao/_data"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_linktable"]
+colnames={
+    "name": "conm",
+    "identifier": "cusip",
+    }
+#_df_to_uniquecol(folders, items, colnames)
+
+
+#list of unmatched names
+folders=["zhao/_search", "zhao/_search"]
+items=["A_search", "A_search_unmatched"]
+colnames={
+    "name": "A__company_involved",
+    "identifier": "CUSIP",
+    }
+#_df_to_unmatchedcol(folders, items, colnames)
+
+
+#manually match cusip to each name
+
+
 
 
 #add cusip to donations
-folders=["_finaldb"]
+folders=["zhao/_finaldb"]
 items=["_finaldb_donations_link"]
 left="_contributors_screen/A_screen"
 left_vars=["cusip"]
-right="_search/A_search_manual"
+right="XXX"
 right_vars=["cusip"]
 how="inner"
 validate="1:1"
@@ -493,7 +462,7 @@ validate="1:1"
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-folders=["_finaldb", "_contributors_aggregate"]
+folders=["zhao/_finaldb", "zhao/_contributors_aggregate"]
 items=["_finaldb_donations_link", "A_aggregate"]
 #_contributors_aggregate(folders, items)
 
@@ -505,6 +474,9 @@ items=["_finaldb_donations_link", "A_aggregate"]
 
 
 #merge compustat/donations to violations
+
+
+#litigation
 
 
 
@@ -521,6 +493,20 @@ print("done")
 
 
 
+#CONGRESSDATA APP
+#https://cspp.ippsr.msu.edu/congress/
+
+
+#LOBBYVIEW
+#https://www.lobbyview.org/
+
+
+#INTEGRITY WATCH
+#https://data.integritywatch.eu/login
+
+
+#FMINUS
+#https://fminus.org/database/
 
 
 
@@ -529,75 +515,90 @@ print("done")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#violation tracker AG
-#https://violationtracker.goodjobsfirst.org/?company_op=starts&company=&offense_group=&agency_code=OSHA
-#MULTI, MN-AG, USAO
-
-#ag vs federal govt
-#https://attorneysgeneral.org/multistate-activities-data/
+#podcast
+#history of campaign finance laws (from FEC to IRS) 
+# 10.1146/annurev-lawsocsci-102612-133930
+# 10.1146/annurev-lawsocsci-110316-113428
+# how to create a pac https://www.fec.gov/help-candidates-and-committees/
+# how to start a 527 https://www.irs.gov/charities-non-profits/political-organizations/user-guides-political-organizations-filing-and-disclosure-web-site
+# how to start a 501 https://www.irs.gov/charities-non-profits/educational-resources-and-guidance-for-exempt-organizations
+# IRS Audit Techniques Guides  https://www.irs.gov/charities-non-profits/audit-technique-guides-atgs-and-technical-guides-tgs-for-exempt-organizations
+# R&D tax credit https://www.irs.gov/businesses/research-credit
 
 
 #IRS 527
-#https://en.wikipedia.org/wiki/527_organization
-#https://www.irs.gov/charities-non-profits/political-organizations/political-organization-filing-and-disclosure
-#https://www.irs.gov/charities-non-profits/political-organizations/form-8872-contents-of-report
-#https://www.politicalaccountability.net/reports/cpa-reports/527data
-#https://www.politicalmoneyline.com/
+#https://uscode.house.gov/ (Jump to: Title 26, Section 501, 527)
+#https://www.irs.gov/charities-non-profits/political-organizations
+#https://www.irs.gov/charities-non-profits/political-organizations/political-organizations-resource-materials
+#https://www.irs.gov/charities-non-profits/audit-technique-guides-atgs-and-technical-guides-tgs-for-exempt-organizations
 
 
-#lobbying
-#https://lda.senate.gov/system/public/  
-#https://www.lobbyview.org/
-
-#compromised lobbysts
-#https://fminus.org/database/
-
-#congress
-#https://projects.propublica.org/api-docs/congress-api/
-
-#judges personal disclosure
-#https://disclosures-clerk.house.gov/PublicDisclosure/FinancialDisclosure
-#https://github.com/govtrack/misconduct/blob/master/misconduct-instances.csv
-#https://pub.jefs.uscourts.gov/
-
-#procurement data
-#usaspending.gov
-
-#Charities
+#IRS 501
 #https://www.irs.gov/charities-non-profits/tax-exempt-organization-search
-#https://www.foundationsearch.com/
+#https://www.irs.gov/charities-non-profits/tax-exempt-organization-search-bulk-data-downloads
+#https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf
+#https://www.irs.gov/charities-non-profits/audit-technique-guides-atgs-and-technical-guides-tgs-for-exempt-organizations
+
 
 #FEC
-#https://www.fec.gov/data/browse-data/?tab=bulk-data
+#https://www.fec.gov/help-candidates-and-committees/
+#https://www.fec.gov/data/legal/statutes/
 
-#DOJ cases
 
-#OSHA violations
+#NBER
+#https://www.nber.org/research/data/irs-form-990-data
+#https://nccs.urban.org/
 
-#Climate change litigation   
-#https://climate.law.columbia.edu/content/climate-change-litigation
 
-#EU
-#https://www.europarl.europa.eu/thinktank/en/document/IPOL_STU(2021)694836
-#https://appf.europa.eu/appf/en/guidance/donations-and-contributions 
-#https://appf.europa.eu/appf/en/donations-and-contributions 
-#https://parlamento18.camera.it/199 
-#https://data.integritywatch.eu/login
+#CPA
+#https://www.politicalaccountability.net/
+#https://www.politicalaccountability.net/reports/cpa-reports/527data
+
+
+#CONGRESSMEN PERSONAL DISCLOSURES
+#https://disclosures-clerk.house.gov/PublicDisclosure/FinancialDisclosure
+#https://www.opensecrets.org/api/?method=memPFDprofile&output=doc
+
+
+#JUDGES PERSONAL DISCLOSURES
+#https://pub.jefs.uscourts.gov/
+
+
+#US OGE
+#https://www.oge.gov/web/oge.nsf/Officials%20Individual%20Disclosures%20Search%20Collection?OpenForm
+
+
+#PROCUREMENT
+#http://usaspending.gov/
+
+
+#OPENSECRETS
+#https://www.opensecrets.org/open-data/api-documentation
+#https://github.com/opensecrets/python-crpapi
+
+
+#PRO PUBLICA
+#https://projects.propublica.org/api-docs/congress-api/
+
+
+#LDA
+#https://lda.senate.gov/api/
+
+
+#CONGRESS MEMBERS
+#https://www.congress.gov/members
+
+
+#VIOLATION TRACKER
+#https://violationtracker.goodjobsfirst.org/?company_op=starts&company=&offense_group=&agency_code=OSHA
+#MULTI, MN-AG, USAO
+
+
+#CONGRESSMEN MISCONDUCT
+#https://github.com/govtrack/misconduct/blob/master/misconduct-instances.csv
+
+
+
+
+
+

@@ -247,7 +247,7 @@ def _ids_to_reports(folders, items):
     df=df.sort_values(by="ID_output")
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 

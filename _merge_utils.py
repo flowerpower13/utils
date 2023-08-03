@@ -8,9 +8,9 @@ from rapidfuzz import process, utils as fuzz_utils
 def _readcsv_lowercols(df_name):
 
     #open
-    file_path=f"{df_name}.csv"
+    filepath=f"{df_name}.csv"
     df=pd.read_csv(
-        file_path,
+        filepath,
         dtype="string",
         #nrows=100000,
         )
@@ -85,8 +85,8 @@ def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
         )
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
 #concat with same rows/cols
@@ -121,8 +121,8 @@ def _pd_concat(folders, items, left, right, axis, join, sort_id):
     df=df.sort_values(by=sort_id)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
 #extract similscore
@@ -172,9 +172,9 @@ def fuzzy_merge(left, right, left_on, right_on, threshold, limit, how):
 
 #read with colnames and colvalues as lowercase
 def _fuzzy_readcsv(df_stem, df_on):
-    file_path=f"{df_stem}.csv"
+    filepath=f"{df_stem}.csv"
     df=pd.read_csv(
-        file_path,
+        filepath,
         dtype="string",
         #nrows=100000,
         )
@@ -218,8 +218,8 @@ def _fuzzymatch(folders, items, left_stem, left_on, right_stem, right_on, thresh
     df=fuzzy_merge(left, right, left_on, right_on, threshold, limit, how)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
 #keep best match
@@ -236,8 +236,8 @@ def _keepfirst(folders, items, left_on, right_on, similscore):
     resource=items[0]
     result=items[1]
 
-    file_path=f"{resources}/{resource}.csv"
-    df=pd.read_csv(file_path, dtype="string")
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(filepath, dtype="string")
 
     #matches with highest score at the top
     by=[right_on, similscore]
@@ -253,6 +253,6 @@ def _keepfirst(folders, items, left_on, right_on, similscore):
     df=df.sort_values(by=left_on) 
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 

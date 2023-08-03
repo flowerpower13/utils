@@ -26,8 +26,8 @@ dict_topicbigrams_pn, dict_topicbigrams_np = get_topicdicts()
 def _txts_to_corpus(folder_corpus, path_aggregatecorpus):
 
     file_exclude="exclude"
-    file_path=f"{file_exclude}.csv"
-    df=pd.read_csv(file_path, dtype="string")
+    filepath=f"{file_exclude}.csv"
+    df=pd.read_csv(filepath, dtype="string")
     set_exclude=set(df[file_exclude].to_list())
 
     #file stems
@@ -119,8 +119,8 @@ def _libtxt_to_libdf(resources, resource, results, result):
     df=df.sort_values(by="TF", ascending=False)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
     #set bigrams
     set_bigrams=set(dict_counts.keys())
@@ -411,7 +411,7 @@ def _txts_to_hassan(folders, items, start, stop):
     df=df.sort_values(by=colname_filestems)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 

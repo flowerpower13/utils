@@ -21,7 +21,7 @@ laparams=LAParams(line_overlap=0.5, char_margin=2.0, line_margin=0.5, word_margi
 #decrypt pdf
 def _decrypt_pdf(file, file_stem):
 
-    #NEW file_path
+    #NEW filepath
     decrypted_file=Path(f"_decrypt_pdf/{file_stem}.pdf")
 
     #try
@@ -246,6 +246,6 @@ def _pdfs_to_txts(folders, items):
     df=df.sort_values(by=colname_filestems)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
     

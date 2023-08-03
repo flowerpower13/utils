@@ -41,11 +41,11 @@ def _df_to_csvcols(df, results, result):
         col_name=_clean_stem(col_name)
 
         #save
-        file_path=f"{results}/{result}_{col_name}.csv"
-        df_i.to_csv(file_path, index=False)
+        filepath=f"{results}/{result}_{col_name}.csv"
+        df_i.to_csv(filepath, index=False)
 
-        file_path=f"{results}/{result}_{col_name}.txt"
-        df_i.to_csv(file_path, index=False)
+        filepath=f"{results}/{result}_{col_name}.txt"
+        df_i.to_csv(filepath, index=False)
 
 
 #from dictionary to values and keys
@@ -173,11 +173,11 @@ def _colfunctions_to_df(df, cols, functions):
 
 
 #from csv to dict_df (df as dictionary)
-def _csv_to_dictdf(file_path, index_col):
+def _csv_to_dictdf(filepath, index_col):
 
     #read_csv
     df=pd.read_csv(
-        file_path, 
+        filepath, 
         #dtype="string",
         )
 
@@ -191,16 +191,16 @@ def _csv_to_dictdf(file_path, index_col):
 
 
 #from csv to set values ()
-def _csv_to_setvalues(file_path, bad_keywords):
+def _csv_to_setvalues(filepath, bad_keywords):
 
     #read csv
     df=pd.read_csv(
-        f"{file_path}.csv", 
+        f"{filepath}.csv", 
         dtype="string",
         )
 
     #col values to list
-    col_values=df[file_path].str.lower().to_list()
+    col_values=df[filepath].str.lower().to_list()
 
     #list to set minus bad keywords
     set_values=set(col_values)-bad_keywords
@@ -209,6 +209,7 @@ def _csv_to_setvalues(file_path, bad_keywords):
 
 
 #from folder to file stems' list
+#files, file_stems = _folder_to_filestems(resources)
 def _folder_to_filestems(folder):
 
     #global path
@@ -227,4 +228,104 @@ def _folder_to_filestems(folder):
     file_stems=[x.stem for x in files]
 
     return files, file_stems
+    
+
+#from df to column with unique values
+'''folders=["zhao/_data", "zhao/_data"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_uniquecusip"]
+colnames={
+    "name": "conm",
+    "identifier": "cusip",
+    }'''
+def _df_to_uniquecol(folders, items, colnames):
+
+    #folders
+    resources=folders[0]
+    results=folders[0]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype=object,
+        )
+    
+    #unpack
+    name=colnames["name"]
+    identifier=colnames["identifier"]
+    cols=[name, identifier]
+
+    #keep vars
+    df=df[[name, identifier]]
+
+    #drop na
+    df=df.dropna()
+
+    #lowercase
+    for i, col in enumerate(cols):
+        df[col]=df[col].str.lower()
+
+    #drop duplicates
+    df=df.drop_duplicates(subset=cols)
+
+    #sort
+    df=df.sort_values(by=[name])
+
+    #save
+    filepath=f"{results}/{result}.xlsx"
+    df.to_excel(filepath, index=False)
+
+
+#from df to column with unmatched values
+'''folders=["zhao/_search", "zhao/_search"]
+items=["A_search", "A_search_unmatched"]
+colnames={
+    "name": "A__company_involved",
+    "identifier": "CUSIP",
+    }
+#'''
+def _df_to_unmatchedcol(folders, items, colnames):
+
+    #folders
+    resources=folders[0]
+    results=folders[0]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype=object,
+        )
+    
+    #unpack
+    name=colnames["name"]
+    identifier=colnames["identifier"]
+    cols=[name, identifier]
+
+    #keep vars
+    df=df[[name, identifier]]
+
+    #drop not-na for identifier
+    df=df[df[identifier].isna()]
+
+    #lowercase
+    for i, col in enumerate(cols):
+        df[col]=df[col].str.lower()
+
+    #drop duplicates
+    df=df.drop_duplicates(subset=[name])
+
+    #sort
+    df=df.sort_values(by=[name])
+
+    #save
+    filepath=f"{results}/{result}.xlsx"
+    df.to_excel(filepath, index=False)
+
 

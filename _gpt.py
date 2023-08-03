@@ -2,7 +2,6 @@
 
 #link
 #https://platform.openai.com/
-#https://openai.com/pricing
 
 
 #imports
@@ -29,8 +28,12 @@ openai.organization=openai_orgid
 openai.api_key=openai_apikey
 
 
-
-
+#params
+model="gpt-3.5-turbo"
+temperature=0
+max_tokens=500
+token_limit=4096
+max_chars=3000*4
 
 
 #from content to messages
@@ -69,10 +72,6 @@ def _input_to_gptresponse(
 	model,
 	messages,
 	temperature,
-	top_p,
-	max_tokens,
-	presence_penalty,
-	frequency_penalty,
 	):
 
 	#completion
@@ -80,13 +79,13 @@ def _input_to_gptresponse(
 		model=model,
 		messages=messages,
 		temperature=temperature,
-		top_p=top_p,
+		#top_p=1,
 		#n=1,
 		#stream=False,
 		#stop=None,
 		max_tokens=max_tokens,
-		presence_penalty=presence_penalty,
-		frequency_penalty=frequency_penalty,
+		#presence_penalty=0,
+		#frequency_penalty=0,
 		#logit_bias=None,
 		)
 
@@ -110,15 +109,16 @@ def _input_to_gptresponse(
 	completion_tokens=usage.completion_tokens
 	total_tokens=usage.total_tokens
 
-	return response, completion_tokens
+	#warning finish reason
+	if finish_reason!="stop":
+		print(f"warning - finish_reason: {finish_reason}")
+
+	if total_tokens>token_limit:
+		print(f"warning - total_tokens: {total_tokens}>{token_limit}")
+
+	return response, finish_reason, total_tokens
 
 
-#vars
-model="gpt-3.5-turbo"
-temperature=0
-top_p=1
-presence_penalty=-2
-frequency_penalty=-2
 
 #content_system_relevant
 content_system_relevant="""
@@ -143,7 +143,7 @@ Your answer should be a  python dictionary with the following 5 keys, one for ea
 4. "quoted_price", and 
 5. "recent_genuine_offer".
 
-For each key above, in the dictionary assign value "1" if the valuation methodology has been employed, otherwise 0.
+For each key above, in the dictionary assign value "1" if the valuation methodology has been employed, otherwise "0".
 It may be that the valuation expert is simply mentioning the valuation methodology, but not employing it for the valuation.
 I need you to put value "1" whenever the valuation expert is actually employing the valuation methodology, not simply listing it.
 """
@@ -158,7 +158,7 @@ method4="recent_genuine_offer"
 
 
 #from txt to partitions
-def _txt_to_partitions(text, max_chars=3000*4):
+def _txt_to_partitions(text, max_chars):
 
 	#len text
 	len_text=len(text)
@@ -210,7 +210,7 @@ def _partitions_to_methods(partitions, output_txt):
 		for i, partition in enumerate(partitions):
 
 			#partition text
-			partition_text=f"\n\n\n{marker} partition - {i} {marker}\n{partition}\n\n"
+			partition_text=f"\n\n{marker} partition - {i} {marker}\n{partition}\n\n"
 			#update text list
 			text_list.append(partition_text)
 
@@ -224,27 +224,35 @@ def _partitions_to_methods(partitions, output_txt):
 			try:
 
 				#response
-				max_tokens=1
-				relevant, completion_tokens = _input_to_gptresponse(
-					model,
-					messages,
-					temperature,
-					top_p,
-					max_tokens,
-					presence_penalty,
-					frequency_penalty,
+				relevant, finish_reason, total_tokens = _input_to_gptresponse(
+					model=model,
+					messages=messages,
+					temperature=temperature,
+					max_tokens=max_tokens,
 					)
 				
-				#relevant text
-				relevant_text=f"{marker} relevant - {i} {marker}\n{relevant}\n\n"
+				#response_type
+				response_type="relevant"
+				
+				#finish_reason_text
+				finish_reason_text=f"finish_reason: {finish_reason}"
+
+				#total_tokens_text
+				total_tokens_text=f"total_tokens: {total_tokens}"
+
+				#relevant_text
+				relevant_text=f"{response_type}: {relevant}"
+				
+				#text
+				text=f"{marker} {response_type} - {i} {marker}\n{finish_reason_text}\n{total_tokens_text}\n{relevant_text}\n\n"
 				#update text list
-				text_list.append(relevant_text)
+				text_list.append(text)
+
+				print(text)
 
 				#if
 				if relevant=="0":
-
-					#skip
-					print("skip")
+					pass
 				
 				#elif
 				elif relevant=="1":
@@ -256,21 +264,31 @@ def _partitions_to_methods(partitions, output_txt):
 						)	
 
 					#response
-					max_tokens=100
-					response, completion_tokens = _input_to_gptresponse(
-						model,
-						messages,
-						temperature,
-						top_p,
-						max_tokens,
-						presence_penalty,
-						frequency_penalty,
+					response, finish_reason, total_tokens = _input_to_gptresponse(
+						model=model,
+						messages=messages,
+						temperature=temperature,
+						max_tokens=max_tokens,
 						)
 					
-					#response text
-					response_text=f"{marker} response - {i} {marker}\n{response}\n\n"
+					#response_type
+					response_type="response"
+					
+					#finish_reason_text
+					finish_reason_text=f"finish_reason: {finish_reason}"
+
+					#total_tokens_text
+					total_tokens_text=f"total_tokens: {total_tokens}"
+
+					#relevant_text
+					response_text=f"{response_type}: {response}"
+					
+					#text
+					text=f"{marker} {response_type} - {i} {marker}\n{finish_reason_text}\n{total_tokens_text}\n{response_text}\n\n"
 					#update text list
-					text_list.append(response_text)
+					text_list.append(text)
+
+					print(text)
 
 					#dict methods
 					dict_methods=json.loads(response)
@@ -330,15 +348,8 @@ def _txt_to_df(i, tot, file, file_stem, output_csv, output_txt):
 	#clean text
 	text=_simpleclean_text(text)
 
-	#trial
-	text=text[:100]
-
-	text="""
-	I employ the discounted cash flows model, but not the earnings multiples
-	"""
-
 	#split text below token limit
-	partitions=_txt_to_partitions(text)
+	partitions=_txt_to_partitions(text, max_chars)
 
 	#retrieve methods
 	relevant, methods, converted = _partitions_to_methods(partitions, output_txt)
@@ -354,7 +365,7 @@ def _txt_to_df(i, tot, file, file_stem, output_csv, output_txt):
 			"output_txt": [output_txt],
 			"relevant": [relevant],
 			method0: [methods[method0]],
-			method2: [methods[method1]],
+			method1: [methods[method1]],
 			method2: [methods[method2]],
 			method3: [methods[method3]],
 			method4: [methods[method4]],

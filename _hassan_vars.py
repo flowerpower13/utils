@@ -143,12 +143,12 @@ def _tuples_universities():
     #imports
     import json
 
-    #file_path
-    file_path="world_universities_and_domains.json"
+    #filepath
+    filepath="_resources/world_universities_and_domains.json"
 
     #read
     with open(
-        file=file_path,
+        file=filepath,
         mode="r",
         encoding="utf8",
         ) as file_object:
@@ -250,8 +250,8 @@ def _get_badkeywords():
 def _loughran_sentiment(sentiment):
 
     #read csv
-    file_path="Loughran-McDonald_MasterDictionary_1993-2021"
-    df=pd.read_csv(f"{file_path}.csv", dtype="string")
+    filepath="_resources/Loughran-McDonald_MasterDictionary_1993-2021"
+    df=pd.read_csv(f"{filepath}.csv", dtype="string")
 
     #drop na
     df=df.dropna(subset=["Word"])
@@ -270,9 +270,9 @@ def get_generalsets():
 
     #uncertainty
     #https://github.com/mschwedeler/firmlevelrisk/blob/master/input/riskwords/synonyms.txt
-    file_path="synonyms_uncertainty"
+    filepath="_resources/synonyms_uncertainty"
     bad_keywords={"question", "questions", "venture"}
-    set_synonyms_uncertainty=_csv_to_setvalues(file_path, bad_keywords)
+    set_synonyms_uncertainty=_csv_to_setvalues(filepath, bad_keywords)
 
     #loughran
     sentiment="Positive"
@@ -281,9 +281,9 @@ def get_generalsets():
     set_loughran_negative=_loughran_sentiment(sentiment)
 
     #sovereign
-    file_path="sovereign"
+    filepath="_resources/sovereign"
     bad_keywords=set()
-    set_sovereign=_csv_to_setvalues(file_path, bad_keywords)
+    set_sovereign=_csv_to_setvalues(filepath, bad_keywords)
 
     #add others here
     #
@@ -298,12 +298,12 @@ def get_topicdicts():
     index_col="bigram"
 
     #topic bigrams P\N
-    file_path="_topicbigrams/_topicbigrams_pn.csv"
-    dict_topicbigrams_pn=_csv_to_dictdf(file_path, index_col)
+    filepath="_topicbigrams/_topicbigrams_pn.csv"
+    dict_topicbigrams_pn=_csv_to_dictdf(filepath, index_col)
 
     #topic bigrams N\P
-    file_path="_topicbigrams/_topicbigrams_np.csv"
-    dict_topicbigrams_np=_csv_to_dictdf(file_path, index_col)
+    filepath="_topicbigrams/_topicbigrams_np.csv"
+    dict_topicbigrams_np=_csv_to_dictdf(filepath, index_col)
 
     return dict_topicbigrams_pn, dict_topicbigrams_np
 

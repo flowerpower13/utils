@@ -42,7 +42,7 @@ for i, arg in enumerate(args):
     chrome_options.add_argument(arg)  
 
 
-
+#from url to text
 def _chromedriver(url):
     driver=webdriver.Chrome(executable_path="chromedriver", options=chrome_options)
 

@@ -42,8 +42,8 @@ def _concat(folders, items, full_db):
         if file_stem in filestems_resources:
 
             #open df
-            file_path=f"{resources}/{file_stem}.csv"
-            df=pd.read_csv(file_path, dtype="string")
+            filepath=f"{resources}/{file_stem}.csv"
+            df=pd.read_csv(filepath, dtype="string")
 
             #converted
             converted=True
@@ -74,6 +74,6 @@ def _concat(folders, items, full_db):
     df=df.sort_values(by=colname_filestems)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
     

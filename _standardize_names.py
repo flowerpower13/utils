@@ -1,13 +1,19 @@
 
+
 #https://github.com/rahulissar/ai-supply-chain
 #https://medium.com/analytics-vidhya/supplier-name-standardization-using-unsupervised-learning-adb27bed9e0d
 
 
-# Importing the necessary libraries
-import unicodedata
+#https://github.com/psolin/cleanco
+
+
+#imports
 import re
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 import nltk
+import unicodedata
+from cleanco import basename
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 
 # List of keywords to help identify stop_words
 vendor_stopwords=['biz', 'bv', 'co', 'comp', 'company', 
@@ -60,7 +66,7 @@ def _standardize_query(text, lemm=False, english=True):
         text=unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8', 'ignore')
 
         #remove special characters, but not digits
-        text=re.sub(r'[^a-zA-Z0-9 ]', '', text)
+        text=re.sub(r'[^a-zA-Z0-9 \-–]', '', text)
 
         #remove digits
         #text=re.sub(r'[0-9 ]', '', text)
@@ -71,8 +77,12 @@ def _standardize_query(text, lemm=False, english=True):
         #clean stopwords
         text=clean_stopwords(text, english)
 
+        #clean company name
+        text=basename(text)
+
         #clean spaces
         text=clean_spaces(text) 
+
 
         ## Lemmatisation (convert the word into root word)
         if lemm == True:
@@ -146,3 +156,35 @@ def company_clusters_modified(df_left, s, colname, similarity_array):
     new = pd.merge(df_left, df_clusters, how="inner", on=colname)
 
     return new
+
+
+
+def _series_to_df(df, colname):
+
+    #unique and sort
+    s=sorted(df[colname].unique())
+
+    #Cleaned_name
+    Cleaned_name=s.apply(_standardize_query)
+
+    #similarity_array
+    similarity_array=fuzz_similarity(Cleaned_name)
+
+    #create df left
+    d={
+        colname: s,
+        "Cleaned_name": Cleaned_name,
+        }
+    df_left=pd.DataFrame(data=d)
+
+    #create new df
+    df=company_clusters_modified(df_left, s, colname, similarity_array)
+    
+    #mode
+    grouped = df.groupby('Cluster')[colname].apply(lambda x: x.mode()[0])
+    df["std_name"]=df['Cluster'].map(grouped)
+
+    return df
+
+
+

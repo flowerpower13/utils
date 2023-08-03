@@ -1,3 +1,6 @@
+
+
+import io
 import re
 import json
 import time
@@ -21,8 +24,8 @@ from refinitiv.data.content import search
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
 appkey="7203cad580454a948f17be1b595ef4884be257be"
-ek.set_app_key(appkey)
-rdp.open_desktop_session(appkey)
+ek.set_app_key(app_key=appkey)
+rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
 
 
@@ -119,15 +122,15 @@ def _convert_symbols(folders, items, IDs):
     result=items[1]
 
     #read csv
-    file_path=f"{resources}/{resource}.csv"
-    df=pd.read_csv(file_path, dtype="string")
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(filepath, dtype="string")
 
     #from IDs to new symbols df
     df=_convert_IDs(df, IDs)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath)
 
     #for each column, create a csv
     _df_to_csvcols(df, results, result)
@@ -145,8 +148,8 @@ def _pal(folders, items):
     resource=items[0]
     result=items[1]
 
-    file_path=f"{resources}/{resource}.csv"
-    df=pd.read_csv(file_path, dtype="string")
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(filepath, dtype="string")
 
     col_name="RIC"
     symbols_all=_dfcol_to_listcol(df, col_name)
@@ -164,8 +167,8 @@ def _pal(folders, items):
         
         df=_pd_DataFrame(values, columns)
 
-        file_path=f"{results}/{result}_pal_{i}.csv"
-        df.to_csv(file_path, index=False)
+        filepath=f"{results}/{result}_pal_{i}.csv"
+        df.to_csv(filepath, index=False)
 
 
 #load items
@@ -180,8 +183,8 @@ def _load_items(resources, item):
     elif not (col_name in col_names):
         col_name="RIC"
 
-    file_path=f"{resources}/{item}.csv"
-    df_list=pd.read_csv(file_path, dtype="string")[col_name].to_list()
+    filepath=f"{resources}/{item}.csv"
+    df_list=pd.read_csv(filepath, dtype="string")[col_name].to_list()
 
     return df_list
 
@@ -281,8 +284,8 @@ def _get_data_loop(instruments, fields, parameters, results):
     df=df.reindex(index=file_stems)
     df.insert(1, "converted", converteds)  
 
-    file_path=f"{results}/{results}.csv"
-    df.to_csv(file_path)
+    filepath=f"{results}/{results}.csv"
+    df.to_csv(filepath)
 
 
 def _print_msg(msg, j, tot_j, k, tot_k, jay, kay):
@@ -372,8 +375,8 @@ def _screener_loop(jays, kays, results):
     df=df.dropna(axis="columns", how="all")
     df=df.loc[:,~df.columns.duplicated()]
 
-    file_path=f"{results}/{results}.csv"
-    df.to_csv(file_path, index_label=idx)
+    filepath=f"{results}/{results}.csv"
+    df.to_csv(filepath, index_label=idx)
 
 
 #GET DATA
@@ -486,8 +489,8 @@ def _rdp_data1(folders, items, col_symbol):
             ws_data.title=param
             ws_data["A1"]=rdp_data
             
-            file_path=f"{results}/{param}_{i}.xlsx"
-            wb.save(file_path)
+            filepath=f"{results}/{param}_{i}.xlsx"
+            wb.save(filepath)
             print(f"{param}_{i} - done")
             i+=1
 
@@ -507,8 +510,8 @@ def _rdp_data2(folders):
     frames=[None]*n_obs
 
     for i, file in enumerate(files):
-        file_path=f"{file}"
-        df=pd.read_excel(file_path)
+        filepath=f"{file}"
+        df=pd.read_excel(filepath)
 
         #rename instruments
         first_col=df.columns[0]
@@ -523,8 +526,8 @@ def _rdp_data2(folders):
 
     df=pd.concat(frames)
 
-    file_path=f"{results}/{results}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{results}.csv"
+    df.to_csv(filepath, index=False)
     
 
 #search loop
@@ -564,12 +567,13 @@ def _search_loop(view, query, filter, select, top, i, tot):
 
 
 #SEARCH
-folders=["_contributors_screen", "_search"]
-items=["A_screen", "A_search"]
-colname="A__company_involved"
+#folders=["_contributors_screen", "_search"]
+#items=["A_screen", "A_search"]
+#colname="A__company_involved"
 def _search(folders, items, colname):
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Query.ipynb
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Filter.ipynb
+    #use SRCH to choose "filter" parameters
 
     #folders
     resources=folders[0]
@@ -580,32 +584,39 @@ def _search(folders, items, colname):
     result=items[1]
 
     #read csv
-    file_path=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        file_path, 
+    filepath=f"{resources}/{resource}.csv"
+    df_0=pd.read_csv(
+        filepath, 
         dtype="string",
-        #nrows=15,
+        #nrows=2,
         )
     
-    #list names
-    list_names=sorted(df[colname].unique())
+    #unique
+    series=df_0[colname].unique()
+    #drop na
+    series=series.dropna()
+    #sorted
+    list_values=sorted(series)
 
     #trial
-    #list_names=list_names[:10]
+    #list_values=list_values[:2]
 
     #n obs
-    n_obs=len(list_names)
+    n_obs=len(list_values)
     tot=n_obs-1
     frames=[None]*n_obs
 
     #parameters
-    #filter="HeadquartersCountry eq 'United States of America'"
-    filter=None
-    select="DocumentTitle, CompositeDescriptiveName, BusinessEntity, AssetType, CompanyName, RIC, IssueISIN, CUSIP, SEDOL, TickerSymbol, IssuerOAPermID, LipperID, PermID"
+    filter="AssetType eq 'equity' and \
+            RCSIssuerCountryGenealogy eq 'M:DQ\\G:AM\\G:6J' and \
+            RCSExchangeCountryLeaf eq 'United States'" 
+    select="IssuerLegalName, CompositeDescriptiveName, DocumentTitle, \
+            BusinessEntity, AssetType, DTSimpleType, \
+            CUSIP, IssueISIN, RIC, TickerSymbol"
     top=1
 
     #for names
-    for i, query in enumerate(list_names):
+    for i, query in enumerate(list_values):
 
         #clean query
         stardardized_query=_standardize_query(query)
@@ -615,38 +626,19 @@ def _search(folders, items, colname):
 
             #equity
             view=search.Views.EQUITY_QUOTES
-            df, converted = _search_loop(view, query, filter, select, top, i, tot)
+            df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
 
             #empty
             if df.empty:
 
-                #non equity
-                view=search.Views.EQUITY_QUOTES
-                df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
+                #df
+                df=pd.DataFrame()
 
-                #empty
-                if df.empty:
+                #converted
+                converted=False
 
-                    view=search.Views.SEARCH_ALL
-                    df, converted = _search_loop(view, query, filter, select, top, i, tot)
-
-                    #empty
-                    if df.empty:
-
-                        view=search.Views.SEARCH_ALL
-                        df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
-
-                        #empty
-                        if df.empty:
-
-                            #df
-                            df=pd.DataFrame()
-
-                            #converted
-                            converted=False
-
-                            #print
-                            print(f"{i}/{tot} - {query} - empty")
+                #print
+                print(f"{i}/{tot} - {stardardized_query} - empty")
         
         #except
         except Exception as e:
@@ -667,10 +659,10 @@ def _search(folders, items, colname):
             "stardardized_query": [stardardized_query],
             "converted": [converted],
             }
-        df_0=pd.DataFrame(data=d)
+        df_1=pd.DataFrame(data=d)
 
         #create df_i
-        df_i=pd.concat([df_0, df], axis="columns")
+        df_i=pd.concat([df_1, df], axis="columns")
 
         #update frame
         frames[i]=df_i
@@ -678,12 +670,26 @@ def _search(folders, items, colname):
     #concat
     df=pd.concat(frames)
 
+    #add initial df
+    '''
+    df=pd.merge(
+        left=df_0,
+        right=df,
+        how="left",
+        left_on=colname,
+        right_on="query",
+        suffixes=("_left", "_right"),
+        indicator=True,
+        validate="m:1",
+        )
+    #'''
+
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}_{colname}.csv"
+    df.to_csv(filepath, index=False)
 
 
-    
+
 
 #copy to main.py
 rdp.close_session()

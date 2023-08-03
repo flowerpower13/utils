@@ -173,7 +173,7 @@ def _txts_to_counts(folders, items, targetbags, contextbags, window_sizes):
     df=df.sort_values(by=colname_filestems)
 
     #save
-    file_path=f"{results}/{result}.csv"
-    df.to_csv(file_path, index=False)
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
