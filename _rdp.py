@@ -16,7 +16,7 @@ from _pd_utils import _clean_stem, _pd_DataFrame, _df_to_csvcols, _dfcol_to_list
 from _standardize_names import _standardize_query
 
 
-#imports
+#copy to main.py
 import eikon as ek
 import refinitiv.dataplatform as rdp
 import refinitiv.data as rd
@@ -106,13 +106,14 @@ def _convert_IDs(df, IDs):
 
 
 #CONVERT SYMBOLS
-#folders=["_convert_symbols0", "_convert_symbols1"]
-#items=["file_stem", "symbols"]
-'''IDs=[
+'''folders=["_convert_symbols0", "_convert_symbols1"]
+items=["file_stem", "symbols"]
+IDs=[
     ["isin", SymbolTypes.ISIN], 
     ["cusip", SymbolTypes.CUSIP],
-    ]'''
+    ]
 #_convert_symbols(folders, items, IDs)
+'''
 #right click on import "SymbolTypes", "Go to Definition"
 def _convert_symbols(folders, items, IDs):
     resources=folders[0]
@@ -173,19 +174,33 @@ def _pal(folders, items):
 
 #load items
 def _load_items(resources, item):
+
+    #index
     idx=item.rindex("_")
+
+    #col names
     col_name=item[idx+1:]
     col_names=["fields", "parameters", "countries"]
 
+    #if
     if col_name in col_names:
         pass
 
+    #elif
     elif not (col_name in col_names):
         col_name="RIC"
 
+    #read
     filepath=f"{resources}/{item}.csv"
-    df_list=pd.read_csv(filepath, dtype="string")[col_name].to_list()
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        )
+    
+    #df list
+    df_list=df[col_name].to_list()
 
+    #return
     return df_list
 
 
@@ -294,6 +309,7 @@ def _print_msg(msg, j, tot_j, k, tot_k, jay, kay):
 
 #screener loop
 def _screener_loop(jays, kays, results):
+
     #https://developers.refinitiv.com/en/article-catalog/article/find-your-right-companies-with-screener-eikon-data-apis-python
 
     #jays=jays[0:2]
@@ -418,12 +434,14 @@ def _extract_year(e):
 
 
 #RDP DATA FROM EXCEL
-#folders=["_get_data0", "_rdp_data1"]
-#items=["file_stem_idx", "file_stem_fields", "file_stem_parameters"]
-#col_symbol=["RIC", "RIC"]
-#col_symbol=["IssueISIN", "ISIN"]
-#_rdp_data1(folders, items, col_symbol)
+'''folders=["_get_data0", "_rdp_data1"]
+items=["file_stem_idx", "file_stem_fields", "file_stem_parameters"]
+col_symbol=["RIC", "RIC"]
+col_symbol=["IssueISIN", "ISIN"]
+#'''
 def _rdp_data1(folders, items, col_symbol):
+
+    #folders
     resources=folders[0]
     results=folders[1]
 
@@ -432,13 +450,20 @@ def _rdp_data1(folders, items, col_symbol):
 
     #instruments_df
     item=items[0]
-    instruments_df=pd.read_csv(f"{resources}/{item}.csv", dtype=None)
+    filepath=f"{resources}/{item}.csv"
+    instruments_df=pd.read_csv(
+        filepath,
+        dtype="string",
+        )
     symbols_all=_dfcol_to_listcol(instruments_df, col_name)
 
-    
     #fields_df
     item=items[1]
-    fields_df=pd.read_csv(f"{resources}/{item}.csv", dtype=None)
+    filepath=f"{resources}/{item}.csv"
+    fields_df=pd.read_csv(
+        filepath,
+        dtype="string",
+        )
 
     #parameters
     item=items[2]
@@ -451,53 +476,77 @@ def _rdp_data1(folders, items, col_symbol):
     #code
     code=f'CODE={symbol}'
 
+    #chunks
     n_chunks=7000
     chunks=chunker(symbols_all, n_chunks)
 
+    #init i
     i=0
+
+    #for
     for j, param in enumerate(parameters):
+
+        #for
         for k, chunk in enumerate(chunks):
+
+            #wb
             wb=openpyxl.Workbook()
 
+            #instruments chunk
             values=[
                 chunk,
                 ]
             columns=[
                 col_name, 
                 ]
-
             instruments_chunk=_pd_DataFrame(values, columns) 
 
+            '''d={
+                col_name: chunk,
+                }
+            instruments_chunk=pd.DataFrame(data=d) 
+            #'''
+
+            #sheets
             sheets={
                 "instruments": instruments_chunk, 
                 "fields": fields_df,
                 }
 
+            #for
             for key, value in sheets.items():
                 title=key
                 df=value
 
+                #ws
                 ws=wb.create_sheet(title=title)
                 rows=dataframe_to_rows(df, index=True, header=True)
 
+                #for
                 for k, row in enumerate(rows):
                     ws.append(row)
 
+            #rdp data
             rdp_data=f'=@RDP.Data(instruments!B3:B100000,fields!B3:B100,"Period={param} {optional} {code}")'
 
+            #ws
             ws_data=wb.active
             ws_data.title=param
             ws_data["A1"]=rdp_data
             
+            #save
             filepath=f"{results}/{param}_{i}.xlsx"
             wb.save(filepath)
+
+            #print
             print(f"{param}_{i} - done")
+
+            #update i
             i+=1
 
 
 #CONCATATENATE EXCEL SHEETS FOR RDP DATA
 #folders=["_rdp_data1", "_rdp_data2"]
-#_rdp_data2(folders)
 def _rdp_data2(folders):
     resources=folders[0]
     results=folders[1]
@@ -567,12 +616,17 @@ def _search_loop(view, query, filter, select, top, i, tot):
 
 
 #SEARCH
-#folders=["_contributors_screen", "_search"]
-#items=["A_screen", "A_search"]
-#colname="A__company_involved"
+'''folders=["zhao/_contributors_screen", "zhao/_search"]
+items=["A_screen", "A_search"]
+colname="a__company_involved"
+#'''
 def _search(folders, items, colname):
+
+    #https://developers.refinitiv.com/en/article-catalog/article/building-search-into-your-application-workflow
+    
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Query.ipynb
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Filter.ipynb
+
     #use SRCH to choose "filter" parameters
 
     #folders
@@ -593,26 +647,64 @@ def _search(folders, items, colname):
     
     #unique
     series=df_0[colname].unique()
+    
     #drop na
     series=series.dropna()
+
     #sorted
     list_values=sorted(series)
 
     #trial
-    #list_values=list_values[:2]
+    #list_values=list_values[:10]
 
     #n obs
     n_obs=len(list_values)
     tot=n_obs-1
     frames=[None]*n_obs
+    
+    #select list
+    select_list=[
+        #name
+        "DTSubjectName",
+        "CommonName",
 
-    #parameters
-    filter="AssetType eq 'equity' and \
-            RCSIssuerCountryGenealogy eq 'M:DQ\\G:AM\\G:6J' and \
-            RCSExchangeCountryLeaf eq 'United States'" 
-    select="IssuerLegalName, CompositeDescriptiveName, DocumentTitle, \
-            BusinessEntity, AssetType, DTSimpleType, \
-            CUSIP, IssueISIN, RIC, TickerSymbol"
+        #identifier
+        "CUSIP",
+        "IssueISIN",
+        "RIC",
+        "PrimaryRIC",
+        "IssuerOAPermID",
+        "PermID",
+        "OAPermID",
+        "Orgid",
+        "TickerSymbol",
+
+        #asset
+        "AssetState", #active ('DC' if true)
+        "BusinessEntity", #organization type
+        "RCSOrganisationSubTypeLeaf",
+        "OrganisationStatus", #listed
+        "RCSAssetCategoryLeaf", #asset type (e.g., 'Ordinary Shares')
+
+        #exchange
+        "ExchangeName",
+        "ExchangeCode",
+
+        #ultimate parent
+        "UltimateParentOrganisationName",
+        "UltimateParentOrganisationOrgid",
+        "UltimateParentCompanyOAPermID",
+
+        #country
+        "RCSIssuerCountryLeaf", #country of issuer
+        "RCSExchangeCountryLeaf", #country of exchange
+        "RCSFilingCountryLeaf", #country of incorporation
+        ]
+
+    #select   
+    select=",".join(select_list)
+    
+    #top
     top=1
 
     #for names
@@ -624,21 +716,43 @@ def _search(folders, items, colname):
         #try
         try:
 
-            #equity
+            #EQUITY_QUOTES
             view=search.Views.EQUITY_QUOTES
+
+            #filter - Type of Equity: Ordinary Shares
+            filter="IsPrimaryIssueRIC eq true and \
+                    \
+                    RCSAssetCategoryGenealogy eq 'A:1L' and \
+                    RCSIssuerCountryGenealogy eq 'M:DQ\\G:AM\\G:6J' and \
+                    RCSExchangeCountryLeaf eq 'United States' \
+                    " 
             df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
 
             #empty
             if df.empty:
 
-                #df
-                df=pd.DataFrame()
+                #ORGANISATIONS
+                view=search.Views.SEARCH_ALL
+                #view=search.Views.ORGANISATIONS
 
-                #converted
-                converted=False
+                #filter - Organisation Type: Public Company
+                filter="SearchAllCategoryv2 eq 'Companies/Issuers' and \
+                        \
+                        RCSFilingCountry xeq 'G:6J' \
+                        " 
+                df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
 
-                #print
-                print(f"{i}/{tot} - {stardardized_query} - empty")
+                #empty
+                if df.empty:
+
+                    #df
+                    df=pd.DataFrame()
+
+                    #converted
+                    converted=False
+
+                    #print
+                    print(f"{i}/{tot} - {stardardized_query} - empty")
         
         #except
         except Exception as e:
@@ -684,9 +798,18 @@ def _search(folders, items, colname):
         )
     #'''
 
+    #reorder colnames
+    ordered_cols=[col for col in select_list if col in df.columns]
+    df=df[ordered_cols]
+    
     #save
     filepath=f"{results}/{result}_{colname}.csv"
     df.to_csv(filepath, index=False)
+
+
+
+
+
 
 
 

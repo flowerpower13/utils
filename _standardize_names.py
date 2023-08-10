@@ -23,7 +23,7 @@ vendor_stopwords=['biz', 'bv', 'co', 'comp', 'company',
                 'international', 'intl', 'intnl', 
                 'limited' ,'llc', 'ltd', 'llp', 
                 'machines', 'pvt', 'pte', 'private', 'unknown',
-                "american", "america", "in-kind"
+                "american", "america",
                 ]
 
 
@@ -62,11 +62,13 @@ def _standardize_query(text, lemm=False, english=True):
     #try
     try:
 
+        text=text.replace("in-kind", "")
+
         #filter ascii
         text=unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8', 'ignore')
 
         #remove special characters, but not digits
-        text=re.sub(r'[^a-zA-Z0-9 \-–]', '', text)
+        text=re.sub(r'[^a-zA-Z0-9 \-–]', ' ', text)
 
         #remove digits
         #text=re.sub(r'[0-9 ]', '', text)

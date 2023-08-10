@@ -15,28 +15,28 @@ def _readcsv_lowercols(df_name):
         #nrows=100000,
         )
     
-    #all cols lowercase
+    #lowercase
     df.columns=df.columns.str.lower()
 
     return df
 
 
-#get df and merging key (left)
-def df_to_validdf(df, vars, validate):
-    #fill na
-    df=df.fillna("")
+#to valid df and merging key
+def df_to_validdf(df, vars):
+
+    #dropna
+    for i, col in vars:
+        df=df.dropna(subset=col)
 
     #join keys in one string key
     df_on="_".join(vars)
-    df[df_on]=df[vars].agg('_'.join, axis=1)
+    df[df_on]=df[vars].agg(
+        '_'.join,
+        axis=1,
+        )
 
     #lowercase
-    #df=df.astype("string")
     df[df_on]=df[df_on].str.lower()
-
-    #remove dups
-    if validate=="1":
-        df=df.drop_duplicates(subset=df_on)
 
     return df, df_on
 
@@ -52,27 +52,26 @@ how="inner"
 validate="1:1"
 #'''
 def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate):
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html
+
+    #folders items
     results=folders[0]
     result=items[0]
-
-    #remove dups left and right
-    validate_left=validate[0:1]
-    validate_right=validate[2:3]
 
     #read csvs
     left=_readcsv_lowercols(left)
     right=_readcsv_lowercols(right)
 
     #merging keys
-    left, left_on = df_to_validdf(left, left_vars, validate_left)
-    right, right_on = df_to_validdf(right, right_vars, validate_right)
+    left, left_on = df_to_validdf(left, left_vars)
+    right, right_on = df_to_validdf(right, right_vars)
 
     #args
     indicator=f"_merge_{result}"
     suffixes=('_left', '_right')
-    validate=f"{validate_left}:{validate_right}"
 
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html
+    #merge
     df=pd.merge(
         left=left,
         right=right,
@@ -99,6 +98,10 @@ join="outer"
 sort_id=["file_stem"]
 #'''
 def _pd_concat(folders, items, left, right, axis, join, sort_id):
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.concat.html
+
+    #folders items
     results=folders[0]
     result=items[0]
 
@@ -116,9 +119,15 @@ def _pd_concat(folders, items, left, right, axis, join, sort_id):
         join=join,
         )
 
-    #drop dups and sort
-    df=df.drop_duplicates(subset=sort_id)
-    df=df.sort_values(by=sort_id)
+    #drop duplicates
+    df=df.drop_duplicates(
+        subset=sort_id,
+        )
+    
+    #sort
+    df=df.sort_values(
+        by=sort_id,
+        )
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -132,8 +141,10 @@ def _fuzzy_extractscore(row):
     return score
 
 
-#https://stackoverflow.com/questions/64360880/rapidfuzz-match-merge
+#fuzzy merge
 def fuzzy_merge(left, right, left_on, right_on, threshold, limit, how):
+
+    #https://stackoverflow.com/questions/64360880/rapidfuzz-match-merge
 
     #s mapping
     s_mapping={x: fuzz_utils.default_process(x) for x in right[right_on]}
@@ -179,7 +190,7 @@ def _fuzzy_readcsv(df_stem, df_on):
         #nrows=100000,
         )
     
-    #lowercase col names
+    #lowercase
     df.columns=df.columns.str.lower()
 
     #lowercase col values
@@ -196,6 +207,7 @@ def _fuzzy_readcsv(df_stem, df_on):
     return df
 
 
+#fuzzy match
 '''folders=["_fuzzymatch"]
 items=["_fuzzymatch"]
 left_stem="left"
@@ -207,6 +219,8 @@ limit=1
 how="inner"
 #'''
 def _fuzzymatch(folders, items, left_stem, left_on, right_stem, right_on, threshold, limit, how):
+
+    #folders items
     results=folders[0]
     result=items[0]
 

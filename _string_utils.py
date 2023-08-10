@@ -16,10 +16,10 @@ from nltk.tag.perceptron import PerceptronTagger
 
 
 #variables
-error="???"
-marker="###"
-encoding="utf8"
-errors="strict"
+ERROR="???"
+MARKER="###"
+ENCODING="utf8"
+ERRORS="strict"
 pretrain=PerceptronTagger()
 from _hassan_vars import _get_badkeywords
 tuples_replace_beforelowercase, tuples_replace_afterlowercase, bad_tokens, bad_bigrams = _get_badkeywords()
@@ -45,8 +45,8 @@ def _replace_txt(text, tuples_replace):
 #simple clean text
 def _simpleclean_text(raw_text):
 
-    #remove text btw markers
-    text=re.sub(f'{marker}.*?{marker}', '', raw_text)
+    #remove text btw MARKERs
+    text=re.sub(f'{MARKER}.*?{MARKER}', '', raw_text)
 
     #lowercase
     text=text.lower()
@@ -64,8 +64,8 @@ def _simpleclean_text(raw_text):
 #clean text
 def _clean_text(raw_text):
 
-    #remove text btw markers
-    text=re.sub(f'{marker}.*?{marker}', '', raw_text)
+    #remove text btw MARKERs
+    text=re.sub(f'{MARKER}.*?{MARKER}', '', raw_text)
 
     #remove words before lowercase
     text=_replace_txt(text, tuples_replace_beforelowercase)

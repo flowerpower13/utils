@@ -147,7 +147,7 @@ colnames=[
     "Case Caption",
     "Date AGs Initiated",
     "Date Case Resolved",
-    "Apecific Policy",
+    "Specific Policy",
     "# of Suing AGs",
     "Docket or Citation",
     "Original Court",
