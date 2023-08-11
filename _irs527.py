@@ -27,7 +27,10 @@ organization_id="a__ein"
 #contributors
 contributor_name_irs="a__contributor_name"
 contributor_name_rdp="dtsubjectname"
+contributor_isin="issueisin"
 contributor_cusip="cusip"
+contributor_ric="ric"
+contributor_oapermid="oapermid"
 contributor_address_state="a__contributor_address_state"
 contributor_address_zipcode="a__contributor_address_zip_code"
 contributor_employer="a__contributor_employer"
@@ -349,10 +352,53 @@ def _contributors_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#contributors aggregate by organization-contributor-year
-#folders=["zhao/_contributors_screen", "zhao/_search"]
-#items=["A_screen", "A_search"]
-#colname="A__company_involved"
+#from df to full panel
+def _df_to_fullpanel(df, col_id, col_year, start_year, stop_year):
+
+    #unique ids
+    unique_ids=df[col_id].unique()
+
+    #years
+    years=[str(year) for year in range(start_year, stop_year)]
+
+    #data list
+    data_list=[
+        {
+            col_id: identifier,
+            col_year: year,
+            }
+            for identifier in unique_ids
+            for year in years
+            ]
+
+    #empty
+    df_empty=pd.DataFrame(data=data_list)
+
+     #args
+    indicator=f"_merge_fullpanel"
+    suffixes=('_left', '_right')
+            
+    #merge
+    df_fullpanel=pd.merge(
+        left=df_empty,
+        right=df,
+        how="left",
+        on=[col_id, col_year],
+        suffixes=suffixes,
+        indicator=indicator,
+        validate="1:1",
+        )
+
+    #fillna
+    df_fullpanel=df_fullpanel.fillna(0)
+
+    #return
+    return df_fullpanel
+
+
+#contributors aggregate by contributor-year
+folders=["zhao/_finaldb", "zhao/_aggregate"]
+items=["donations_ids", "donations_ids_aggregate"]
 def _contributors_aggregate(folders, items):
 
     #folders
@@ -368,8 +414,7 @@ def _contributors_aggregate(folders, items):
     df=pd.read_csv(
         filepath, 
         dtype="string",
-        #nrows=10**7,
-        #on_bad_lines='skip',
+        #nrows=1000,
         )
     
     #lowercase col values
@@ -379,43 +424,115 @@ def _contributors_aggregate(folders, items):
     #drop na
     dropna_cols=[
         organization_id,
-        contributor_cusip,
+        contributor_isin,
         contribution_year,
         contribution_amount_ytd,
         ]
     for i, col in enumerate(dropna_cols):
         df=df.dropna(subset=col)
 
+    #to numeric
+    df[contribution_amount_ytd]=pd.to_numeric(df[contribution_amount_ytd])
+
     #aggregate over organization-contributor-year obs
     by=[
         organization_id,
-        contributor_cusip,
+        contributor_isin,
         contribution_year,
         ]
     dict_agg_colfunctions={
         contribution_amount_ytd: [sum],
-        organization_name: [_first_value],
         contributor_name_irs: [_first_value],
         contributor_name_rdp: [_first_value],
+        contributor_cusip: [_first_value],
+        contributor_ric: [_first_value],
         contributor_address_state: [_first_value],
         contributor_address_zipcode: [_first_value],
         company_involved: [_first_value],
         }
-    
     df=_groupby(df, by, dict_agg_colfunctions)
+
+    #pivot
+    index=[
+        contributor_isin,
+        contribution_year,
+        ]
+    pivot_df=pd.pivot_table(
+        data=df,
+        values=contribution_amount_ytd,
+        index=index,
+        columns=organization_id,  
+        aggfunc='sum',
+        fill_value=0,
+        )
+      
+    #reset index
+    pivot_df=pivot_df.reset_index()
+    
+    #rename
+    columns={
+        "134220019": "democratic_ag",
+        "464501717": "republican_ag",
+        }
+    pivot_df=pivot_df.rename(columns=columns)
+
+    #full panel
+    col_id=contributor_isin
+    col_year=contribution_year
+    start_year=2000
+    stop_year=2023
+    df_fullpanel=_df_to_fullpanel(pivot_df, col_id, col_year, start_year, stop_year)
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df_fullpanel.to_csv(filepath, index=False)
+
+    #df without dups
+    df_withoutdups=df.drop_duplicates(subset=contributor_isin)
+    df_withoutdups=df_withoutdups.drop([contribution_year], axis=1)
+
+    #args
+    indicator=f"_merge_dups"
+    suffixes=('_left', '_right')
+
+    df=pd.merge(
+        left=df_fullpanel,
+        right=df_withoutdups,
+        how="left",
+        on=contributor_isin,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate="m:1",
+        )
+
+    #reorder
+    ordered_cols=[
+        contributor_isin,
+        contribution_year,
+        "democratic_ag",
+        "republican_ag",
+        company_involved,
+        contributor_name_irs,
+        contributor_name_rdp,
+        contributor_cusip,
+        contributor_ric,
+        contributor_address_state,
+        contributor_address_zipcode,
+        ]
+    df=df[ordered_cols]
 
     #save
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
+    #'''
+
 
 
 
 #violations aggregate by company-year
-folders=["zhao/_finaldb", "zhao/_aggregate"]
-items=["violations_cusip", "violations_cusip_aggregate"]
+folders=["zhao/_data/violation_tracker", "zhao/_aggregate"]
+items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
 def _violations_aggregate(folders, items):
-
-    #https://violationtracker.goodjobsfirst.org/pages/user-guide
 
     #folders
     resources=folders[0]
@@ -430,73 +547,50 @@ def _violations_aggregate(folders, items):
     df=pd.read_csv(
         filepath, 
         dtype="string",
-        #nrows=10**7,
-        #on_bad_lines='skip',
+        #nrows=1000,
         )
-    
+
     #lowercase col values
     for i, col in enumerate(df.columns):
         df[col]=df[col].str.lower()
 
     #drop na
     dropna_cols=[
-        organization_id,
-        contributor_cusip,
-        contribution_year,
-        contribution_amount_ytd,
+        "current_parent_ISIN",
+        "pen_year",
+        "penalty",
+        "sub_penalty",
+        "penalty_adjusted",
         ]
     for i, col in enumerate(dropna_cols):
         df=df.dropna(subset=col)
 
-    #aggregate over organization-contributor-year obs
+    #to numeric
+    df["penalty"]=pd.to_numeric(df["penalty"])
+
+    #first value dict
+    list_firstvalue=[x for x in df.columns if x not in dropna_cols]
+    dict_firstvalue={
+        x: _first_value for x in list_firstvalue}
+
+    print(dict_firstvalue)
+
+    #aggregate over company-year obs
     by=[
-        organization_id,
-        contributor_cusip,
-        contribution_year,
+        "current_parent_ISIN",
+        "pen_year",
         ]
     dict_agg_colfunctions={
-        contribution_amount_ytd: [sum],
-        organization_name: [_first_value],
-        contributor_name_irs: [_first_value],
-        contributor_name_rdp: [_first_value],
-        contributor_address_state: [_first_value],
-        contributor_address_zipcode: [_first_value],
-        company_involved: [_first_value],
+        "penalty": [sum],
+        "sub_penalty": [sum],
+        "penalty_adjusted": [sum],
         }
-    
+    dict_agg_colfunctions=dict_agg_colfunctions|dict_firstvalue
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #save
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
+    #'''
 
 
-
-
-
-
-
-
-
-
-#0 dont do
-#compustat name/cusip matching table
-folders=["zhao/_data", "zhao/_data"]
-items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_linktable"]
-colnames={
-    "name": "conm",
-    "identifier": "cusip",
-    }
-#_df_to_uniquecol(folders, items, colnames)
-#list of unmatched names
-folders=["zhao/_search", "zhao/_search"]
-items=["A_search_A__company_involved", "A_search_A__company_involved_unmatched"]
-colnames={
-    "name": "query",
-    "identifier": "CUSIP",
-    }
-#_df_to_unmatchedcol(folders, items, colnames)
-#manually match cusip to each name
-#look at "zhao/_data/crspcompustat_2000_2023_linktable"
-#change col format to "Text", modify column "CUSIP" of "zhao/_search/A_search_A__company_involved_unmatched"
-#put matched and unmatched together

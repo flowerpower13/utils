@@ -25,7 +25,7 @@ def _readcsv_lowercols(df_name):
 def df_to_validdf(df, vars):
 
     #dropna
-    for i, col in vars:
+    for i, col in enumerate(vars):
         df=df.dropna(subset=col)
 
     #join keys in one string key

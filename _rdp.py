@@ -12,7 +12,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 #functions
-from _pd_utils import _clean_stem, _pd_DataFrame, _df_to_csvcols, _dfcol_to_listcol
+from _pd_utils import _clean_stem, _df_to_csvcols, _dfcol_to_listcol
 from _standardize_names import _standardize_query
 
 
@@ -23,7 +23,8 @@ import refinitiv.data as rd
 from refinitiv.data.content import search
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
-appkey="7203cad580454a948f17be1b595ef4884be257be"
+#appkey="7203cad580454a948f17be1b595ef4884be257be"
+appkey="50c941d00efb4106aab098286e2fd1ff3d463c67"
 ek.set_app_key(app_key=appkey)
 rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
@@ -32,8 +33,10 @@ rd.open_session(app_key=appkey)
 #retrieve n obs
 def _n_obs(IDs, df):
 
+    #n obs
     n_obs=0
 
+    #for
     for j, ID in enumerate(IDs):
         col_name=ID[0]
 
@@ -41,16 +44,29 @@ def _n_obs(IDs, df):
 
         n_obs+=len(symbols_all)
 
+    #return
     return n_obs
 
 
 #divide in chunks
 def chunker(seq, size):
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+    #chunks
+    chunks=(seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+    #chunks list
+    chunks_list=list(chunks)
+
+    #return
+    return chunks_list
 
 
 #from IDs to new symbols df
 def _convert_IDs(df, IDs):
+
+    #n chunks
+    n_chunks=500
+
     #new symbols to find
     to_symbol_types=[e for e in SymbolTypes]
     enum_values=[e.value for e in SymbolTypes]
@@ -59,7 +75,10 @@ def _convert_IDs(df, IDs):
     n_obs=_n_obs(IDs, df)
     frames=[None]*n_obs
 
+    #init i
     i=0
+
+    #for
     for j, ID in enumerate(IDs):
 
         #identifiers
@@ -70,17 +89,22 @@ def _convert_IDs(df, IDs):
         symbols_all=_dfcol_to_listcol(df, col_name)
 
         #divide in chucks
-        n_chunks=500
-        chunks=chunker(symbols_all, n_chunks)
+        chunks_list=chunker(symbols_all, n_chunks)
 
-        for k, symbols in enumerate(chunks):
+        #for
+        for k, symbols in enumerate(chunks_list):
+
+            #try
             try:
+
+                #convert symbols
                 df_i=rdp.convert_symbols(
                     symbols=symbols, 
                     from_symbol_type=from_symbol_type, 
                     to_symbol_types=to_symbol_types,
                     )
                     
+            #except
             except Exception as e:
                 print(e)
 
@@ -94,6 +118,8 @@ def _convert_IDs(df, IDs):
 
             #franes
             frames[i]=df_i
+
+            #update i
             i+=1
 
     #frames
@@ -102,29 +128,35 @@ def _convert_IDs(df, IDs):
     #rename index
     df=df.rename_axis("idx")
 
+    #return
     return df
 
 
 #CONVERT SYMBOLS
-'''folders=["_convert_symbols0", "_convert_symbols1"]
-items=["file_stem", "symbols"]
+'''folders=["zhao/_convert_symbols0", "zhao/_convert_symbols1"]
+items=["filestem", "symbols"]
 IDs=[
     ["isin", SymbolTypes.ISIN], 
     ["cusip", SymbolTypes.CUSIP],
     ]
-#_convert_symbols(folders, items, IDs)
-'''
+#'''
 #right click on import "SymbolTypes", "Go to Definition"
 def _convert_symbols(folders, items, IDs):
+
+    #folders
     resources=folders[0]
     results=folders[1]
 
+    #items
     resource=items[0]
     result=items[1]
 
-    #read csv
+    #read
     filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(filepath, dtype="string")
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        )
 
     #from IDs to new symbols df
     df=_convert_IDs(df, IDs)
@@ -137,58 +169,63 @@ def _convert_symbols(folders, items, IDs):
     _df_to_csvcols(df, results, result)
 
 
-
 #CREATE PORTFOLIOS FOR REFINITIV WORKSPACE'S APP "PAL"
 #folders=["_convert_symbols1", "_pal"]
 #items=["symbols", "symbols"]
 #_pal(folders, items)
 def _pal(folders, items):
+
+    #folders
     resources=folders[0]
     results=folders[1]
 
+    #items
     resource=items[0]
     result=items[1]
 
+    #read
     filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(filepath, dtype="string")
 
+    #symbols
     col_name="RIC"
     symbols_all=_dfcol_to_listcol(df, col_name)
 
+    #chunks
     n_chunks=200
-    chunks=chunker(symbols_all, n_chunks)
+    chunks_list=chunker(symbols_all, n_chunks)
 
-    for i, symbols in enumerate(chunks): 
-        values=[
-            symbols,
-            ]
-        columns=[
-            "Symbol",
-            ]
-        
-        df=_pd_DataFrame(values, columns)
+    #for
+    for i, symbols in enumerate(chunks_list): 
 
+        #create df
+        d={
+            "Symbol": symbols,
+            }
+        df=pd.DataFrame(data=d)
+
+        #save
         filepath=f"{results}/{result}_pal_{i}.csv"
         df.to_csv(filepath, index=False)
 
 
 #load items
-def _load_items(resources, item):
+def _load_items(resources, item, col_symbol):
 
     #index
     idx=item.rindex("_")
 
     #col names
-    col_name=item[idx+1:]
-    col_names=["fields", "parameters", "countries"]
+    colname=item[idx+1:]
+    colnames=["fields", "parameters", "countries"]
 
     #if
-    if col_name in col_names:
+    if colname in colnames:
         pass
 
     #elif
-    elif not (col_name in col_names):
-        col_name="RIC"
+    elif not (colname in colnames):
+        colname=col_symbol
 
     #read
     filepath=f"{resources}/{item}.csv"
@@ -198,112 +235,15 @@ def _load_items(resources, item):
         )
     
     #df list
-    df_list=df[col_name].to_list()
+    df_list=df[colname].to_list()
 
     #return
     return df_list
 
 
-#get data loop
-def _get_data_loop(instruments, fields, parameters, results):
-    n_obs=len(instruments)*len(parameters)
-    tot=n_obs-1
-
-    frames=[None]*n_obs
-    file_stems=[None]*n_obs
-    converteds=[None]*n_obs
-
-    i=0
-    for j, instr in enumerate(instruments):
-        print(j, instr)
-        for k, param in enumerate(parameters):
-            
-            file_stem=f"{instr}_{param}"
-            file_stem=_clean_stem(file_stem)
-            output=Path(f"{results}/{file_stem}.csv")
-
-            if output.is_file():
-                df=pd.read_csv(output, dtype="string")
-                df=df.set_index("file_stem")
-                converted=True
-
-                print(f"{i}/{tot} - {file_stem} - already done")
-                
-
-            elif not output.is_file():
-
-                if pd.isna(instr):
-                    df=pd.DataFrame()
-                    converted=False
-
-                    print(f"{i}/{tot} - {file_stem} - already missing in original db")  
-
-                elif not pd.isna(instr):                    
-                    param=json.loads(param)
-                    
-                    try:
-                        df, err=ek.get_data(
-                            instruments=instr, 
-                            fields=fields, 
-                            parameters=param, 
-                            field_name=True,
-                            raw_output=False,
-                            debug=False,
-                            )
-                        
-                        if err is not None:
-                            err=err[0]
-                            df=pd.DataFrame()
-                            converted=False
-
-                            print(f"{i}/{tot} - {file_stem} - error")
-                            print(err)
-                        
-                        elif err is None:
-
-                            if df is None:
-                                df=pd.DataFrame()
-                                converted=False
-                                print(f"{i}/{tot} - {file_stem} - df none")
-                            
-                            elif df is not None:   
-                                
-                                if df.empty==True:
-                                    df=pd.DataFrame()
-                                    converted=False
-                                    print(f"{i}/{tot} - {file_stem} - df empty")
-                                
-                                elif df.empty==False:
-                                    df.insert(0, "file_stem", file_stem)
-                                    df=df.set_index("file_stem")
-                                    df.to_csv(output)
-                                    converted=True
-
-                                    print(f"{i}/{tot} - {file_stem} - done")
-                                    time.sleep(1/5)
-
-                    except Exception as e:
-                        df=pd.DataFrame()
-                        converted=False
-                        
-                        print(f"{i}/{tot} - {file_stem} - exception")
-                        print(e)
-
-            frames[i]=df
-            file_stems[i]=file_stem
-            converteds[i]=converted
-
-            i+=1
-            
-    df=pd.concat(frames)
-    df=df.reindex(index=file_stems)
-    df.insert(1, "converted", converteds)  
-
-    filepath=f"{results}/{results}.csv"
-    df.to_csv(filepath)
-
-
 def _print_msg(msg, j, tot_j, k, tot_k, jay, kay):
+
+    #print
     print(f"j: {j}/{tot_j} - k: {k}/{tot_k} - {jay}_{kay} - {msg}")
 
 
@@ -329,9 +269,9 @@ def _screener_loop(jays, kays, results):
 
         for k, kay in enumerate(kays):
 
-            file_stem=f"{jay}_{kay}"
-            file_stem=_clean_stem(file_stem)
-            output=Path(f"{results}/{file_stem}.csv")
+            filestem=f"{jay}_{kay}"
+            filestem=_clean_stem(filestem)
+            output=Path(f"{results}/{filestem}.csv")
 
             if output.is_file():
                 df_k=pd.read_csv(output, dtype="string")
@@ -395,29 +335,213 @@ def _screener_loop(jays, kays, results):
     df.to_csv(filepath, index_label=idx)
 
 
+#get data loop
+def _get_data_loop(instruments, fields, parameters, results):
+
+    #n obs
+    n_obs=len(instruments)*len(parameters)
+    tot=n_obs-1
+
+    #init lists
+    frames=[None]*n_obs
+    filestems=[None]*n_obs
+    converteds=[None]*n_obs
+
+    #init i
+    i=0
+
+    #for
+    for j, instr in enumerate(instruments):
+        print(j, instr)
+
+        #for
+        for k, param in enumerate(parameters):
+            
+            #filestem
+            filestem=f"{instr}_{param}"
+            filestem=_clean_stem(filestem)
+
+            #output
+            output=Path(f"{results}/{filestem}.csv")
+
+            #if
+            if output.is_file():
+
+                #read
+                df=pd.read_csv(
+                    output,
+                    dtype="string",
+                    )
+                
+                #set index
+                df=df.set_index("filestem")
+
+                #converted
+                converted=True
+
+                #print
+                print(f"{i}/{tot} - {filestem} - already done")
+                
+            #elif
+            elif not output.is_file():
+
+                #if
+                if pd.isna(instr):
+
+                    #df
+                    df=pd.DataFrame()
+
+                    #converted
+                    converted=False
+
+                    #print
+                    print(f"{i}/{tot} - {filestem} - already missing in original db")  
+
+                #elif
+                elif not pd.isna(instr):
+
+                    #param                    
+                    param=json.loads(param)
+                    
+                    #try
+                    try:
+
+                        #get data
+                        df, err=ek.get_data(
+                            instruments=instr, 
+                            fields=fields, 
+                            parameters=param, 
+                            field_name=True,
+                            raw_output=False,
+                            debug=False,
+                            )
+                        
+                        #if
+                        if err is not None:
+
+                            #error
+                            err=err[0]
+
+                            #df
+                            df=pd.DataFrame()
+
+                            #converted
+                            converted=False
+
+                            #print
+                            print(f"{i}/{tot} - {filestem} - error")
+                            print(err)
+                        
+                        #elif
+                        elif err is None:
+
+                            #if
+                            if df is None:
+
+                                #df
+                                df=pd.DataFrame()
+
+                                #converted
+                                converted=False
+
+                                #print
+                                print(f"{i}/{tot} - {filestem} - df none")
+                            
+                            #elif
+                            elif df is not None:   
+                                
+                                #if
+                                if df.empty==True:
+
+                                    #df
+                                    df=pd.DataFrame()
+
+                                    #converted
+                                    converted=False
+
+                                    #print
+                                    print(f"{i}/{tot} - {filestem} - df empty")
+                                
+                                #elif
+                                elif df.empty==False:
+                                    df.insert(0, "filestem", filestem)
+                                    df=df.set_index("filestem")
+                                    df.to_csv(output)
+
+                                    #converted
+                                    converted=True
+
+                                    #print
+                                    print(f"{i}/{tot} - {filestem} - done")
+
+                                    #sleep
+                                    time.sleep(1/5)
+
+                    #except
+                    except Exception as e:
+
+                        #df
+                        df=pd.DataFrame()
+
+                        #converted
+                        converted=False
+                        
+                        #print
+                        print(f"{i}/{tot} - {filestem} - exception")
+                        print(e)
+
+            #update frames
+            frames[i]=df
+            filestems[i]=filestem
+            converteds[i]=converted
+
+            #update i
+            i+=1
+            
+    #concat
+    df=pd.concat(frames)
+
+    #reindex
+    df=df.reindex(index=filestems)
+
+    #insert
+    df.insert(1, "converted", converteds)  
+
+    #save
+    filepath=f"{results}/{results}.csv"
+    df.to_csv(filepath)
+
+
 #GET DATA
-#folders=["_get_data0", "_get_data1"]
-#items=["file_stem_fields", "file_stem_parameters", "file_stem_idx", "file_stem_countries"]
-#_get_data(folders, items)
-def _get_data(folders, items):
+'''folders=["zhao/_get_data0", "zhao/_get_data1"]
+items=["filestem_idx", "filestem_fields", "filestem_parameters"]
+symbol=["OAPermID", "MULTI"]
+#'''
+def _get_data(folders, items, symbol):
+
+    #folders
     resources=folders[0]
     results=folders[1]
 
-    #fields
-    item=items[0]
-    fields=_load_items(resources, item)
-
-    #parameters
-    item=items[1]
-    parameters=_load_items(resources, item)
+    #symbols
+    col_symbol=symbol[0]
+    code_symbol=symbol[1]
 
     #idx
+    item=items[0]
+    instruments=_load_items(resources, item, col_symbol)
+
+    #fields
+    item=items[1]
+    fields=_load_items(resources, item, col_symbol)
+
+    #parameters
     item=items[2]
-    instruments=_load_items(resources, item)
+    parameters=_load_items(resources, item, col_symbol)
     
     #countries
-    item=items[3]
-    countries=_load_items(resources, item)  
+    #item=items[3]
+    #countries=_load_items(resources, item, col_symbol)  
 
     #screener - choose!
     #s_screener_loop(countries, fields, results)
@@ -426,27 +550,35 @@ def _get_data(folders, items):
     _get_data_loop(instruments, fields, parameters, results)
 
 
+#extract year
 def _extract_year(e):
+
+    #search
     e=re.search(r"[0-9]{4}", e)
     e=e.group()
-    e=str(e)
-    return e
+
+    #year
+    year=str(e)
+
+    return year
 
 
 #RDP DATA FROM EXCEL
-'''folders=["_get_data0", "_rdp_data1"]
-items=["file_stem_idx", "file_stem_fields", "file_stem_parameters"]
-col_symbol=["RIC", "RIC"]
-col_symbol=["IssueISIN", "ISIN"]
+folders=["zhao/_get_data0", "zhao/_rdp_data1"]
+items=["filestem_idx", "filestem_fields", "filestem_parameters"]
+#symbol=["RIC", "RIC"]
+#symbol=["IssueISIN", "ISIN"]
+symbol=["OAPermID", "MULTI"]
 #'''
-def _rdp_data1(folders, items, col_symbol):
+def _rdp_data1(folders, items, symbol):
 
     #folders
     resources=folders[0]
     results=folders[1]
 
-    col_name=col_symbol[0]
-    symbol=col_symbol[1]
+    #symbols
+    col_symbol=symbol[0]
+    code_symbol=symbol[1]
 
     #instruments_df
     item=items[0]
@@ -455,7 +587,7 @@ def _rdp_data1(folders, items, col_symbol):
         filepath,
         dtype="string",
         )
-    symbols_all=_dfcol_to_listcol(instruments_df, col_name)
+    symbols_all=_dfcol_to_listcol(instruments_df, col_symbol)
 
     #fields_df
     item=items[1]
@@ -467,45 +599,33 @@ def _rdp_data1(folders, items, col_symbol):
 
     #parameters
     item=items[2]
-    parameters=_load_items(resources, item)
+    parameters=_load_items(resources, item, col_symbol)
     parameters=[_extract_year(e) for e in parameters]
 
     #optional
     optional="CH=Fd RH=IN"
 
     #code
-    code=f'CODE={symbol}'
+    code=f'CODE={code_symbol}'
 
     #chunks
     n_chunks=7000
-    chunks=chunker(symbols_all, n_chunks)
-
-    #init i
-    i=0
+    chunks_list=chunker(symbols_all, n_chunks)
 
     #for
     for j, param in enumerate(parameters):
 
         #for
-        for k, chunk in enumerate(chunks):
+        for k, chunk in enumerate(chunks_list):
 
             #wb
             wb=openpyxl.Workbook()
 
             #instruments chunk
-            values=[
-                chunk,
-                ]
-            columns=[
-                col_name, 
-                ]
-            instruments_chunk=_pd_DataFrame(values, columns) 
-
-            '''d={
-                col_name: chunk,
+            d={
+                col_symbol: chunk,
                 }
             instruments_chunk=pd.DataFrame(data=d) 
-            #'''
 
             #sheets
             sheets={
@@ -514,16 +634,14 @@ def _rdp_data1(folders, items, col_symbol):
                 }
 
             #for
-            for key, value in sheets.items():
-                title=key
-                df=value
+            for title, df in sheets.items():
 
                 #ws
                 ws=wb.create_sheet(title=title)
                 rows=dataframe_to_rows(df, index=True, header=True)
 
                 #for
-                for k, row in enumerate(rows):
+                for l, row in enumerate(rows):
                     ws.append(row)
 
             #rdp data
@@ -535,14 +653,11 @@ def _rdp_data1(folders, items, col_symbol):
             ws_data["A1"]=rdp_data
             
             #save
-            filepath=f"{results}/{param}_{i}.xlsx"
+            filepath=f"{results}/{param}_{k}.xlsx"
             wb.save(filepath)
 
             #print
-            print(f"{param}_{i} - done")
-
-            #update i
-            i+=1
+            print(f"{param}_{k} - done")
 
 
 #CONCATATENATE EXCEL SHEETS FOR RDP DATA
@@ -566,8 +681,8 @@ def _rdp_data2(folders):
         first_col=df.columns[0]
         df=df.rename(columns={first_col: "RIC"})
 
-        file_stem=file.stem
-        df.insert(0, "period", file_stem)
+        filestem=file.stem
+        df.insert(0, "period", filestem)
 
         frames[i]=df
 
@@ -616,7 +731,7 @@ def _search_loop(view, query, filter, select, top, i, tot):
 
 
 #SEARCH
-'''folders=["zhao/_contributors_screen", "zhao/_search"]
+folders=["zhao/_contributors_screen", "zhao/_search"]
 items=["A_screen", "A_search"]
 colname="a__company_involved"
 #'''
@@ -732,8 +847,7 @@ def _search(folders, items, colname):
             if df.empty:
 
                 #ORGANISATIONS
-                view=search.Views.SEARCH_ALL
-                #view=search.Views.ORGANISATIONS
+                view=search.Views.ORGANISATIONS
 
                 #filter - Organisation Type: Public Company
                 filter="SearchAllCategoryv2 eq 'Companies/Issuers' and \
@@ -799,7 +913,13 @@ def _search(folders, items, colname):
     #'''
 
     #reorder colnames
-    ordered_cols=[col for col in select_list if col in df.columns]
+    df_1_cols=[
+        "query",
+        "stardardized_query",
+        "converted",
+        ]
+    actual_selectlist=[col for col in select_list if col in df.columns]
+    ordered_cols = df_1_cols + actual_selectlist 
     df=df[ordered_cols]
     
     #save
@@ -808,7 +928,7 @@ def _search(folders, items, colname):
 
 
 
-
+#_search(folders, items, colname)
 
 
 

@@ -14,7 +14,7 @@ rd.open_session(app_key=appkey)
 
 
 #functions
-from _rdp import _search
+from _rdp import _search, _convert_symbols
 from _merge_utils import _pd_merge
 from _irs527 import _irstxt_to_dfs, _contributors_screen, _contributors_aggregate, _violations_aggregate
 
@@ -31,23 +31,16 @@ items=["A", "A_screen"]
 #_contributors_screen(folders, items)
 
 
-#search donations cusips
+#search donations ids
 folders=["zhao/_contributors_screen", "zhao/_search"]
 items=["A_screen", "A_search"]
 colname="a__company_involved"
 #_search(folders, items, colname)
 
 
-#search violations cusips
-folders=["zhao/_data/violation_tracker", "zhao/_search"]
-items=["ViolationTracker_basic_28jul23", "ViolationTracker_basic_28jul23_search"]
-colname="company"
-_search(folders, items, colname)
-
-
-#merge donations with cusip
+#merge donations with ids
 folders=["zhao/_finaldb"]
-items=["donations_cusip"]
+items=["donations_ids"]
 left="zhao/_contributors_screen/A_screen"
 left_vars=["a__company_involved"]
 right="zhao/_search/A_search_A__company_involved"
@@ -58,70 +51,48 @@ validate="m:1"
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-#merge violations with cusip
-folders=["zhao/_finaldb"]
-items=["violations_cusip"]
-left="zhao/_data/violation_tracker/ViolationTracker_basic_28jul23"
-left_vars=["company"]
-right="zhao/_search/ViolationTracker_basic_28jul23_search_company"
-right_vars=["query"]
-how="left"
-validate="m:1"
-#'''
-#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
-
-
-#aggregate donations
+#aggregate donations (create var for each association)
 folders=["zhao/_finaldb", "zhao/_aggregate"]
-items=["donations_cusip", "donations_cusip_aggregate"]
+items=["donations_ids", "donations_ids_aggregate"]
 #_contributors_aggregate(folders, items)
 
 
 #aggregate violations
-folders=["zhao/_finaldb", "zhao/_aggregate"]
-items=["violations_cusip", "violations_cusip_aggregate"]
+folders=["zhao/_data/violation_tracker", "zhao/_aggregate"]
+items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
 #_violations_aggregate(folders, items)
 
 
-#merge donations_cusip with violations_cusip
+#merge donations_ids_aggregate with violations_aggregate through isins
 folders=["zhao/_finaldb"]
 items=["donations_violations"]
-left="zhao/_aggregate/donations_cusip_aggregate"
-left_vars=["cusip", "year"]
-right="zhao/_aggregate/violations_cusip_aggregate"
-right_vars=["cusip", "year"]
+left="zhao/_aggregate/donations_ids_aggregate"
+left_vars=["issueisin", "a__contribution_year"]
+right="zhao/_aggregate/violations_ids_aggregate"
+right_vars=["current_parent_isin", "pen_year"]
 how="outer"
 validate="1:1"
 #'''
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-
-#Refinitiv data
-
-
-
-
-
-
-
-
-
-
-
-
-
-#merge donations_cusip with compustat
+#merge donations_violations to crspcompustat
 folders=["zhao/_finaldb"]
-items=["donations_cusip_compustat"]
-left="zhao/_contributors_aggregate/A_aggregate"
-left_vars=["cusip", "contribution_year"]
+items=["donations_violations_crspcompustat"]
+left="zhao/_finaldb/donations_violations"
+left_vars=["cusip", "a__contribution_year"]
 right="zhao/_data/crspcompustat_2000_2023"
 right_vars=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #'''
-#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+
+
+
+
+
+
 
 
 
@@ -143,6 +114,20 @@ print("done")
 
 
 
+
+'''
+find initiation year
+https://www.uscourts.gov/
+U.S. Department of Justice's (DOJ)
+https://guides.loc.gov/case-law/state-courts
+
+split between legal vs enforcement (administrative). E.g., by agency?
+
+
+has there been any Supreme Court decision (or change in judicial regulation) 
+limiting/increasing the power of state attorneys general?
+
+'''
 
 
 
