@@ -1,6 +1,7 @@
 
 
 #copy to main.py
+'''
 import eikon as ek
 import refinitiv.dataplatform as rdp
 import refinitiv.data as rd
@@ -11,12 +12,13 @@ appkey="7203cad580454a948f17be1b595ef4884be257be"
 ek.set_app_key(app_key=appkey)
 rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
+#'''
 
 
 #functions
-from _rdp import _search, _convert_symbols
+#from _rdp import _search
 from _merge_utils import _pd_merge
-from _irs527 import _irstxt_to_dfs, _contributors_screen, _contributors_aggregate, _violations_aggregate
+from _irs527 import _irstxt_to_dfs, _contributors_screen, _contributors_aggregate, _violations_aggregate, _crspcompustat_removedups
 
 
 #from IRS txt to dfs
@@ -51,7 +53,7 @@ validate="m:1"
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-#aggregate donations (create var for each association)
+#aggregate donations (create var for each organization)
 folders=["zhao/_finaldb", "zhao/_aggregate"]
 items=["donations_ids", "donations_ids_aggregate"]
 #_contributors_aggregate(folders, items)
@@ -76,58 +78,60 @@ validate="1:1"
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
+#drop dups from crspcompustat
+folders=["zhao/_data", "zhao/_data"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_withoutdups"]
+#_crspcompustat_removedups(folders, items)
+
+
 #merge donations_violations to crspcompustat
 folders=["zhao/_finaldb"]
 items=["donations_violations_crspcompustat"]
 left="zhao/_finaldb/donations_violations"
 left_vars=["cusip", "a__contribution_year"]
-right="zhao/_data/crspcompustat_2000_2023"
+right="zhao/_data/crspcompustat_2000_2023_withoutdups"
 right_vars=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #'''
-_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
+#des stats
 
 
+#regs
 
 
-
-
-
-
-
-
-
-
-
-
-
+'''
+#copy to main.py
 rdp.close_session()
 rd.close_session()
-
+#'''
 
 
 print("done")
 
 
 
+#Court Listener
+#https://www.courtlistener.com/recap/
+#https://www.courtlistener.com/help/api/rest/
+#https://www.courtlistener.com/help/api/bulk-data/
 
 
-'''
-find initiation year
-https://www.uscourts.gov/
-U.S. Department of Justice's (DOJ)
-https://guides.loc.gov/case-law/state-courts
-
-split between legal vs enforcement (administrative). E.g., by agency?
+#WRDS
+#DOJ Cases
 
 
-has there been any Supreme Court decision (or change in judicial regulation) 
-limiting/increasing the power of state attorneys general?
 
-'''
+
+
+
+
+
+
+
 
 
 
@@ -136,8 +140,20 @@ limiting/increasing the power of state attorneys general?
 #https://github.com/bradhackinen/nama
 
 
+#Free Law
+#https://free.law/
+
+
+#Federal Judicial Center Integrated Database
+#https://www.fjc.gov/research/idb
+
+
 #Legis1
 #https://legis1.com/
+
+
+#Judicial Watch
+#JudicialWatch.org
 
 
 #L2
@@ -152,8 +168,12 @@ limiting/increasing the power of state attorneys general?
 #https://www.lobbyview.org/
 
 
-#INTEGRITY WATCH
+#EUINTEGRITY WATCH
 #https://data.integritywatch.eu/login
+
+
+#EU Court of Justice
+#https://curia.europa.eu/jcms/jcms/j_6/en/
 
 
 #PODCAST
@@ -249,9 +269,4 @@ limiting/increasing the power of state attorneys general?
 
 #CONGRESSMEN MISCONDUCT
 #https://github.com/govtrack/misconduct/blob/master/misconduct-instances.csv
-
-
-
-
-
 

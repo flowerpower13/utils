@@ -1,42 +1,25 @@
 
 
-import refinitiv.data as rd
-from refinitiv.data.content import search
-appkey="7203cad580454a948f17be1b595ef4884be257be"
-rd.open_session(app_key=appkey)
 
 
-view=search.Views.EQUITY_QUOTES
-filter="IsPrimaryIssueRIC eq true and \
-        \
-        RCSAssetCategoryGenealogy eq 'A:1L' and \
-        RCSIssuerCountryGenealogy eq 'M:DQ\\G:AM\\G:6J' and \
-        RCSExchangeCountryLeaf eq 'United States' \
-        " 
+rows=[
+    "12-",
+    "mdl",
+    ]
 
-#select
-select="DTSubjectName, AssetState, CUSIP, IssueISIN, RIC, IssuerOAPermID, PermID, TickerSymbol, \
-        ExchangeName, ExchangeCode, \
-        \
-        RCSAssetCategoryLeaf, \
-        RCSIssuerCountryLeaf, \
-        RCSExchangeCountryLeaf, \
-        "
 
-top=1
+for i, row in enumerate(rows):
 
-query="microsoft"
+    contains_digit=any(char.isdigit() for char in row)
 
-df=rd.discovery.search(
-    view=view,
-    query=query,
-    filter=filter,
-    select=select,
-    top=top,
-    )
+    print("row:", row)
+    print("contains_digit:", contains_digit)
 
-print(df)
+    if not contains_digit:
+        
+        print("not")
 
-rd.close_session()
-print("_rdp - done")
-#'''
+
+    elif contains_digit:
+        
+        print("yes")

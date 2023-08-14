@@ -17,6 +17,7 @@ from _standardize_names import _standardize_query
 
 
 #copy to main.py
+#'''
 import eikon as ek
 import refinitiv.dataplatform as rdp
 import refinitiv.data as rd
@@ -28,6 +29,7 @@ appkey="50c941d00efb4106aab098286e2fd1ff3d463c67"
 ek.set_app_key(app_key=appkey)
 rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
+#'''
 
 
 #retrieve n obs
@@ -935,6 +937,7 @@ def _search(folders, items, colname):
 
 
 #copy to main.py
+#'''
 rdp.close_session()
 rd.close_session()
 print("_rdp - done")
