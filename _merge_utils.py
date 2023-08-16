@@ -30,14 +30,15 @@ def df_to_validdf(df, vars):
 
     #join keys in one string key
     df_on="_".join(vars)
-    df[df_on]=df[vars].agg(
+    df.loc[:, df_on]=df[vars].agg(
         '_'.join,
         axis=1,
         )
 
     #lowercase
-    df[df_on]=df[df_on].str.lower()
+    df.loc[:, df_on] = df[df_on].str.lower()
 
+    #return
     return df, df_on
 
 

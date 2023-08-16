@@ -28,18 +28,10 @@ def _text_w_tablenotes(latex_table, tablenotes):
     return text
 
 
-#nice table
-def _nice_table(text):
+#save table
+def _save_table(results, filestem, text):
 
-
-    return text
-
-
-
-#write
-def _write(results, filestem, text):
-
-    #folder stem
+    #folderstem
     folderstem="tables"
 
     #mkdir
@@ -57,8 +49,90 @@ def _write(results, filestem, text):
         file_object.write(text)
 
 
+#save figure
+def _save_figure(results, filestem):
+
+    #folderstem
+    folderstem="figures"
+
+    #mkdir
+    directory_path=Path(f"{results}/{folderstem}")
+    directory_path.mkdir(exist_ok=True)
+
+    #filepath
+    filepath=f"{results}/{folderstem}/{filestem}.png"
+
+    #save
+    plt.savefig(filepath)
+
+    #show
+    #plt.show()
+
+
+#from table to write
+def _table_to_save(df_stats, label, caption, tablenotes, tuples_replace, results): 
+
+    #styler object
+    styler_object=df_stats.style
+
+    #format
+    format_styler="{:,.0f}"
+    styler_object=styler_object.format(format_styler)
+
+    #args
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+    buf=None
+    column_format=None
+    position="!htbp"
+    position_float="centering"
+    hrules=True
+    clines=None
+    #label
+    #caption
+    sparse_index=True
+    sparse_columns=False
+    multirow_align=None
+    multicol_align=None
+    siunitx=False
+    environment=None
+    convert_css=False
+
+    #latex table
+    latex_table=styler_object.to_latex(
+        buf=buf,
+        column_format=column_format,
+        position=position,
+        position_float=position_float,
+        hrules=hrules,
+        clines=clines,
+        label=label,
+        caption=caption,
+        sparse_index=sparse_index,
+        sparse_columns=sparse_columns,
+        multirow_align=multirow_align,
+        multicol_align=multicol_align,
+        siunitx=siunitx,
+        environment=environment,
+        convert_css=convert_css,
+        )
+
+    #text
+    text=_text_w_tablenotes(latex_table, tablenotes)
+    
+    #replace txt
+    text=_replace_txt(text, tuples_replace)
+
+    #save
+    _save_table(results, label, text)
+
+
 #table summary
 def _table_summary(df, results):
+
+    #label
+    label="table_summary"
+    #caption
+    caption="Summary Statistics"
 
     #cols
     cols=[
@@ -66,10 +140,15 @@ def _table_summary(df, results):
         "ni",
         ]
     
-    #to numeric
-    for i, col in enumerate(cols):
-        df[col]=pd.to_numeric(df[col])
-
+    #tuples replace
+    tuples_replace=[
+        ("at &", "Total assets &"),
+        ("ni &", "Net income &"),
+        ]
+    
+    #table notes
+    tablenotes="lots of tablenotes"
+    
     #percentiles
     percentiles=[
         #0.01,
@@ -80,6 +159,10 @@ def _table_summary(df, results):
         #0.90,
         #0.99,
         ]
+
+    #to numeric
+    for i, col in enumerate(cols):
+        df[col]=pd.to_numeric(df[col])
 
     #df stats
     df_stats=df[cols].describe(percentiles=percentiles).transpose()
@@ -99,75 +182,18 @@ def _table_summary(df, results):
         #"99\%",
         "Max",
         ]
-
-    #styler object
-    styler_object=df_stats.style
-
-    #format
-    styler_object=styler_object.format("{:,.2f}")
-
-    #args
-    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    buf=None
-    column_format=None
-    position="!htbp"
-    position_float="centering"
-    hrules=True
-    clines=None
-    label="table_summary"
-    caption="Summary Statistics"
-    sparse_index=True
-    sparse_columns=False
-    multirow_align=None
-    multicol_align=None
-    siunitx=False
-    environment=None
-    convert_css=False
-
-    #latex table
-    latex_table=styler_object.to_latex(
-        buf=buf,
-        column_format=column_format,
-        position=position,
-        position_float=position_float,
-        hrules=hrules,
-        clines=clines,
-        label=label,
-        caption=caption,
-        sparse_index=sparse_index,
-        sparse_columns=sparse_columns,
-        multirow_align=multirow_align,
-        multicol_align=multicol_align,
-        siunitx=siunitx,
-        environment=environment,
-        convert_css=convert_css,
-        )
-
-    #table notes
-    tablenotes="lots of tablenotes"
-
-    #text
-    text=_text_w_tablenotes(latex_table, tablenotes)
     
-    #change column names
-    tuples_replace=[
-        ("at &", "Total assets &"),
-        ("ni &", "Net income &"),
-        ]
-    text=_replace_txt(text, tuples_replace)
-
-    #nice looking
-    text=_nice_table(text)
-
-    #print(text)
-    
-    #input
-    filestem="table_summary"
-    _write(results, filestem, text)
+    _table_to_save(df_stats, label, caption, tablenotes, tuples_replace, results)
 
 
 #table correlation
 def _table_correlation(df, results):
+
+    #label
+    label="table_correlation"
+    
+    #caption
+    caption="Pearson Correlation Matrix"
 
     #cols
     cols=[
@@ -175,89 +201,53 @@ def _table_correlation(df, results):
         "ni",
         ]
     
-    #to numeric
-    for i, col in enumerate(cols):
-        df[col]=pd.to_numeric(df[col])
-
-    #correlations
-    df=df[cols]
-    df_corr=df.corr(
-        method="pearson",
-        min_periods=3,
-        )
-
-    #styler object
-    styler_object=df_corr.style
-
-    #format
-    styler_object=styler_object.format("{:,.2f}")
-
-    #args
-    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    buf=None
-    column_format=None
-    position="!htbp"
-    position_float="centering"
-    hrules=True
-    clines=None
-    label="table_correlation"
-    caption="Pearson Correlation Matrix"
-    sparse_index=True
-    sparse_columns=False
-    multirow_align=None
-    multicol_align=None
-    siunitx=False
-    environment=None
-    convert_css=False
-
-    #latex table
-    latex_table=styler_object.to_latex(
-        buf=buf,
-        column_format=column_format,
-        position=position,
-        position_float=position_float,
-        hrules=hrules,
-        clines=clines,
-        label=label,
-        caption=caption,
-        sparse_index=sparse_index,
-        sparse_columns=sparse_columns,
-        multirow_align=multirow_align,
-        multicol_align=multicol_align,
-        siunitx=siunitx,
-        environment=environment,
-        convert_css=convert_css,
-        )
-
-    #table notes
-    tablenotes="lots of tablenotes"
-
-    #text
-    text=_text_w_tablenotes(latex_table, tablenotes)
-    
-    #change column names
     tuples_replace=[
         ("at &", "Total assets &"),
         ("ni &", "Net income &"),
         ("& at", "& Total assets"),
         ("& ni", "& Net income"),
         ]
-    text=_replace_txt(text, tuples_replace)
 
-    #nice looking
-    text=_nice_table(text)
+    #table notes
+    tablenotes="lots of tablenotes"
 
-    #print(text)
-    
-    #input
-    filestem="table_correlation"
-    _write(results, filestem, text)
+    #to numeric
+    for i, col in enumerate(cols):
+        df[col]=pd.to_numeric(df[col])
+
+    #correlations
+    df=df[cols]
+    df_stats=df.corr(
+        method="pearson",
+        min_periods=3,
+        )
+
+    _table_to_save(df_stats, label, caption, tablenotes, tuples_replace, results)
+
+
+#figure frequency
+def _figure_frequency(df, results):
+
+    filestem="frequency_at"
+
+    # Sample data
+    x = [1, 2, 3, 4, 5]
+    y = [10, 20, 15, 25, 30]
+
+    # Create the plot
+    plt.plot(x, y, marker='o')
+    plt.title('Sample Plot')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+
+    #save
+    _save_figure(results, filestem)
 
 
 #des stats
 folders=["zhao/_finaldb", "zhao/article"]
-items=["donations_cusip_compustat"]
-def _des_stats(folders, items):
+items=["donations_violations_crspcompustat"]
+def _generate_floats(folders, items):
 
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html
     #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
@@ -274,29 +264,22 @@ def _des_stats(folders, items):
     df=pd.read_csv(
         filepath,
         dtype="string",
+        nrows=10000,
         )
     
     #table summary
     _table_summary(df, results)
 
     #table correlation
-    _table_correlation(df, results)
+    #_table_correlation(df, results)
+
+    #figure
+    #_figure_frequency(df, results)
 
     #regs
 
 
-    
 
-
-    
-
-    
-_des_stats(folders, items)
-
-
-
-
-
-
+_generate_floats(folders, items)
 print("done")
 

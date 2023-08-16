@@ -930,10 +930,10 @@ def _search(folders, items, colname):
 
 
 
-#_search(folders, items, colname)
-
-
-
+folders=["zhao/_epa", "zhao/_epa"]
+items=["ECHO_EXPORTER_screen_tri_screen", "ECHO_EXPORTER_screen_tri_screen_search"]
+colname="parent_co_name"
+_search(folders, items, colname)
 
 
 #copy to main.py
