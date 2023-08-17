@@ -107,13 +107,14 @@ initiation_year_inferred_median="initiation_year_inferred_median"
 
 
 #vars echo and tri
-echotri_parent_isin="issueisin"
-echotri_penalty_date="fac_date_last_penalty"
-echotri_penalty_year="echotri_penalty_year"
-echotri_penalty_amount="fac_last_penalty_amt"
-echotri_case_id="fec_case_ids"
-echotri_initiation_year="echotri_initiation_year"
-echotri_initiation_lag="echotri_initiation_lag"
+echo_parent_isin="issueisin"
+echo_penalty_date="XXX"
+echo_penalty_year="echo_penalty_year"
+echo_penalty_amount="total_penalty_assessed_amt"
+echo_case_id="case_number"
+echo_initiation_year="echo_initiation_year"
+echo_initiation_lag="echo_initiation_lag"
+
 
 #code and columns
 def _codecolumns(resources):
@@ -441,15 +442,13 @@ def _contributors_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#echo screen
+#facilities screen
 folders=["zhao/data/epa", "zhao/_epa"]
-items=["ECHO_EXPORTER", "ECHO_EXPORTER_screen"]
-def _echo_screen(folders, items):
+items=["CASE_FACILITIES", "CASE_FACILITIES_screen"]
+def _facilities_screen(folders, items):
 
-    #https://echo.epa.gov/tools/data-downloads
-    #https://echo.epa.gov/files/echodownloads/echo_exporter.zip
-    #https://echo.epa.gov/system/files/echo_exporter_columns_07242019.xlsx
-    
+    #https://echo.epa.gov/files/echodownloads/case_downloads.zip
+    #https://echo.epa.gov/tools/data-downloads/icis-fec-download-summary
 
     #folders
     resources=folders[0]
@@ -459,55 +458,10 @@ def _echo_screen(folders, items):
     resource=items[0]
     result=items[1]
 
-    #usecols
-    usecols=[
-        #facility
-        "REGISTRY_ID",
-        "FAC_NAME",
-        "FAC_STATE",
-        "FAC_ZIP",
-        "FAC_EPA_REGION",
-        
-        #case_id
-        "FEC_CASE_IDS", 
-
-        #penalty
-        "FAC_PENALTY_COUNT",
-        "FAC_DATE_LAST_PENALTY",
-        "FAC_LAST_PENALTY_AMT", 
-        "CAA_LAST_PENALTY_DATE",
-        "CAA_LAST_PENALTY_AMT",
-        "CWA_LAST_PENALTY_DATE",
-        "CWA_LAST_PENALTY_AMT",
-        "RCRA_LAST_PENALTY_DATE",
-        "RCRA_LAST_PENALTY_AMT",
-
-        #inspection
-        "FAC_INSPECTION_COUNT",
-        "FAC_DATE_LAST_INSPECTION",
-        "FAC_DAYS_LAST_INSPECTION",
-        "CWA_INSPECTION_COUNT",
-        "CWA_DAYS_LAST_INSPECTION",
-        "RCRA_INSPECTION_COUNT",
-        "FAC_DATE_LAST_INSPECTION_EPA",
-        "FAC_DATE_LAST_INSPECTION_STATE",
-
-        #informal action
-        "FAC_INFORMAL_COUNT",
-        "FAC_DATE_LAST_INFORMAL_ACTION",
-        "CAA_INFORMAL_COUNT",
-        "CWA_INFORMAL_COUNT",
-        "RCRA_INFORMAL_COUNT",
-        "SDWA_INFORMAL_COUNT",
-        "FAC_DATE_LAST_INFORMAL_ACT_EPA",
-        "FAC_DATE_LAST_INFORMAL_ACT_ST",
-        ]
-
     #read
     filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
         filepath,
-        usecols=usecols,
         dtype="string",
         #nrows=1000,
         )
@@ -518,12 +472,79 @@ def _echo_screen(folders, items):
 
     #dropna
     dropna_cols=[
-        "REGISTRY_ID",
-        "FEC_CASE_IDS", 
-        "FAC_DATE_LAST_PENALTY",
-        "FAC_LAST_PENALTY_AMT",
+        "ACTIVITY_ID", 
+        "CASE_NUMBER", 
+        "REGISTRY_ID", 
         ]
     df=df.dropna(subset=dropna_cols)
+
+    #drop duplicates
+    dropdups_col=[
+        "ACTIVITY_ID", 
+        "CASE_NUMBER", 
+        ]
+    #df=df.drop_duplicates(subset=dropdups_col)
+
+    #sort values
+    sortvalues_cols=[
+        "ACTIVITY_ID", 
+        "CASE_NUMBER", 
+        "REGISTRY_ID", 
+        ]
+    df=df.sort_values(by=sortvalues_cols)
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
+#enforcements screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["CASE_ENFORCEMENTS", "CASE_ENFORCEMENTS_screen"]
+def _enforcements_screen(folders, items):
+
+    #https://echo.epa.gov/files/echodownloads/case_downloads.zip
+    #https://echo.epa.gov/tools/data-downloads/icis-fec-download-summary
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col values
+    for i, col in enumerate(df.columns):
+        df[col]=df[col].str.lower()
+
+    #fillna
+    s=pd.to_numeric(df["TOTAL_PENALTY_ASSESSED_AMT"], errors="raise")
+    s=s.fillna(0)
+    df["TOTAL_PENALTY_ASSESSED_AMT"]=s
+
+    #dropna
+    dropna_cols=[
+        "ACTIVITY_ID", 
+        "CASE_NUMBER", 
+        "TOTAL_PENALTY_ASSESSED_AMT", 
+        ]
+    df=df.dropna(subset=dropna_cols)
+    
+    sortvalues_cols=[
+        "ACTIVITY_ID", 
+        "CASE_NUMBER", 
+        "TOTAL_PENALTY_ASSESSED_AMT", 
+        ]
+    df=df.sort_values(by=sortvalues_cols)
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -536,9 +557,8 @@ items=["tri", "tri_screen"]
 def _tri_screen(folders, items):
  
     #https://enviro.epa.gov/facts/tri/form_ra_download.html
-    #select "Reporting Year", "Greater than", "1999"
-    #select "EPA_REGISTRY_ID", "PARENT_CO_NAME", "FACILITY_NAME", "TRI_FACILITY_ID"
-    #sql command: Select distinct V_TRI_FORM_R_EZ.EPA_REGISTRY_ID, V_TRI_FORM_R_EZ.FACILITY_NAME, V_TRI_FORM_R_EZ.PARENT_CO_NAME, V_TRI_FORM_R_EZ.TRI_FACILITY_ID from V_TRI_FORM_R_EZ where (V_TRI_FORM_R_EZ.REPORTING_YEAR > '1999')
+    #select "Reporting Year", "Greater than", "1960"
+    #select "usecols" below
 
     #folders
     resources=folders[0]
@@ -551,9 +571,8 @@ def _tri_screen(folders, items):
     #usecols
     usecols=[
         "EPA_REGISTRY_ID",
-        "PARENT_CO_NAME",
         "FACILITY_NAME",
-        "TRI_FACILITY_ID",
+        "PARENT_CO_NAME",
         ]
 
     #read
@@ -577,10 +596,21 @@ def _tri_screen(folders, items):
     df=df.dropna(subset=dropna_cols)
 
     #drop duplicates
-    dropdups_cols=[
+    dropdups_col=[
         "EPA_REGISTRY_ID",
         ]
-    df=df.drop_duplicates(subset=dropdups_cols)
+    df=df.drop_duplicates(subset=dropdups_col)
+
+    #sort values
+    sortvalues_cols=[
+        "EPA_REGISTRY_ID",
+        "FACILITY_NAME",
+        "PARENT_CO_NAME", 
+        ]
+    df=df.sort_values(by=sortvalues_cols)
+
+    #order
+    df=df[usecols]
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -957,7 +987,6 @@ def _initiation_lag(row, col0, col1):
     return initiation_lag
 
 
-
 #aggregate violations
 folders=["zhao/data/violation_tracker", "zhao/_violations"]
 items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
@@ -1066,8 +1095,8 @@ def _violations_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-# echotri initiation year
-def _echotri_initiation_year(value):
+#echo initiation year
+def _echo_initiation_year(value):
 
     #year
     year=value[3:(3+4)]
@@ -1094,10 +1123,10 @@ def _echotri_initiation_year(value):
     return year
 
 
-#aggregate echo_tri
+#aggregate echo
 folders=["zhao/_epa", "zhao/_epa"]
-items=["echo_tri_ids", "echo_tri_ids_aggregate"]
-def _echo_tri_aggregate(folders, items):
+items=["echo_ids", "echo_ids_aggregate"]
+def _echo_aggregate(folders, items):
 
     #folders
     resources=folders[0]
@@ -1121,28 +1150,29 @@ def _echo_tri_aggregate(folders, items):
 
     #to numeric
     tonumeric_cols=[
-        echotri_penalty_amount,
+        echo_penalty_amount,
         ]
     for i, col in enumerate(tonumeric_cols):
         df[col]=pd.to_numeric(df[col], errors="raise")
 
     #to datetime
-    df[echotri_penalty_date]=pd.to_datetime(df[echotri_penalty_date], format="%m/%d/%Y")
-    df[echotri_penalty_year]=pd.DatetimeIndex(df[echotri_penalty_date]).year
+    df[echo_penalty_date]=pd.to_datetime(df[echo_penalty_date], format="%m/%d/%Y")
+    df[echo_penalty_year]=pd.DatetimeIndex(df[echo_penalty_date]).year
+
 
     #initiation year
-    df[echotri_initiation_year]=df[echotri_case_id].apply(_echotri_initiation_year)
+    df[echo_initiation_year]=df[echo_case_id].apply(_echo_initiation_year)
 
     #initiation lag
-    col0=echotri_penalty_year
-    col1=echotri_initiation_year
-    df[echotri_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+    col0=echo_penalty_year
+    col1=echo_initiation_year
+    df[echo_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
 
     #drop na
     dropna_cols=[
-        echotri_parent_isin,
-        echotri_initiation_year,
-        echotri_penalty_amount,
+        echo_parent_isin,
+        echo_initiation_year,
+        echo_penalty_amount,
         ]
     df=df.dropna(subset=dropna_cols)
 
@@ -1152,11 +1182,11 @@ def _echo_tri_aggregate(folders, items):
 
     #aggregate over company-init year obs
     by=[
-        echotri_parent_isin,
-        echotri_initiation_year,
+        echo_parent_isin,
+        echo_initiation_year,
         ]
     dict_agg_colfunctions={
-        echotri_penalty_amount: [sum],
+        echo_penalty_amount: [sum],
         }
     dict_agg_colfunctions=dict_firstvalue|dict_agg_colfunctions
     df=_groupby(df, by, dict_agg_colfunctions)

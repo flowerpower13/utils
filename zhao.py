@@ -18,8 +18,10 @@ rd.open_session(app_key=appkey)
 #functions
 #from _rdp import _search
 from _merge_utils import _pd_merge
-from _zhao_functions import _irstxt_to_dfs, _contributors_screen, _contributors_aggregate, \
-    _violations_aggregate, _crspcompustat_dropdups, _echo_screen, _tri_screen, _echo_tri_aggregate
+from _zhao_functions import _irstxt_to_dfs, \
+    _contributors_screen, _facilities_screen, _enforcements_screen, _tri_screen, \
+    _contributors_aggregate, _violations_aggregate, _echo_aggregate, \
+    _crspcompustat_dropdups
 
 
 #from IRS txt to dfs
@@ -34,27 +36,50 @@ items=["A", "A_screen"]
 #_contributors_screen(folders, items)
 
 
-#echo screen
+#facilities screen
 folders=["zhao/data/epa", "zhao/_epa"]
-items=["ECHO_EXPORTER", "ECHO_EXPORTER_screen"]
-#_echo_screen(folders, items)
+items=["CASE_FACILITIES", "CASE_FACILITIES_screen"]
+#_facilities_screen(folders, items)
+
+
+#enforcements screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["CASE_ENFORCEMENTS", "CASE_ENFORCEMENTS_screen"]
+#_enforcements_screen(folders, items)
+
+
+#enforcement conclusion - check
+
+
+#merge facilities with enforcements
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen"]
+left="zhao/_epa/CASE_FACILITIES_screen"
+left_vars=["activity_id", "case_number"]
+right="zhao/_epa/CASE_ENFORCEMENTS_screen"
+right_vars=["activity_id", "case_number"]
+how="left"
+validate="m:1"
+#'''
+#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+
 
 
 #tri screen
 folders=["zhao/data/epa", "zhao/_epa"]
-items=["tri", "tri_screen"]
+items=["TRI", "TRI_screen"]
 #_tri_screen(folders, items)
 
 
-#merge echo with tri
+#merge facilities_enforcements with tri
 folders=["zhao/_epa"]
-items=["ECHO_EXPORTER_screen_tri_screen"]
-left="zhao/_epa/ECHO_EXPORTER_screen"
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen"]
+left="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen"
 left_vars=["registry_id"]
-right="zhao/_epa/tri_screen"
+right="zhao/_epa/TRI_screen"
 right_vars=["epa_registry_id"]
 how="left"
-validate="1:1"
+validate="m:1"
 #'''
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
@@ -66,9 +91,9 @@ colname="a__company_involved"
 #_search(folders, items, colname)
 
 
-#search echo_tri ids
+#search facilities_enforcements_tri ids
 folders=["zhao/_epa", "zhao/_epa"]
-items=["ECHO_EXPORTER_screen_tri_screen", "ECHO_EXPORTER_screen_tri_screen_search"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen_search"]
 colname="parent_co_name"
 #_search(folders, items, colname)
 
@@ -83,15 +108,15 @@ right_vars=["query"]
 how="left"
 validate="m:1"
 #'''
-_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-#merge echo_tri with ids
+#merge facilities_enforcements_tri with ids
 folders=["zhao/_epa"]
-items=["echo_tri_ids"]
-left="zhao/_epa/ECHO_EXPORTER_screen_tri_screen"
+items=["echo_ids"]
+left="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen"
 left_vars=["parent_co_name"]
-right="zhao/_epa/ECHO_EXPORTER_screen_tri_screen_search_parent_co_name"
+right="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen_search_parent_co_name"
 right_vars=["query"]
 how="left"
 validate="m:1"
@@ -112,10 +137,10 @@ items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
 #_violations_aggregate(folders, items)
 
 
-#aggregate echo_tri
+#aggregate echo
 folders=["zhao/_epa", "zhao/_epa"]
-items=["echo_tri_ids", "echo_tri_ids_aggregate"]
-#_echo_tri_aggregate(folders, items)
+items=["echo_ids", "echo_ids_aggregate"]
+#_echo_aggregate(folders, items)
 
 
 #0
@@ -132,12 +157,12 @@ validate="1:1"
 #_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
-#merge donations_ids_aggregate with echo_tri_ids_aggregate
+#merge donations_ids_aggregate with echo_ids_aggregate
 folders=["zhao/_merge"]
-items=["donations_echo_tri"]
+items=["donations_echo"]
 left="zhao/_irs/donations_ids_aggregate"
 left_vars=["issueisin", "a__contribution_year"]
-right="zhao/_epa/echo_tri_ids_aggregate"
+right="zhao/_epa/echo_ids_aggregate"
 right_vars=["issueisin", "echotri_initiation_year"]
 how="outer"
 validate="1:1"
@@ -167,15 +192,15 @@ validate="1:1"
 
 #merge donations_echo_tri to crspcompustat
 folders=["zhao/_merge"]
-items=["donations_echo_tri_crspcompustat"]
-left="zhao/_merge/donations_echo_tri"
+items=["donations_echo_crspcompustat"]
+left="zhao/_merge/donations_echo"
 left_vars=["cusip_left", "a__contribution_year"]
 right="zhao/_crspcompustat/crspcompustat_2000_2023_dropdups"
 right_vars=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #'''
-_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
+#_pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
 
 
 #generate floats
