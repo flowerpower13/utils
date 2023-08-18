@@ -1,0 +1,16 @@
+
+
+#CREATE VIRTUAL ENVIRONMENT
+#create venv
+python -m venv venv
+
+#activate
+venv\Scripts\activate
+
+#deactivate
+deactivate
+
+
+
+
+

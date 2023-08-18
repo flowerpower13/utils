@@ -1,0 +1,117 @@
+##USER
+#open
+search on windows bar
+FileZilla
+
+#settings
+host:
+ftp://188.217.211.158
+
+#only for local (ignore this)
+host:
+ftp://127.0.0.1
+
+
+user:
+user1
+
+
+password:
+admin
+
+
+port:
+21
+
+
+#confirm
+press "Quickconnect"
+
+
+#download and upload
+look down-right at "Remote site"
+drag and drop folders on own device
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##ADMINISTRATOR
+#what's my ip
+https://whatismyipaddress.com/
+copy IP here:
+188.217.211.158
+
+
+#start
+search on windows bar
+Start FileZilla Server
+
+
+#first time
+press "Ctrl+F"
+
+#0
+Server listeners -> Port
+Insert "21" in first and second line
+
+#1
+Rights management -> Users -> Available users -> Add
+Type "user1", set password "admin"
+Mount points -> Add
+Virtual path: set "/", Native path: set "C:\Filezilla"
+
+#2
+FTP and FTP over TLS -> Passive Mode -> Use custom port range
+set from "50000" to "50010"
+
+#3
+Windows defender firewall -> advanced setings -> 
+inbound rules -> new rule -> port -> next 
+in "specific local ports" insert "21, 50000-50010", next, next, next
+call "filezilla_ftp", finish
+outbound rules -> same ...  -> "allow the connection"
+
+#4
+http://vodafone.station/internet.html
+Internet -> associazione porte
+press "+"
+Servizio: "TCP", Dispositivo: "Ninno", Tipo porte: "Porta", Porta pubblica: "21", Porta locale: "21" 
+Servizio: "TCP", Dispositivo: "Ninno", Tipo porte: "Porta", Porta pubblica: "50000-50010", Porta locale: "50000-50010" 
+press "Applica"
+
+
+#non-first time
+search on windows bar
+Administer FileZilla Server
+press "Connect to..."
+press "Ctrl+F" -> FTP and FTP over TLS -> Passive Mode
+paste IP in "Use the following host"
+press "OK"
+close window
+
+
+#stop
+search on windows bar
+Stop FileZilla Server
+
+
+#start
+search on windows bar
+Start FileZilla Server
+
+
+
+
+
