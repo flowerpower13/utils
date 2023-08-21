@@ -883,6 +883,118 @@ def _echo_tri_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
+#violtrack screen
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_screen"]
+def _violtrack_screen(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        "current_parent_name",
+        "current_parent_ISIN",
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_ownership_structure",
+        "current_parent_CIK",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #to numeric
+    tonumeric_cols=[
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #drop na
+    dropna_cols=[
+        "current_parent_name",
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #initiation year
+    df[violtrack_initiation_year]=df[violtrack_docket_number].apply(_violtrack_initiation_year)
+
+    #drop na
+    dropna_cols=[
+        violtrack_initiation_year,
+        ]
+    df=df.dropna(subset=dropna_cols)
+ 
+    #initiation lag
+    col0=violtrack_penalty_year
+    col1=violtrack_initiation_year
+    df[violtrack_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+
+    ordered_cols=[
+        "current_parent_name",
+        "current_parent_isin",
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+        ]
+    df=df[ordered_cols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
 #osha violation screen
 folders=["zhao/data/osha", "zhao/_osha"]
 items=["osha_violation", "osha_violation_screen"]
@@ -1275,8 +1387,8 @@ def _crspcompustat_screen(folders, items):
         2000,
         2023,
         ]
-    fillna_bool=False
-    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+    fillna_cols=[]
+    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     #ordered
     df=df[usecols]
@@ -1416,8 +1528,8 @@ def _irs_contributors_aggregate(folders, items):
         2000,
         2023,
         ]
-    fillna_bool=True
-    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+    fillna_cols=list_pivot_columns
+    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     #ordered
     ordered_cols= [
@@ -1442,406 +1554,6 @@ def _irs_contributors_aggregate(folders, items):
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
     #'''
-
-
-#viol initiation year
-def _violtrack_initiation_year(value):
-
-    #char
-    char=":"
-
-    #len year
-    len_year=2
-
-    #cut value
-    value=value[:4]
-
-    #at least two digits in value
-    contains_2digit=(sum(1 for char in value if char.isdigit()) >= 2)
-
-    #if
-    if not contains_2digit:
-
-        #year
-        year=None
-
-    #elif
-    elif contains_2digit:
-
-        #if
-        if char not in value:
-
-            #first char is digit
-            firstchar_isdigit=value[0:1].isdigit()
-            
-            #if
-            if firstchar_isdigit:
-
-                #idx
-                idx=0
-
-                #year 2digit
-                year_2digit=value[idx:(idx+len_year)]
-
-            #elif
-            elif not firstchar_isdigit:
-                    
-                #idx
-                idx=1
-
-                #year 2digit
-                year_2digit=value[idx:(idx+len_year)]
-
-        #elif
-        elif char in value:
-
-            #idx
-            idx=2
-
-            #year 2digit
-            year_2digit=value[idx:(idx+len_year)]
-
-        #int
-        int_year_2digit=int(year_2digit)
-
-        #if
-        if int_year_2digit>CURRENT_YEAR_2DIGIT:
-
-            #year base
-            year_base=19
-
-        #elif
-        elif int_year_2digit<=CURRENT_YEAR_2DIGIT:
-
-            #year base
-            year_base=20
-
-        #year
-        year=f"{year_base}{year_2digit}"
-        
-        #year
-        year=int(year)
-
-    #return
-    return year
-
-
-
-#violtrack screen
-folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
-items=["ViolationTracker_basic_28jul23", "_violtrack_screen"]
-def _violtrack_screen(folders, items):
-
-    #folders
-    resources=folders[0]
-    results=folders[1]
-
-    #items
-    resource=items[0]
-    result=items[1]
-
-    #usecols
-    usecols=[
-        "current_parent_name",
-        "current_parent_ISIN",
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
-
-        #company
-        "company",
-        "current_parent_ownership_structure",
-        "current_parent_CIK",
-
-        #case
-        "offense_group", #e.g., employment-related offenses
-        "case_category", #private litigation or agency action
-        "agency_code", #e.g., MULTI-AG
-        "govt_level", #federal/state
-        "court", #e.g., Northern District of Illinois
-        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
-        "lawsuit_resolution", #settlement or verdict
-        ]
-
-    #read
-    filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        filepath, 
-        usecols=usecols,
-        dtype="string",
-        #nrows=1000,
-        )
-
-    #lowercase col names and values
-    df=_lowercase_colnames_values(df)
-
-    #to numeric
-    tonumeric_cols=[
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
-        ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
-
-    #drop na
-    dropna_cols=[
-        "current_parent_name",
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
-        ]
-    df=df.dropna(subset=dropna_cols)
-
-    #initiation year
-    df[violtrack_initiation_year]=df[violtrack_docket_number].apply(_violtrack_initiation_year)
-
-    #drop na
-    dropna_cols=[
-        violtrack_initiation_year,
-        ]
-    df=df.dropna(subset=dropna_cols)
- 
-    #initiation lag
-    col0=violtrack_penalty_year
-    col1=violtrack_initiation_year
-    df[violtrack_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
-
-    ordered_cols=[
-        "current_parent_name",
-        "current_parent_isin",
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
-
-        #company
-        "company",
-        "current_parent_ownership_structure",
-        "current_parent_cik",
-
-        #case
-        "offense_group", #e.g., employment-related offenses
-        "case_category", #private litigation or agency action
-        "agency_code", #e.g., MULTI-AG
-        "govt_level", #federal/state
-        "court", #e.g., Northern District of Illinois
-        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
-        "lawsuit_resolution", #settlement or verdict
-        ]
-    df=df[ordered_cols]
-
-    #save
-    filepath=f"{results}/{result}.csv"
-    df.to_csv(filepath, index=False)
-
-
-#keep internal isin, if not present keep external
-def _violtrack_keepisin(row, col0, col1):
-
-    #rows
-    value0=row[col0]
-    value1=row[col1]
-
-    #if
-    if pd.notna(value0):
-
-        #value
-        value=value0
-
-    #elif
-    elif pd.isna(value0):
-
-        #if
-        if pd.notna(value1):
-
-            #value
-            value=value1
-
-        #elif
-        elif pd.isna(value0):
-
-            #value
-            value=None
-
-    #return 
-    return value
-
-
-#violtrack aggregate
-folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
-items=["ViolationTracker_basic_28jul23", "_violtrack_ids_aggregate"]
-def _violtrack_aggregate(folders, items):
-
-    #folders
-    resources=folders[0]
-    results=folders[1]
-
-    #items
-    resource=items[0]
-    result=items[1]
-
-    #usecols
-    usecols=[
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
-
-        #company
-        "company",
-        "current_parent_name",
-        "current_parent_isin",
-        "current_parent_ownership_structure",
-        "current_parent_cik",
-
-        #case
-        "offense_group", #e.g., employment-related offenses
-        "case_category", #private litigation or agency action
-        "agency_code", #e.g., MULTI-AG
-        "govt_level", #federal/state
-        "court", #e.g., Northern District of Illinois
-        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
-        "lawsuit_resolution", #settlement or verdict
-
-        #refinitiv        
-        company_name_rdp,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid,
-        ]
-
-    #read
-    filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        filepath, 
-        usecols=usecols,
-        dtype="string",
-        #nrows=1000,
-        )
-
-    #lowercase col names and values
-    df=_lowercase_colnames_values(df)
-
-    #to numeric
-    tonumeric_cols=[
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
-
-    #keep internal isin, if not present keep external
-    col0="current_parent_isin"
-    col1=company_isin
-    df[violtrack_parent_id]=df.df.apply(_violtrack_keepisin, axis=1, args=(col0, col1))
-
-    #drop na
-    dropna_cols=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        ]
-    df=df.dropna(subset=dropna_cols)
-
-    #aggregate over company-year obs
-    by=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        ]
-    dict_agg_colfunctions={
-        violtrack_penalty_amount: [np.sum],
-        violtrack_penalty_year: [_firstvalue_join],
-        violtrack_initiation_lag: [_firstvalue_join],
-        violtrack_docket_number: [_firstvalue_join],
-        violtrack_pacer_link: [_firstvalue_join],
-
-        #company
-        "company": [_firstvalue_join],
-        "current_parent_name": [_firstvalue_join],
-        "current_parent_isin": [_firstvalue_join],
-        "current_parent_ownership_structure": [_firstvalue_join],
-        "current_parent_cik": [_firstvalue_join],
-
-        #case
-        "offense_group": [_firstvalue_join],
-        "case_category": [_firstvalue_join],
-        "agency_code": [_firstvalue_join],
-        "govt_level": [_firstvalue_join],
-        "court": [_firstvalue_join],
-        "litigation_case_title": [_firstvalue_join],
-        "lawsuit_resolution": [_firstvalue_join],
-
-        #refinitiv
-        company_name_rdp: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        #company_isin: [_firstvalue_join],
-        company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
-        }
-    df=_groupby(df, by, dict_agg_colfunctions)
-
-    cols_id=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        ]
-    years=[
-        2000,
-        2023,
-        ]
-    fillna_bool=True
-    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
-
-    ordered_cols=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
-
-        #company
-        "company",
-        "current_parent_name",
-        "current_parent_isin",
-        "current_parent_ownership_structure",
-        "current_parent_cik",
-
-        #case
-        "offense_group", #e.g., employment-related offenses
-        "case_category", #private litigation or agency action
-        "agency_code", #e.g., MULTI-AG
-        "govt_level", #federal/state
-        "court", #e.g., Northern District of Illinois
-        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
-        "lawsuit_resolution", #settlement or verdict
-
-        #refinitiv
-        company_name_rdp,
-        company_businessentity,
-        #company_isin,
-        company_cusip,
-        company_ric,
-        company_oapermid,
-        ]
-    df=df[ordered_cols]
-
-    #save
-    filepath=f"{results}/{result}.csv"
-    df.to_csv(filepath, index=False)
 
 
 #echo aggregate
@@ -1977,8 +1689,10 @@ def _echo_aggregate(folders, items):
         2000,
         2023,
         ]
-    fillna_bool=True
-    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+    fillna_cols=[
+        echo_penalty_amount,
+        ]
+    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     #ordered
     ordered_cols=[
@@ -1996,6 +1710,295 @@ def _echo_aggregate(folders, items):
         company_businessentity,
         company_isin,
         #company_cusip,
+        company_ric,
+        company_oapermid,
+        ]
+    df=df[ordered_cols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
+#viol initiation year
+def _violtrack_initiation_year(value):
+
+    #char
+    char=":"
+
+    #len year
+    len_year=2
+
+    #cut value
+    value=value[:4]
+
+    #at least two digits in value
+    contains_2digit=(sum(1 for char in value if char.isdigit()) >= 2)
+
+    #if
+    if not contains_2digit:
+
+        #year
+        year=None
+
+    #elif
+    elif contains_2digit:
+
+        #if
+        if char not in value:
+
+            #first char is digit
+            firstchar_isdigit=value[0:1].isdigit()
+            
+            #if
+            if firstchar_isdigit:
+
+                #idx
+                idx=0
+
+                #year 2digit
+                year_2digit=value[idx:(idx+len_year)]
+
+            #elif
+            elif not firstchar_isdigit:
+                    
+                #idx
+                idx=1
+
+                #year 2digit
+                year_2digit=value[idx:(idx+len_year)]
+
+        #elif
+        elif char in value:
+
+            #idx
+            idx=2
+
+            #year 2digit
+            year_2digit=value[idx:(idx+len_year)]
+
+        #int
+        int_year_2digit=int(year_2digit)
+
+        #if
+        if int_year_2digit>CURRENT_YEAR_2DIGIT:
+
+            #year base
+            year_base=19
+
+        #elif
+        elif int_year_2digit<=CURRENT_YEAR_2DIGIT:
+
+            #year base
+            year_base=20
+
+        #year
+        year=f"{year_base}{year_2digit}"
+        
+        #year
+        year=int(year)
+
+    #return
+    return year
+
+
+#keep internal isin, if not present keep external
+def _violtrack_keepisin(row, col0, col1):
+
+    #rows
+    value0=row[col0]
+    value1=row[col1]
+
+    #if
+    if pd.notna(value0):
+
+        #value
+        value=value0
+
+    #elif
+    elif pd.isna(value0):
+
+        #if
+        if pd.notna(value1):
+
+            #value
+            value=value1
+
+        #elif
+        elif pd.isna(value0):
+
+            #value
+            value=None
+
+    #return 
+    return value
+
+
+#violtrack aggregate
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_ids_aggregate"]
+def _violtrack_aggregate(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_name",
+        "current_parent_isin",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+
+        #refinitiv        
+        company_name_rdp,
+        company_businessentity,
+        company_isin,
+        company_cusip,
+        company_ric,
+        company_oapermid,
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #to numeric
+    tonumeric_cols=[
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #keep internal isin, if not present keep external
+    col0="current_parent_isin"
+    col1=company_isin
+    df[violtrack_parent_id]=df.apply(_violtrack_keepisin, axis=1, args=(col0, col1))
+
+    #drop na
+    dropna_cols=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #aggregate over company-year obs
+    by=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        ]
+    dict_agg_colfunctions={
+        violtrack_penalty_amount: [np.sum],
+        violtrack_penalty_year: [_firstvalue_join],
+        violtrack_initiation_lag: [_firstvalue_join],
+        violtrack_docket_number: [_firstvalue_join],
+        violtrack_pacer_link: [_firstvalue_join],
+
+        #company
+        "company": [_firstvalue_join],
+        "current_parent_name": [_firstvalue_join],
+        "current_parent_isin": [_firstvalue_join],
+        "current_parent_ownership_structure": [_firstvalue_join],
+        "current_parent_cik": [_firstvalue_join],
+
+        #case
+        "offense_group": [_firstvalue_join],
+        "case_category": [_firstvalue_join],
+        "agency_code": [_firstvalue_join],
+        "govt_level": [_firstvalue_join],
+        "court": [_firstvalue_join],
+        "litigation_case_title": [_firstvalue_join],
+        "lawsuit_resolution": [_firstvalue_join],
+
+        #refinitiv
+        company_name_rdp: [_firstvalue_join],
+        company_businessentity: [_firstvalue_join],
+        company_isin: [_firstvalue_join],
+        company_cusip: [_firstvalue_join],
+        company_ric: [_firstvalue_join],
+        company_oapermid: [_firstvalue_join],
+        }
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    cols_id=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_cols=[
+        violtrack_penalty_amount,
+        ]
+    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
+
+    ordered_cols=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_name",
+        "current_parent_isin",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+
+        #refinitiv
+        company_name_rdp,
+        company_businessentity,
+        #company_isin,
+        company_cusip,
         company_ric,
         company_oapermid,
         ]
@@ -2106,8 +2109,14 @@ def _osha_aggregate(folders, items):
         2000,
         2023,
         ]
-    fillna_bool=True
-    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+    fillna_cols=[
+        osha_penalty_amount,
+        "fta_penalty",
+        "gravity",
+        "nr_exposure",
+        "nr_in_estab",
+        ]
+    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     #ordered
     ordered_cols=usecols

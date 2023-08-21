@@ -426,16 +426,18 @@ def _tonumericcols_to_df(df, tonumeric_cols, errors):
 #full panel
 '''
 cols_id=[
-    crspcomp_cusip,
-    crspcomp_fyear,
+    violtrack_parent_id,
+    violtrack_initiation_year,
     ]
 years=[
     2000,
     2023,
     ]
-fillna_bool=True
+fillna_cols=[
+    violtrack_penalty_amount,
+    ]
 #'''
-def _df_to_fullpanel(df, cols_id, years, fillna_bool):
+def _df_to_fullpanel(df, cols_id, years, fillna_cols):
 
     #ids
     company_id=cols_id[0]
@@ -452,13 +454,13 @@ def _df_to_fullpanel(df, cols_id, years, fillna_bool):
     span_company_ids=np.sort(span_company_ids)
 
     #span years
-    span_years=[str(year) for year in range(start_year, stop_year)]
+    span_years=[y for y in range(start_year, (stop_year+1))]
 
     #data list
     data_list=[
         {
             company_id: x,
-            fiscal_year: str(y),
+            fiscal_year: y,
             }
             for x in span_company_ids
             for y in span_years
@@ -483,8 +485,13 @@ def _df_to_fullpanel(df, cols_id, years, fillna_bool):
         )
 
     #if
-    if fillna_bool==True:
-        df=df.fillna(0)
+    if fillna_cols:
+
+        #for
+        for i, col in enumerate(fillna_cols):
+
+            #fillna
+            df[col]=df[col].fillna(0)
 
     #else
     else:
