@@ -1,56 +1,46 @@
-
-
-#imports
 import pandas as pd
+import numpy as np
+
+# Sample DataFrame
+data = {
+    "law_case_identifier": [1, 1, 2, 3],
+    "company_identifier": ["A", "A", "B", "B"],
+    "penalty_amount": [100, 100, 150, 300]
+}
+
+df = pd.DataFrame(data)
+
+from _pd_utils import _groupby
+
+#take df first value
+def _first_value(df):
+
+    #return
+    return df.iloc[0]
 
 
-#from echo data
-folders=["zhao/_data/echo", "zhao/_echo"]
-items=["EXPORTER", "EXPORTER_screen"]
-def _echo(folders, items):
+#aggregate over case-company-init year obs
+by=[
+    "law_case_identifier",
+    "company_identifier",
+    ]
+dict_agg_colfunctions={
+    "penalty_amount": [_first_value],
+    }
 
-    #folders
-    resources=folders[0]
-    results=folders[1]
+df=_groupby(df, by, dict_agg_colfunctions)
 
-    #items
-    resource=items[0]
-    result=items[1]
-
-    #vars
-    cols=[
-        "REGISTRY_ID"
-        "FEC_CASE_IDS", 
-        "FAC_LAST_PENALTY_AMT",
-        "FAC_DATE_LAST_FORMAL_ACTION",
-        "FAC_DATE_LAST_PENALTY",
-        "FEC_LAST_CASE_DATE",
-        "FAC_DATE_LAST_FORMAL_ACT_EPA",
-        ]
-
-    #read
-    filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        usecols=cols,
-        encoding='utf-8',
-        parse_dates=False,
-        )
+print(df)
 
 
-    #dropna
-    dropna_cols=[
-        "FEC_CASE_IDS", 
-        "FAC_LAST_PENALTY_AMT",
-        ]
-    df=df.dropna(subset=dropna_cols)
+by=[
+    "company_identifier",
+    ]
+dict_agg_colfunctions={
+    "penalty_amount": [np.sum],
+    }
+
+df=_groupby(df, by, dict_agg_colfunctions)
 
 
-    #save
-    filepath=f"{results}/{result}.csv"
-    df.to_csv(filepath, index=False)
-
-
-_echo(folders, items)
-print("done")
+print(df)

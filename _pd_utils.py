@@ -78,17 +78,23 @@ def _pd_DataFrame(values, columns):
 #by=["var0"]
 #dict_agg_colfunctions={"var1": [sum], "var2": [" ".join]}
 def _groupby(df, by, dict_agg_colfunctions):
+
+    #df columns
     df_cols=df.columns.values
+
+    #not by
     not_by=[x for x in df_cols if x not in by]
 
+    #groupby
     df=df.groupby(by=by)[not_by].agg(dict_agg_colfunctions)
 
     #drop levels
     df.columns=df.columns.droplevel(1)
 
-    #set index
+    #reset index
     df=df.reset_index()
 
+    #return
     return df
 
 
@@ -225,9 +231,9 @@ def _folder_to_filestems(folder):
     files.sort()
 
     #file stems
-    file_stems=[x.stem for x in files]
+    filestems=[x.stem for x in files]
 
-    return files, file_stems
+    return files, filestems
     
 
 #from df to column with unique values

@@ -4,54 +4,62 @@ import pandas as pd
 from rapidfuzz import process, utils as fuzz_utils
 
 
-#read with colnames as lowercase
-def _readcsv_lowercols(df_name):
+#read csv lowercase
+def _readcsv_lowercase(df_path, df_ons):
 
-    #open
-    filepath=f"{df_name}.csv"
+    #read
+    filepath=f"{df_path}.csv"
     df=pd.read_csv(
         filepath,
         dtype="string",
         #nrows=100000,
         )
     
-    #lowercase
+    #lowercase cols
     df.columns=df.columns.str.lower()
 
+    #lowercase col values
+    for i, col in enumerate(df.columns):
+        df[col]=df[col].str.lower()
+
+    #return
     return df
 
 
-#to valid df and merging key
-def df_to_validdf(df, vars):
+#from dfpath to dfon
+def _dfpath_to_dfon(df_path, df_ons):
+
+    #read
+    filepath=f"{df_path}.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=100000,
+        )
+    
+    #lowercase cols
+    df.columns=df.columns.str.lower()
+
+    #lowercase col values
+    for i, col in enumerate(df.columns):
+        df[col]=df[col].str.lower()
 
     #dropna
-    df=df.dropna(subset=vars)
-
-    #join keys in one string key
-    df_on="_".join(vars)
-    df.loc[:, df_on]=df[vars].agg(
-        '_'.join,
-        axis=1,
-        )
-
-    #lowercase
-    df.loc[:, df_on] = df[df_on].str.lower()
+    df=df.dropna(subset=df_ons)
 
     #return
-    return df, df_on
+    return df
 
-
-#merge datasets
-'''folders=["_finaldb"]
-items=["_finaldb_cusip"]
-left="_timeid_calls/_timeid_calls1"
-left_vars=["year_quarter", "cusip"]
-right="_data_compustat/_data_compustat_cusip"
-right_vars=["datafqtr", "cusip"]
-how="inner"
-validate="1:1"
-#'''
-def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate):
+#merge
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"]
+left_path="zhao/_epa/CASE_FACILITIES_screen"
+left_ons=["activity_id", "case_number"]
+right_path="zhao/_epa/CASE_ENFORCEMENT_CONCLUSIONS_screen"
+right_ons=["activity_id", "case_number"]
+how="left"
+validate="m:1"
+def _pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate):
 
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html
 
@@ -59,13 +67,9 @@ def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
     results=folders[0]
     result=items[0]
 
-    #read csvs
-    left=_readcsv_lowercols(left)
-    right=_readcsv_lowercols(right)
-
-    #merging keys
-    left, left_on = df_to_validdf(left, left_vars)
-    right, right_on = df_to_validdf(right, right_vars)
+    #df and df_on
+    left=_dfpath_to_dfon(left_path, left_ons)
+    right=_dfpath_to_dfon(right_path, right_ons)
 
     #args
     indicator=f"_merge_{result}"
@@ -76,11 +80,73 @@ def _pd_merge(folders, items, left, left_vars, right, right_vars, how, validate)
         left=left,
         right=right,
         how=how,
-        left_on=left_on,
-        right_on=right_on,
+        left_on=left_ons,
+        right_on=right_ons,
         suffixes=suffixes,
         indicator=indicator,
         validate=validate,
+        )
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
+#from df on to numeric df
+def _dfon_to_numericdf(df, df_on):
+
+    #dropna
+    df=df.dropna(subset=df_on)
+    
+    #astype
+    df[df_on]=df[df_on].astype("int64")
+
+    #sortvalues
+    df=df.sort_values(by=df_on)
+    
+    #return
+    return df
+
+
+#merge as of
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_TRI_screen"]
+left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"
+left_bys=["registry_id"]
+left_on="echo_initiation_year"
+right_path="zhao/_epa/TRI_screen"
+right_bys=["epa_registry_id"]
+right_on="reporting_year"
+def _pd_merge_asof(folders, items, left_path, left_bys, left_on, right_path, right_bys, right_on):
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.merge_asof.html
+
+    #folders items
+    results=folders[0]
+    result=items[0]
+
+    #df and df_on
+    left=_dfpath_to_dfon(left_path, left_bys)
+    right= _dfpath_to_dfon(right_path, right_bys)
+
+    #to numeric
+    left=_dfon_to_numericdf(left, left_on)
+    right=_dfon_to_numericdf(right, right_on)
+
+    #args
+    suffixes=('_left', '_right')
+    direction="nearest"
+
+    #merge
+    df=pd.merge_asof(
+        left=left,
+        right=right,
+        left_on=left_on,
+        right_on=right_on,
+        left_by=left_bys,
+        right_by=right_bys,
+        suffixes=suffixes,
+        direction=direction,
         )
 
     #save
@@ -97,7 +163,7 @@ axis="index"
 join="outer"
 sort_id=["file_stem"]
 #'''
-def _pd_concat(folders, items, left, right, axis, join, sort_id):
+def _pd_concat(folders, items, left_path, right_path, axis, join, sort_id):
 
     #https://pandas.pydata.org/docs/reference/api/pandas.concat.html
 
@@ -106,8 +172,8 @@ def _pd_concat(folders, items, left, right, axis, join, sort_id):
     result=items[0]
 
     #read csvs
-    left=_readcsv_lowercols(left)
-    right=_readcsv_lowercols(right)
+    left=_readcsv_lowercase(left_path)
+    right=_readcsv_lowercase(right_path)
 
     #frames
     frames=[left, right]
@@ -120,14 +186,10 @@ def _pd_concat(folders, items, left, right, axis, join, sort_id):
         )
 
     #drop duplicates
-    df=df.drop_duplicates(
-        subset=sort_id,
-        )
+    df=df.drop_duplicates(subset=sort_id,)
     
-    #sort
-    df=df.sort_values(
-        by=sort_id,
-        )
+    #sortvalues
+    df=df.sort_values(by=sort_id)
 
     #save
     filepath=f"{results}/{result}.csv"

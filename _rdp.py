@@ -24,8 +24,8 @@ import refinitiv.data as rd
 from refinitiv.data.content import search
 #right click on import "SymbolTypes", "Go to Definition"
 from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
-#appkey="7203cad580454a948f17be1b595ef4884be257be"
-appkey="50c941d00efb4106aab098286e2fd1ff3d463c67"
+appkey="7203cad580454a948f17be1b595ef4884be257be"
+#appkey="50c941d00efb4106aab098286e2fd1ff3d463c67"
 ek.set_app_key(app_key=appkey)
 rdp.open_desktop_session(app_key=appkey)
 rd.open_session(app_key=appkey)
@@ -900,6 +900,16 @@ def _search(folders, items, colname):
     #concat
     df=pd.concat(frames)
 
+    #reorder colnames
+    df_1_cols=[
+        "query",
+        "stardardized_query",
+        "converted",
+        ]
+    actual_selectlist=[col for col in select_list if col in df.columns]
+    ordered_cols = df_1_cols + actual_selectlist 
+    df=df[ordered_cols]
+
     #add initial df
     '''
     df=pd.merge(
@@ -913,16 +923,6 @@ def _search(folders, items, colname):
         validate="m:1",
         )
     #'''
-
-    #reorder colnames
-    df_1_cols=[
-        "query",
-        "stardardized_query",
-        "converted",
-        ]
-    actual_selectlist=[col for col in select_list if col in df.columns]
-    ordered_cols = df_1_cols + actual_selectlist 
-    df=df[ordered_cols]
     
     #save
     filepath=f"{results}/{result}_{colname}.csv"
@@ -930,10 +930,11 @@ def _search(folders, items, colname):
 
 
 
+#search facilities_enforcements_milestones_tri ids
 folders=["zhao/_epa", "zhao/_epa"]
-items=["CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENTS_screen_TRI_screen_search"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen_search"]
 colname="parent_co_name"
-_search(folders, items, colname)
+#_search(folders, items, colname)
 
 
 #copy to main.py

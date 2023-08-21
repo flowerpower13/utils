@@ -31,7 +31,7 @@ def _concat(folders, items, full_db):
     n_obs=len(filestems_fulldb)
     tot=n_obs-1
 
-    ##ordered frames and cols
+    #ordered frames and cols
     frames=[None]*n_obs
     converteds=[None]*n_obs
     
@@ -43,7 +43,7 @@ def _concat(folders, items, full_db):
 
             #open df
             filepath=f"{resources}/{file_stem}.csv"
-            df=pd.read_csv(filepath, dtype="string")
+            df_i=pd.read_csv(filepath, dtype="string")
 
             #converted
             converted=True
@@ -58,14 +58,14 @@ def _concat(folders, items, full_db):
             converted=False
 
             #add file stem
-            df=pd.DataFrame()
-            df[colname_filestems]=[file_stem]
+            df_i=pd.DataFrame()
+            df_i[colname_filestems]=[file_stem]
 
             #print
             print(f"{i}/{tot} - {file_stem} - missing")
 
         #ordered cols
-        frames[i]=df
+        frames[i]=df_i
         converteds[i]=converted
 
     #concat
