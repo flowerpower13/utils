@@ -2,10 +2,12 @@
 
 #functions
 from _merge_utils import _pd_merge, _pd_merge_asof
-from _zhao_functions import _irs_txt_to_dfs, \
-    _irs_contributors_screen, _echo_facilities_screen, _echo_enforcements_screen, _echo_tri_screen, _osha_inspection_screen, _osha_violation_screen, _echo_milestones_screen, \
-    _irs_contributors_aggregate, _violations_aggregate, _echo_aggregate, \
-    _crspcompustat_dropdups
+from _zhao_functions import _irs_txt_to_dfs, _irs_contributors_screen, _irs_contributors_aggregate,\
+    _echo_facilities_screen, _echo_enforcements_screen, _echo_milestones_screen, _echo_tri_screen, _echo_aggregate,\
+    _osha_inspection_screen, _osha_violation_screen, _osha_aggregate,\
+    _violtrack_screen, _violtrack_aggregate,\
+    _crspcompustat_screen
+
 
 
 #irs from txt txt to dfs
@@ -38,7 +40,13 @@ items=["CASE_MILESTONES", "CASE_MILESTONES_screen"]
 #_echo_milestones_screen(folders, items)
 
 
-#merge facilities with enforcements
+#echo tri screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["TRI", "TRI_screen"]
+#_echo_tri_screen(folders, items)
+
+
+#merge echo facilities with enforcements
 folders=["zhao/_epa"]
 items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"]
 left_path="zhao/_epa/CASE_FACILITIES_screen"
@@ -50,7 +58,7 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge facilities_enforcements with milestones
+#merge echo facilities_enforcements with milestones
 folders=["zhao/_epa"]
 items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen"]
 left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"
@@ -62,13 +70,7 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#echo tri screen
-folders=["zhao/data/epa", "zhao/_epa"]
-items=["TRI", "TRI_screen"]
-#_echo_tri_screen(folders, items)
-
-
-#merge facilities_enforcements_milestones with tri, by nearest years
+#merge echo facilities_enforcements_milestones with tri, by nearest years
 folders=["zhao/_epa"]
 items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen"]
 left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen"
@@ -83,16 +85,16 @@ right_on="reporting_year"
 #osha violation screen
 folders=["zhao/data/osha", "zhao/_osha"]
 items=["osha_violation", "osha_violation_screen"]
-#_osha_violation_screen(folders, items)
+_osha_violation_screen(folders, items)
 
 
 #osha inspections screen
 folders=["zhao/data/osha", "zhao/_osha"]
 items=["osha_inspection", "osha_inspection_screen"]
-#_osha_inspection_screen(folders, items)
+_osha_inspection_screen(folders, items)
 
 
-#merge violation with inspection
+#merge osha violation with inspection
 folders=["zhao/_osha"]
 items=["osha_violation_screen_osha_inspection_screen"]
 left_path="zhao/_osha/osha_violation_screen"
@@ -101,31 +103,50 @@ right_path="zhao/_osha/osha_inspection_screen"
 right_ons=["activity_nr"]
 how="inner"
 validate="1:1"
-#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#search donations ids
+#crspcompustat screen
+folders=["zhao/data/crspcompustat", "zhao/_crspcompustat"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_screen"]
+#_crspcompustat_screen(folders, items)
+
+
+#violtrack screen
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_screen"]
+#_violtrack_screen(folders, items)
+
+
+#search irs donations ids
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A_screen", "A_screen_search"]
 colname="a__company_involved"
 #_search(folders, items, colname)
 
 
-#search facilities_enforcements_milestones_tri ids
+#search echo facilities_enforcements_milestones_tri ids
 folders=["zhao/_epa", "zhao/_epa"]
 items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen_search"]
 colname="parent_co_name"
 #_search(folders, items, colname)
 
 
-#search violation_inspection ids
+#search osha violation_inspection ids
 folders=["zhao/_osha", "zhao/_osha"]
 items=["osha_violation_screen_osha_inspection_screen", "osha_violation_screen_osha_inspection_screen_search"]
 colname="estab_name"
 #_search(folders, items, colname)
 
 
-#merge donations with ids
+#search violtrack ids
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["_violtrack_screen", "_violtrack_screen_search"]
+colname="current_parent_name"
+#_search(folders, items, colname)
+
+
+#merge irs donations with ids
 folders=["zhao/_irs"]
 items=["donations_ids"]
 left_path="zhao/_irs/A_screen"
@@ -134,10 +155,10 @@ right_path="zhao/_irs/A_screen_search_a__company_involved"
 right_ons=["query"]
 how="left"
 validate="m:1"
-#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge facilities_enforcements_tri with ids
+#merge echo facilities_enforcements_tri with ids
 folders=["zhao/_epa"]
 items=["echo_ids"]
 left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen"
@@ -146,10 +167,11 @@ right_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen
 right_ons=["query"]
 how="left"
 validate="m:1"
-#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge violation_inspection with ids
+#0
+#merge osha violation_inspection with ids
 folders=["zhao/_osha"]
 items=["osha_ids"]
 left_path="zhao/_osha/osha_violation_screen_osha_inspection_screen"
@@ -161,17 +183,28 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#donations aggregate
+#merge violtrack with ids
+folders=["zhao/_violtrack"]
+items=["violtrack_ids"]
+left_path="zhao/_violtrack/_violtrack_screen"
+left_ons=["company"]
+right_path="zhao/_violtrack/_violtrack_screen_search_company"
+right_ons=["query"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#irs donations aggregate
 folders=["zhao/_irs", "zhao/_irs"]
 items=["donations_ids", "donations_ids_aggregate"]
 #_irs_contributors_aggregate(folders, items)
 
 
-#0
-#violations aggregate
-folders=["zhao/data/violation_tracker", "zhao/_violations"]
-items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
-#_violations_aggregate(folders, items)
+#violtrack aggregate
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["violtrack_ids", "violtrack_ids_aggregate"]
+#_violtrack_aggregate(folders, items)
 
 
 #echo aggregate
@@ -186,20 +219,19 @@ items=["osha_ids", "osha_ids_aggregate"]
 #_osha_aggregate(folders, items)
 
 
-#0
-#merge donations_ids_aggregate with violations_ids_aggregate
+#merge irs donations_ids_aggregate with violtrack_ids_aggregate
 folders=["zhao/_merge"]
-items=["donations_violations"]
+items=["donations_violtrack"]
 left_path="zhao/_irs/donations_ids_aggregate"
 left_ons=["issueisin", "a__contribution_year"]
-right_path="zhao/_violations/violations_ids_aggregate"
-right_ons=["current_parent_isin", "initiation_year_inferred_mean"]
+right_path="zhao/_violtrack/violtrack_ids_aggregate"
+right_ons=["current_parent_isin", "violtrack_initiation_year"]
 how="outer"
 validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge donations_ids_aggregate with echo_ids_aggregate
+#merge irs donations_ids_aggregate with echo_ids_aggregate
 folders=["zhao/_merge"]
 items=["donations_echo"]
 left_path="zhao/_irs/donations_ids_aggregate"
@@ -211,7 +243,7 @@ validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge donations_ids_aggregate with osha_ids_aggregate
+#merge irs donations_ids_aggregate with osha_ids_aggregate
 folders=["zhao/_merge"]
 items=["donations_osha"]
 left_path="zhao/_irs/donations_ids_aggregate"
@@ -223,48 +255,40 @@ validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#crspcompustat drop dups
-folders=["zhao/data/crspcompustat", "zhao/_crspcompustat"]
-items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_dropdups"]
-#_crspcompustat_dropdups(folders, items)
-
-
-#0
-#merge donations_violations to crspcompustat
+#merge irs donations_violtrack to crspcompustat
 folders=["zhao/_merge"]
-items=["donations_violations_crspcompustat"]
-left_path="zhao/_merge/donations_violations"
+items=["donations_violtrack_crspcompustat"]
+left_path="zhao/_merge/donations_violtrack"
 left_ons=["cusip", "a__contribution_year"]
-right_path="zhao/_crspcompustat/crspcompustat_2000_2023_dropdups"
+right_path="zhao/_crspcompustat/crspcompustat_2000_2023_screen"
 right_ons=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge donations_echo to crspcompustat
+#merge irs donations_echo to crspcompustat
 folders=["zhao/_merge"]
 items=["donations_echo_crspcompustat"]
 left_path="zhao/_merge/donations_echo"
 left_ons=["cusip", "a__contribution_year"]
-right_path="zhao/_crspcompustat/crspcompustat_2000_2023_dropdups"
+right_path="zhao/_crspcompustat/crspcompustat_2000_2023_screen"
 right_ons=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge donations_osha to crspcompustat
+#merge irs donations_osha to crspcompustat
 folders=["zhao/_merge"]
 items=["donations_osha_crspcompustat"]
 left_path="zhao/_merge/donations_osha"
 left_ons=["cusip", "a__contribution_year"]
-right_path="zhao/_crspcompustat/crspcompustat_2000_2023_dropdups"
+right_path="zhao/_crspcompustat/crspcompustat_2000_2023_screen"
 right_ons=["cusip", "fyear"]
 how="outer"
 validate="1:1"
-_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
-
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
 #generate floats

@@ -10,8 +10,11 @@ from datetime import datetime
 
 
 #functions
-from _pd_utils import _groupby, _folder_to_filestems
-
+from _pd_utils import _folder_to_filestems, \
+    _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, \
+    _groupby, _df_to_fullpanel, \
+    _first_value, _firstvalue_join
+    
 
 #vars
 from _string_utils import ENCODING
@@ -26,8 +29,17 @@ tot=13428119
 buffer_size=8192
 
 
+#vars refinitiv
+company_name_rdp="dtsubjectname"
+company_businessentity="businessentity"
+company_ric="ric"
+company_isin="issueisin"
+company_cusip="cusip"
+company_oapermid="oapermid"
+
+
 #vars donations
-#org
+#organization
 organization_name="a__org_name"
 organization_id="a__ein"
 pivot_columns={
@@ -37,50 +49,24 @@ pivot_columns={
 #contributors
 contributor_id="cusip"
 contributor_name_irs="a__contributor_name"
-company_name_rdp="dtsubjectname"
-company_businessentity="businessentity"
-company_ric="ric"
-company_isin="issueisin"
-company_cusip="cusip"
-company_oapermid="oapermid"
-contributor_address_state="a__contributor_address_state"
-contributor_address_zipcode="a__contributor_address_zip_code"
 contributor_employer="a__contributor_employer"
 contributor_employer_new="a__contributor_employer_new"
-donor_isfirm="donor_isfirm"
-company_involved="a__company_involved"
+contributor_donor_isfirm="a__donor_isfirm"
+contributor_company_involved="a__contributor_company_involved"
 #contribution
 contribution_date="a__contribution_date"
 contribution_year="a__contribution_year"
 contribution_amount_ytd="a__agg_contribution_ytd"
-contributor_list_firstvalue=[
-    contributor_name_irs,
-    company_name_rdp,
-    company_businessentity,
-    company_isin,
-    #company_cusip,
-    company_ric,
-    company_oapermid,
-    #contributor_address_state,
-    #contributor_address_zipcode,
-    contributor_employer,
-    contributor_employer_new,
-    donor_isfirm,
-    company_involved,
-    ]
 
 
-#vars violations
-viol_parent_id="current_parent_ISIN"
-viol_penalty_year="pen_year"
-viol_penalty_amount="penalty"
-viol_subpenalty_amount="sub_penalty"
-viol_penalty_adjusted_amount="penalty_adjusted"
-viol_initiation_year_true="initiation_year_true"
-viol_initiation_lag="initiation_lag"
-initiation_year_inferred_mean="initiation_year_inferred_mean"
-initiation_year_inferred_median="initiation_year_inferred_median"
-
+#vars violation_tracker
+violtrack_parent_id="violtrack_parent_id"
+violtrack_initiation_year="violtrack_initiation_year"
+violtrack_penalty_year="pen_year"
+violtrack_initiation_lag="violtrack_initiation_lag"
+violtrack_penalty_amount="penalty"
+violtrack_docket_number="case_id"
+violtrack_pacer_link="pacer_link"
 
 #vars echo
 echo_parent_id="cusip"
@@ -93,21 +79,40 @@ echo_activity_type_code="activity_type_code"
 
 #vars osha
 osha_parent_id="cusip"
-osha_initiation_year="osha_initiation_year"
-osha_penalty_year="osha_penalty_year"
-osha_penalty_amount="initial_penalty"
+osha_initiation_year="open_date"
+osha_penalty_year="close_case_date"
 osha_initiation_lag="osha_initiation_lag"
-osha_list_firstvalue=[
-    osha_penalty_year,
-    osha_initiation_lag,
-    "fta_issuance_year",
-    company_name_rdp,
-    company_businessentity,
-    company_isin,
-    #company_cusip,
-    company_ric,
-    company_oapermid,
-    ]
+osha_penalty_amount="initial_penalty"
+
+
+
+#vars crspcompustat
+#https://wrds-www.wharton.upenn.edu/pages/get-data/center-research-security-prices-crsp/annual-update/crspcompustat-merged/fundamentals-annual/
+#panel
+crspcomp_cusip="cusip" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CUSIP/
+crspcomp_fyear="fyear" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_companydescriptor/FYEAR/
+#id
+crspcomp_cik="cik" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CIK/
+crspcomp_ein="ein" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/EIN/
+crspcomp_name="conm" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CONM/
+#balance sheet
+crspcomp_assets="at" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/AT/
+crspcomp_liabilities="lt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/LT/
+crspcomp_bookequity="seq" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/SEQ/
+crspcomp_mktequity="mkvalt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_supplementaldataitems/MKVALT/
+crspcomp_sharesoutstanding="csho" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_miscellaneousitems/CSHO/
+crspcomp_dividends="dvt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/DVT/
+#income statement
+crspcomp_revenues="revt" ##https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/REVT/
+crspcomp_cogs="cogs" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/COGS/
+crspcomp_oibdp="oibdp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/OIBDP/
+crspcomp_da="dp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/DP/
+crspcomp_netincome="ni" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/NI/
+#industry
+crspcomp_sic="sic" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/SIC/
+crspcomp_naics="naics" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/NAICS/
+crspcomp_gics="gind" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/GIND/
+#size, lev, btm, roe, industry
 
 
 #irs code and columns
@@ -281,54 +286,6 @@ def _irs_txt_to_dfs(folders, items):
             #if i==100000: break
 
 
-#take df first value
-def _first_value(df):
-
-    #return
-    return df.iloc[0]
-
-
-#first value (if same) or join (if different)
-def _firstvalue_join(series):
-
-    unique_values = series.unique()
-    
-    if len(unique_values) == 1:
-        return series.iloc[0]
-    else:
-        return "||".join(map(str, series))
-
-
-#keep most recent obs
-def _groupby_mostrecent(df, by_groupby, datevar):
-
-    #by sortvalues
-    by_sortvalues = by_groupby + [datevar]
-
-    #dropna
-    df=df.dropna(subset=by_sortvalues)
-
-    #drop duplicates
-    df=df.drop_duplicates(
-        subset=by_sortvalues,
-        )
-
-    #ascending
-    ascending = [True]*len(by_groupby) + [False]
-
-    #sort
-    df=df.sort_values(
-        by=by_sortvalues,
-        ascending=ascending,
-        )
-
-    #groupby most recent
-    df=df.groupby(by_groupby, group_keys=False).apply(_first_value)
-
-    #return
-    return df
-
-
 #irs contributors screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
@@ -342,70 +299,116 @@ def _irs_contributors_screen(folders, items):
     resource=items[0]
     result=items[1]
 
+    #usecols
+    usecols=[
+        organization_name,
+        organization_id,
+        contributor_name_irs,
+        contributor_employer,
+        f"{contribution_date}\r", #???
+        contribution_amount_ytd,
+        ]
+    usecols=[x.capitalize() for x in usecols]
+
     #read
     filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
         filepath, 
         sep=NEW_SEP,
+        usecols=usecols,
         dtype="string",
         #nrows=1000,
         lineterminator=LINETERMINATOR,
         quotechar=QUOTECHAR,
         #on_bad_lines='skip',
         )
-    
-    #lowercase
-    df.columns=df.columns.str.lower()
 
-    #remove carriage
-    df.columns=[col.replace("\r", '') for col in df.columns]
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #???
+    df=df.rename(columns={f"{contribution_date}\r": contribution_date})
 
-        #remove carriage
-        df[col]=df[col].replace("\r", "")
+    #dropna
+    dropna_cols=[
+        organization_id,
+        contribution_date, 
+        contribution_amount_ytd,
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #to numeric
+    tonumeric_cols=[
+        organization_id,
+        contribution_amount_ytd,
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #to date
+    todate_cols=[
+        contribution_date,
+        ]
+    errors="coerce"
+    format="%Y%m%d"
+    df=_todatecols_to_df(df, todate_cols, errors, format)
 
     #keep only attorneys general associations (resp. Dem and Rep)
-    df=df.dropna(subset=organization_id)
-    s=pd.to_numeric(df[organization_id])
+    s=df[organization_id]
     df=df[
         (s==134220019) | (s==464501717)
         ]
 
-    #to datetime
-    errors="coerce"
-    format="%Y%m%d"
-    df[contribution_date]=pd.to_datetime(
-        df[contribution_date], 
-        errors=errors,
-        format=format,
-        )
-
     #initiation year
     df[contribution_year]=pd.DatetimeIndex(df[contribution_date], ambiguous="NaT").year
 
-    #keep most recent organization-contributor-year obs
-    by_groupby=[
+    #sortvalues
+    sortvalues_cols=[
         contributor_name_irs,
         organization_id,
         contribution_year,
+        contribution_date,
         ]
-    datevar=contribution_date
-    df=_groupby_mostrecent(df, by_groupby, datevar)
+    ascending=[
+        True,
+        True,
+        True,
+        False,
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        ascending=ascending,
+        )
+
+    #groupby
+    by=[
+        organization_id,
+        contributor_name_irs,
+        contribution_year,
+        ]
+    dict_agg_colfunctions={
+        organization_name: [_first_value],
+        contributor_employer: [_first_value],
+        contribution_date: [_first_value],
+        contribution_amount_ytd: [_first_value],
+        }
+    df=_groupby(df, by, dict_agg_colfunctions)
 
     #substitute employer with nan
     dict_replace={
         "n/a": NA_VALUE,
+        "d/a": NA_VALUE,
         "na": NA_VALUE,
         "not available": NA_VALUE,
         "not applicable": NA_VALUE,
+        "same": NA_VALUE,
+        "none": NA_VALUE,
         "not employed": NA_VALUE,
         "not a contribution": NA_VALUE,
         "in-kind": NA_VALUE,
         "self": NA_VALUE,
         "self-employed": NA_VALUE,
+        "self - employed": NA_VALUE,
         "self-employed-employed": NA_VALUE,
         "self employed": NA_VALUE,
         "retired": NA_VALUE,
@@ -436,8 +439,22 @@ def _irs_contributors_screen(folders, items):
     y1=np.select(condlist, choicelist1, default="error")
 
     #outcome series
-    df[company_involved]=y0
-    df[donor_isfirm]=y1
+    df[contributor_company_involved]=y0
+    df[contributor_donor_isfirm]=y1
+
+    ordered_cols=[
+        organization_name,
+        organization_id,
+        contributor_name_irs,
+        contributor_employer,
+        contributor_employer_new,
+        contributor_donor_isfirm,
+        contributor_company_involved,
+        contribution_date,
+        contribution_year,
+        contribution_amount_ytd,
+        ]
+    df=df[ordered_cols]
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -462,10 +479,11 @@ def _echo_facilities_screen(folders, items):
 
     #usecols
     usecols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID", 
-        "REGISTRY_ID",
-        "FACILITY_NAME",
+        "case_number", 
+        "activity_id", 
+        "registry_id", 
+        "facility_name",
+
         #"LOCATION_ADDRESS",
         #"CITY",
         #"STATE_CODE",
@@ -473,6 +491,7 @@ def _echo_facilities_screen(folders, items):
         #"PRIMARY_SIC_CODE",
         #"PRIMARY_NAICS_CODE",
         ]
+    usecols=[x.upper() for x in usecols]
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -483,45 +502,48 @@ def _echo_facilities_screen(folders, items):
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    df=_lowercase_colnames_values(df)
 
     #dropna
     dropna_cols=[
-        "CASE_NUMBER", 
-        "REGISTRY_ID", 
-        "ACTIVITY_ID", 
+        "case_number", 
+        "activity_id", 
+        "registry_id", 
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        "REGISTRY_ID",
-        "ACTIVITY_ID",
+        "activity_id", 
+        "registry_id", 
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #sortvalues
     sortvalues_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID", 
-        "REGISTRY_ID",
-        "FACILITY_NAME",
+        "case_number", 
+        "activity_id", 
+        "registry_id", 
+        "facility_name",
         ]
     df=df.sort_values(by=sortvalues_cols)
 
     #drop duplicates
     dropdups_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID", 
-        "REGISTRY_ID",
+        "case_number", 
+        "activity_id", 
+        "registry_id", 
         ]
     df=df.drop_duplicates(subset=dropdups_cols)
 
     #ordered
-    ordered_cols=usecols
+    ordered_cols=[
+        "case_number", 
+        "activity_id", 
+        "registry_id", 
+        "facility_name",
+        ]
     df=df[ordered_cols]
 
     #save
@@ -533,11 +555,11 @@ def _echo_facilities_screen(folders, items):
 def _initiation_lag(row, col0, col1):
 
     #rows
-    row0=row[col0]
-    row1=row[col1]
+    value0=row[col0]
+    value1=row[col1]
 
     #initiation lag
-    initiation_lag=row0-row1
+    initiation_lag=value0-value1
 
     #if
     if initiation_lag<0:
@@ -568,8 +590,8 @@ def _echo_enforcements_screen(folders, items):
     #usecols
     usecols=[
         #id
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
+        "case_number", 
+        "activity_id",
 
         #conclusion
         #"ENF_CONCLUSION_ID",
@@ -581,20 +603,21 @@ def _echo_enforcements_screen(folders, items):
         #date
         #"SETTLEMENT_LODGED_DATE",
         #"SETTLEMENT_ENTERED_DATE",
-        "SETTLEMENT_FY",
+        "settlement_fy",
 
         #other
         #"PRIMARY_LAW",
         #"REGION_CODE",
-        "ACTIVITY_TYPE_CODE",
+        "activity_type_code",
 
         #penalty
-        "FED_PENALTY_ASSESSED_AMT",
+        "fed_penalty_assessed_amt",
         #"STATE_LOCAL_PENALTY_AMT",
         #"SEP_AMT",
         #"COMPLIANCE_ACTION_COST",
         #"COST_RECOVERY_AWARDED_AMT",
         ]
+    usecols=[x.upper() for x in usecols]
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -605,13 +628,12 @@ def _echo_enforcements_screen(folders, items):
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #fillna
     fillna_cols=[
-        "FED_PENALTY_ASSESSED_AMT",
+        "fed_penalty_assessed_amt",
         ]
     for i, col in enumerate(fillna_cols):
         df[col]=pd.to_numeric(df[col])
@@ -619,26 +641,26 @@ def _echo_enforcements_screen(folders, items):
 
     #dropna
     dropna_cols=[ 
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "FED_PENALTY_ASSESSED_AMT",
-        "SETTLEMENT_FY",
+        "case_number", 
+        "activity_id",
+        "fed_penalty_assessed_amt",
+        "settlement_fy",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        "ACTIVITY_ID",
-        "SETTLEMENT_FY",
+        "activity_id",
+        "settlement_fy",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
-
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+        
     #sortvalues
     sortvalues_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "SETTLEMENT_FY",
+        "case_number", 
+        "activity_id",
+        "settlement_fy",
         ]
     ascending=[
         True,
@@ -652,23 +674,23 @@ def _echo_enforcements_screen(folders, items):
     
     #groupby
     by=[
-        "CASE_NUMBER",
-        "ACTIVITY_ID",
+        "case_number",
+        "activity_id",
         ]
     dict_agg_colfunctions={
-        "FED_PENALTY_ASSESSED_AMT": [np.sum],
-        "SETTLEMENT_FY": [_first_value],
-        "ACTIVITY_TYPE_CODE": [_first_value],
+        "fed_penalty_assessed_amt": [np.sum],
+        "settlement_fy": [_first_value],
+        "activity_type_code": [_first_value],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #ordered
     ordered_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "SETTLEMENT_FY",
-        "ACTIVITY_TYPE_CODE",
-        "FED_PENALTY_ASSESSED_AMT",
+        "case_number", 
+        "activity_id",
+        "settlement_fy",
+        "activity_type_code",
+        "fed_penalty_assessed_amt",
         ]
     df=df[ordered_cols]
 
@@ -696,16 +718,17 @@ def _echo_milestones_screen(folders, items):
     #usecols
     usecols=[
         #id
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
+        "case_number", 
+        "activity_id",
 
         #date
-        "ACTUAL_DATE",
+        "actual_date",
 
         #other
-        #"SUB_ACTIVITY_TYPE_CODE",
+        #"SUB_activity_type_code",
         #"SUB_ACTIVITY_TYPE_DESC",
         ]
+    usecols=[x.upper() for x in usecols]
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -716,43 +739,37 @@ def _echo_milestones_screen(folders, items):
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #dropna
     dropna_cols=[ 
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "ACTUAL_DATE",
+        "case_number", 
+        "activity_id",
+        "actual_date",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        "ACTIVITY_ID",
+        "activity_id",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #to date
+    todate_cols=[
+        "actual_date",
+        ]
     errors="coerce"
     format="%m/%d/%Y"
-    todate_cols=[
-        "ACTUAL_DATE",
-        ]
-    for i, col in enumerate(todate_cols):
-        df[col]=pd.to_datetime(
-            df[col],
-            errors=errors,
-            format=format,
-            )
+    df=_todatecols_to_df(df, todate_cols, errors, format)
 
     #sortvalues
     sortvalues_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "ACTUAL_DATE",
+        "case_number", 
+        "activity_id",
+        "actual_date",
         ]
     ascending=[
         True,
@@ -766,22 +783,22 @@ def _echo_milestones_screen(folders, items):
     
     #groupby
     by=[
-        "CASE_NUMBER",
-        "ACTIVITY_ID",
+        "case_number",
+        "activity_id",
         ]
     dict_agg_colfunctions={
-        "ACTUAL_DATE": [_first_value],
+        "actual_date": [_first_value],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #initiation year
-    df[echo_initiation_year]=pd.DatetimeIndex(df["ACTUAL_DATE"], ambiguous="NaT").year
+    df[echo_initiation_year]=pd.DatetimeIndex(df["actual_date"], ambiguous="NaT").year
 
     #ordered
     ordered_cols=[
-        "CASE_NUMBER", 
-        "ACTIVITY_ID",
-        "ACTUAL_DATE",
+        "case_number", 
+        "activity_id",
+        "actual_date",
         echo_initiation_year,
         ]
     df=df[ordered_cols]
@@ -810,11 +827,12 @@ def _echo_tri_screen(folders, items):
 
     #usecols
     usecols=[
-        "EPA_REGISTRY_ID",
-        "REPORTING_YEAR",
-        "FACILITY_NAME",
-        "PARENT_CO_NAME",
+        "epa_registry_id",
+        "reporting_year",
+        "facility_name",
+        "parent_co_name",
         ]
+    usecols=[x.upper() for x in usecols]
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -825,35 +843,39 @@ def _echo_tri_screen(folders, items):
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #dropna
     dropna_cols=[
-        "EPA_REGISTRY_ID",
-        "REPORTING_YEAR",
-        "PARENT_CO_NAME",
+        "epa_registry_id",
+        "reporting_year",
+        "parent_co_name",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        "EPA_REGISTRY_ID",
-        "REPORTING_YEAR",
+        "epa_registry_id",
+        "reporting_year",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #sortvalues
     sortvalues_cols=[
-        "EPA_REGISTRY_ID",
-        "REPORTING_YEAR",
+        "epa_registry_id",
+        "reporting_year",
         ]
     df=df.sort_values(by=sortvalues_cols)
 
     #ordered
-    ordered_cols=usecols
+    ordered_cols=[
+        "epa_registry_id",
+        "reporting_year",
+        "facility_name",
+        "parent_co_name",
+        ]
     df=df[ordered_cols]
 
     #save
@@ -944,9 +966,8 @@ def _osha_violation_screen(folders, items):
     filepath=f"{results}/{resource}_all.csv"
     df.to_csv(filepath, index=False)
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #fillna
     fillna_cols=[
@@ -965,31 +986,22 @@ def _osha_violation_screen(folders, items):
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
-    errors="raise"
     tonumeric_cols=[
         "activity_nr",
         "gravity",
         "nr_exposed",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(
-            df[col],
-            errors=errors,
-            )
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #to numeric
-    errors="coerce"
-    format="%Y-%m-%d"
+    #to date
     todate_cols=[
         "issuance_date", 
         "fta_issuance_date",
         ]
-    for i, col in enumerate(todate_cols):
-        df[col]=pd.to_datetime(
-            df[col],
-            errors=errors,
-            format=format,
-            ).dt.strftime(format)
+    errors="coerce"
+    format="%Y-%m-%d"
+    df=_todatecols_to_df(df, todate_cols, errors, format)
 
     #issuance year
     df["issuance_year"]=pd.DatetimeIndex(df["issuance_date"], ambiguous="NaT").year
@@ -1025,9 +1037,10 @@ def _osha_violation_screen(folders, items):
         "citation_id",
         "issuance_date",
         "issuance_year",
+        "initial_penalty",
         "fta_issuance_date",
         "fta_issuance_year",
-        "initial_penalty",
+        "fta_penalty"
         "gravity",
         "nr_exposed", 
         ]
@@ -1130,9 +1143,8 @@ def _osha_inspection_screen(folders, items):
     filepath=f"{results}/{resource}_all.csv"
     df.to_csv(filepath, index=False)
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #dropna
     dropna_cols=[
@@ -1144,30 +1156,21 @@ def _osha_inspection_screen(folders, items):
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
-    errors="raise"
     tonumeric_cols=[
         "activity_nr",
         "nr_in_estab",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(
-            df[col],
-            errors=errors,
-            )
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #to date
-    errors="coerce"
-    format="%Y-%m-%d"
     todate_cols=[
         "open_date",
         "close_case_date",
         ]
-    for i, col in enumerate(todate_cols):
-        df[col] = pd.to_datetime(
-            df[col],
-            errors=errors,
-            format=format,
-            )
+    errors="coerce"
+    format="%Y-%m-%d"
+    df=_todatecols_to_df(df, todate_cols, errors, format)
         
     #initiation year
     df[osha_initiation_year]=pd.DatetimeIndex(df["open_date"], ambiguous="NaT").year
@@ -1190,8 +1193,6 @@ def _osha_inspection_screen(folders, items):
     ordered_cols=[
         "activity_nr",
         "estab_name",
-        "open_date",
-        "close_case_date",
         osha_initiation_year,
         osha_penalty_year,
         osha_initiation_lag,
@@ -1204,48 +1205,85 @@ def _osha_inspection_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#from df to full panel
-def _df_to_fullpanel(df, col_id, col_year, start_year, stop_year):
+#crspcompustat screen
+folders=["zhao/data/crspcocompustat", "zhao/_crspcocompustat"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_screen"]
+def _crspcompustat_screen(folders, items):
 
-    #unique ids
-    unique_ids=df[col_id].unique()
+    #folders
+    resources=folders[0]
+    results=folders[1]
 
-    #years
-    years=[str(year) for year in range(start_year, stop_year)]
+    #items
+    resource=items[0]
+    result=items[1]
 
-    #data list
-    data_list=[
-        {
-            col_id: identifier,
-            col_year: year,
-            }
-            for identifier in unique_ids
-            for year in years
-            ]
+    #usecols
+    usecols=[
+        crspcomp_cusip,
+        crspcomp_fyear,
+        crspcomp_cik,
+        crspcomp_ein,
+        crspcomp_name,
+        crspcomp_assets,
+        crspcomp_liabilities,
+        crspcomp_bookequity,
+        crspcomp_mktequity,
+        crspcomp_sharesoutstanding,
+        crspcomp_dividends,
+        crspcomp_revenues,
+        crspcomp_cogs,
+        crspcomp_oibdp,
+        crspcomp_da,
+        crspcomp_netincome,
+        crspcomp_sic,
+        crspcomp_naics,
+        crspcomp_gics,
+        ]
 
-    #empty
-    df_empty=pd.DataFrame(data=data_list)
-
-     #args
-    indicator=f"_merge_fullpanel"
-    suffixes=('_left', '_right')
-            
-    #merge
-    df_fullpanel=pd.merge(
-        left=df_empty,
-        right=df,
-        how="left",
-        on=[col_id, col_year],
-        suffixes=suffixes,
-        indicator=indicator,
-        validate="1:1",
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath,
+        usecols=usecols,
+        dtype="string",
         )
+    
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
-    #fillna
-    df_fullpanel=df_fullpanel.fillna(0)
+    #dropna
+    dropna_cols=[
+        crspcomp_cusip, 
+        crspcomp_fyear, 
+        ]
+    df=df.dropna(subset=dropna_cols)
 
-    #return
-    return df_fullpanel
+    #drop duplicates
+    dropdups_cols=[
+        crspcomp_cusip, 
+        crspcomp_fyear, 
+        ]
+    df=df.drop_duplicates(subset=dropdups_cols)
+
+    #full panel
+    cols_id=[
+        crspcomp_cusip,
+        crspcomp_fyear,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_bool=False
+    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+
+    #ordered
+    df=df[usecols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
 
 
 #irs donations aggregate
@@ -1262,13 +1300,25 @@ def _irs_contributors_aggregate(folders, items):
     result=items[1]
 
     #usecols
-    cols_id=[
+    usecols=[
         organization_id,
         contributor_id,
         contribution_year,
         contribution_amount_ytd,
+        contributor_employer,
+        contributor_employer_new,
+        contributor_donor_isfirm,
+        contributor_company_involved,
+        contributor_name_irs,
+
+        #refinitiv
+        company_name_rdp,
+        company_businessentity,
+        company_isin,
+        #company_cusip,
+        company_ric,
+        company_oapermid,
         ]
-    usecols=cols_id+contributor_list_firstvalue
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -1279,9 +1329,8 @@ def _irs_contributors_aggregate(folders, items):
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #drop na
     dropna_cols=[
@@ -1296,11 +1345,9 @@ def _irs_contributors_aggregate(folders, items):
     tonumeric_cols=[
         contribution_amount_ytd,
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #first value dict
-    dict_firstvalue={x: [_firstvalue_join] for x in contributor_list_firstvalue}
     #aggregate over organization-contributor-year obs
     by=[
         organization_id,
@@ -1309,8 +1356,18 @@ def _irs_contributors_aggregate(folders, items):
         ]
     dict_agg_colfunctions={
         contribution_amount_ytd: [np.sum],
+        contributor_employer: [_firstvalue_join],
+        contributor_employer_new: [_firstvalue_join],
+        contributor_donor_isfirm: [_firstvalue_join],
+        contributor_company_involved: [_firstvalue_join],
+        contributor_name_irs: [_firstvalue_join],
+        company_name_rdp: [_firstvalue_join],
+        company_businessentity: [_firstvalue_join],
+        company_isin: [_firstvalue_join],
+        #company_cusip: [_firstvalue_join],
+        company_ric: [_firstvalue_join],
+        company_oapermid: [_firstvalue_join],
         }
-    dict_agg_colfunctions=dict_firstvalue|dict_agg_colfunctions
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #pivot
@@ -1323,7 +1380,7 @@ def _irs_contributors_aggregate(folders, items):
         values=contribution_amount_ytd,
         index=index,
         columns=organization_id,  
-        aggfunc='sum',
+        aggfunc=np.sum,
         fill_value=0,
         )      
     #reset index
@@ -1331,13 +1388,6 @@ def _irs_contributors_aggregate(folders, items):
     #rename
     list_pivot_columns=list(pivot_columns.values())
     pivot_df=pivot_df.rename(columns=pivot_columns)
-
-    #full panel
-    col_id=contributor_id
-    col_year=contribution_year
-    start_year=2000
-    stop_year=2023
-    df_fullpanel=_df_to_fullpanel(pivot_df, col_id, col_year, start_year, stop_year)
 
     #df without dups
     df_withoutdups=df.drop_duplicates(subset=contributor_id)
@@ -1348,7 +1398,7 @@ def _irs_contributors_aggregate(folders, items):
     indicator=f"_merge_dups"
     #merge
     df=pd.merge(
-        left=df_fullpanel,
+        left=pivot_df,
         right=df_withoutdups,
         how="left",
         on=contributor_id,
@@ -1356,10 +1406,36 @@ def _irs_contributors_aggregate(folders, items):
         indicator=indicator,
         validate="m:1",
         )
+    
+    #full panel
+    cols_id=[
+        contributor_id,
+        contribution_year,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_bool=True
+    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
 
     #ordered
-    relevant_cols=[col_id, col_year] + list_pivot_columns
-    ordered_cols= relevant_cols + contributor_list_firstvalue
+    ordered_cols= [
+        contributor_id,
+        contribution_year
+        ] + list_pivot_columns + [
+        contributor_employer,
+        contributor_employer_new,
+        contributor_donor_isfirm,
+        contributor_company_involved,
+        contributor_name_irs,
+        company_name_rdp,
+        company_businessentity,
+        company_isin,
+        #company_cusip,
+        company_ric,
+        company_oapermid, 
+        ]
     df=df[ordered_cols]
 
     #save
@@ -1368,211 +1444,93 @@ def _irs_contributors_aggregate(folders, items):
     #'''
 
 
-#viol choice function echo
-def _viol_choice_funct_echo(series):
-
-    #len year
-    len_year=4
-
-    #series
-    series=series.str[3:(3+len_year)]
-
-    #return
-    return series
-
-
-#viol choice function pacer
-def _viol_choice_funct_pacer(series):
-
-    #series
-    series=series.str[0:(0+4)]
-
-    #return
-    return series
-
-
-#viol case id to year
-def _viol_caseid_to_year(df, cond_var, choice_var, _choice_funct, select_var):
-
-    #cond series
-    cond_series=df[cond_var]
-
-    #choice series
-    choice_series=df[choice_var]
-
-    #condlist
-    condlist=[
-        cond_series.isna(),
-        cond_series.notna(),
-        ]   
-    
-    #choicelist
-    choicelist=[
-        NA_VALUE, 
-        _choice_funct(choice_series),
-        ]
-    
-    #select series
-    select_series=np.select(
-        condlist,
-        choicelist,
-        default="error",
-        )
-
-    #create col
-    df[select_var]=select_series
-
-    #return
-    return df
-
-
 #viol initiation year
-def _viol_initiation_year(row, col0, col1):
+def _violtrack_initiation_year(value):
 
     #char
     char=":"
 
-    #len year echo
-    len_year0=4
+    #len year
+    len_year=2
 
-    #len year pacer
-    len_year1=2
+    #cut value
+    value=value[:4]
 
-    #rows
-    row0=row[col0]
-    row1=row[col1]
+    #at least two digits in value
+    contains_2digit=(sum(1 for char in value if char.isdigit()) >= 2)
 
-    #both missing
-    if (pd.isna(row0)) and (pd.isna(row1)):
-        
+    #if
+    if not contains_2digit:
+
         #year
         year=None
 
-    #not missing row0
-    elif pd.notna(row0):
-
-        #year
-        year=int(row0)
-
-    #not missing row1
-    elif pd.notna(row1):
-
-        #any list
-        contains_2digit=(sum(1 for char in row1 if char.isdigit()) >= 2)
+    #elif
+    elif contains_2digit:
 
         #if
-        if not contains_2digit:
+        if char not in value:
 
-            #year
-            year=None
-    
-        #elif
-        elif contains_2digit:
-
+            #first char is digit
+            firstchar_isdigit=value[0:1].isdigit()
+            
             #if
-            if char not in row1:
-
-                #first char is digit
-                firstchar_isdigit=row1[0:1].isdigit()
-                
-                #if
-                if firstchar_isdigit:
-
-                    #idx
-                    idx=0
-
-                    #year 2digit
-                    year_2digit=row1[idx:(idx+len_year1)]
-
-                #elif
-                elif not firstchar_isdigit:
-                        
-                    #idx
-                    idx=1
-
-                    #year 2digit
-                    year_2digit=row1[idx:(idx+len_year1)]
-
-            #elif
-            elif char in row1:
+            if firstchar_isdigit:
 
                 #idx
-                idx=2
+                idx=0
 
                 #year 2digit
-                year_2digit=row1[idx:(idx+len_year1)]
-
-            #int
-            int_year_2digit=int(year_2digit)
-
-            #if
-            if int_year_2digit>CURRENT_YEAR_2DIGIT:
-
-                #year base
-                year_base=19
+                year_2digit=value[idx:(idx+len_year)]
 
             #elif
-            elif int_year_2digit<=CURRENT_YEAR_2DIGIT:
+            elif not firstchar_isdigit:
+                    
+                #idx
+                idx=1
 
-                #year base
-                year_base=20
+                #year 2digit
+                year_2digit=value[idx:(idx+len_year)]
+
+        #elif
+        elif char in value:
+
+            #idx
+            idx=2
+
+            #year 2digit
+            year_2digit=value[idx:(idx+len_year)]
+
+        #int
+        int_year_2digit=int(year_2digit)
+
+        #if
+        if int_year_2digit>CURRENT_YEAR_2DIGIT:
+
+            #year base
+            year_base=19
+
+        #elif
+        elif int_year_2digit<=CURRENT_YEAR_2DIGIT:
+
+            #year base
+            year_base=20
+
+        #year
+        year=f"{year_base}{year_2digit}"
         
-            #year
-            year=f"{year_base}{year_2digit}"
-            
-            #year
-            year=int(year)
+        #year
+        year=int(year)
 
     #return
     return year
 
 
-#viol initiation year infer
-def _viol_initiation_year_infer(row, col0, col1, var0, var1):
 
-    #rows
-    row0=row[col0]
-    row1=row[col1]
-
-    #if
-    if pd.notna(row0):
-        
-        #year
-        year_mean=row0
-        year_median=row0
-
-        #year
-        year_mean=int(year_mean)
-        year_median=int(year_median)
-
-    #elif
-    elif pd.isna(row0):
-
-        #if
-        if pd.isna(row1):
-
-            #year
-            year_mean=None
-            year_median=None
-
-        elif pd.notna(row1):
-
-            #year
-            year_mean=row1-var0
-            year_median=row1-var1  
-
-            #year
-            year_mean=int(year_mean)
-            year_median=int(year_median)
-
-    #return
-    return year_mean, year_median
-
-
-#viol aggregate
-folders=["zhao/data/violation_tracker", "zhao/_violations"]
-items=["ViolationTracker_basic_28jul23", "violations_ids_aggregate"]
-def _violations_aggregate(folders, items):
+#violtrack screen
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_screen"]
+def _violtrack_screen(folders, items):
 
     #folders
     resources=folders[0]
@@ -1582,95 +1540,304 @@ def _violations_aggregate(folders, items):
     resource=items[0]
     result=items[1]
 
+    #usecols
+    usecols=[
+        "current_parent_name",
+        "current_parent_ISIN",
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_ownership_structure",
+        "current_parent_CIK",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+        ]
+
     #read
     filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
         filepath, 
+        usecols=usecols,
         dtype="string",
         #nrows=1000,
         )
 
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #to numeric
     tonumeric_cols=[
-        viol_penalty_year,
-        viol_penalty_amount,
-        viol_subpenalty_amount,
-        viol_penalty_adjusted_amount,
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
-
-    #choice var
-    choice_var="case_id"
-
-    #initiation year echo
-    cond_var="echo_case_url"
-    select_var="initiation_year_echo"
-    _choice_funct=_viol_choice_funct_echo
-    df=_viol_caseid_to_year(df, cond_var, choice_var, _choice_funct, select_var)
-
-    #initiation year pacer
-    cond_var="pacer_link"
-    select_var="initiation_year_pacer"
-    _choice_funct=_viol_choice_funct_pacer
-    df=_viol_caseid_to_year(df, cond_var, choice_var, _choice_funct, select_var)
-
-    #initiation year true
-    col0="initiation_year_echo"
-    col1="initiation_year_pacer"
-    df[viol_initiation_year_true]=df.apply(_viol_initiation_year, axis=1, args=(col0, col1))
-
-    #initiation lag
-    col0=viol_penalty_year
-    col1=viol_initiation_year_true
-    df[viol_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
-
-    #stat initiation lag
-    mean_initiation_lag=int(df[viol_initiation_lag].mean())
-    median_initiation_lag=int(df[viol_initiation_lag].median())
-
-    #report and infer init year
-    col0=viol_initiation_year_true
-    col1=viol_penalty_year
-    var0=mean_initiation_lag
-    var1=median_initiation_lag
-    df[[initiation_year_inferred_mean, initiation_year_inferred_median]]=df.apply(
-        _viol_initiation_year_infer,
-        axis=1,
-        result_type="expand",
-        args=(col0, col1, var0, var1),
-        )
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #drop na
     dropna_cols=[
-        viol_parent_id,
-        viol_penalty_year,
-        initiation_year_inferred_mean,
-        #initiation_year_inferred_median,
-        viol_penalty_amount,
+        "current_parent_name",
+        violtrack_penalty_year,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
         ]
     df=df.dropna(subset=dropna_cols)
 
-    #first value dict
-    list_firstvalue=[x for x in df.columns if x not in dropna_cols]
-    dict_firstvalue={x: [_firstvalue_join] for x in list_firstvalue}
+    #initiation year
+    df[violtrack_initiation_year]=df[violtrack_docket_number].apply(_violtrack_initiation_year)
+
+    #drop na
+    dropna_cols=[
+        violtrack_initiation_year,
+        ]
+    df=df.dropna(subset=dropna_cols)
+ 
+    #initiation lag
+    col0=violtrack_penalty_year
+    col1=violtrack_initiation_year
+    df[violtrack_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+
+    ordered_cols=[
+        "current_parent_name",
+        "current_parent_isin",
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+        ]
+    df=df[ordered_cols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
+#keep internal isin, if not present keep external
+def _violtrack_keepisin(row, col0, col1):
+
+    #rows
+    value0=row[col0]
+    value1=row[col1]
+
+    #if
+    if pd.notna(value0):
+
+        #value
+        value=value0
+
+    #elif
+    elif pd.isna(value0):
+
+        #if
+        if pd.notna(value1):
+
+            #value
+            value=value1
+
+        #elif
+        elif pd.isna(value0):
+
+            #value
+            value=None
+
+    #return 
+    return value
+
+
+#violtrack aggregate
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_ids_aggregate"]
+def _violtrack_aggregate(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_name",
+        "current_parent_isin",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+
+        #refinitiv        
+        company_name_rdp,
+        company_businessentity,
+        company_isin,
+        #company_cusip,
+        company_ric,
+        company_oapermid,
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #to numeric
+    tonumeric_cols=[
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #keep internal isin, if not present keep external
+    col0="current_parent_isin"
+    col1=company_isin
+    df[violtrack_parent_id]=df.df.apply(_violtrack_keepisin, axis=1, args=(col0, col1))
+
+    #drop na
+    dropna_cols=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        ]
+    df=df.dropna(subset=dropna_cols)
 
     #aggregate over company-year obs
     by=[
-        viol_parent_id,
-        initiation_year_inferred_mean,
+        violtrack_parent_id,
+        violtrack_initiation_year,
         ]
     dict_agg_colfunctions={
-        viol_penalty_amount: [np.sum],
-        viol_subpenalty_amount: [np.sum],
-        viol_penalty_adjusted_amount: [np.sum],
+        violtrack_penalty_amount: [np.sum],
+        violtrack_penalty_year: [_firstvalue_join],
+        violtrack_initiation_lag: [_firstvalue_join],
+        violtrack_docket_number: [_firstvalue_join],
+        violtrack_pacer_link: [_firstvalue_join],
+
+        #company
+        "company": [_firstvalue_join],
+        "current_parent_name": [_firstvalue_join],
+        "current_parent_isin": [_firstvalue_join],
+        "current_parent_ownership_structure": [_firstvalue_join],
+        "current_parent_cik": [_firstvalue_join],
+
+        #case
+        "offense_group": [_firstvalue_join],
+        "case_category": [_firstvalue_join],
+        "agency_code": [_firstvalue_join],
+        "govt_level": [_firstvalue_join],
+        "court": [_firstvalue_join],
+        "litigation_case_title": [_firstvalue_join],
+        "lawsuit_resolution": [_firstvalue_join],
+
+        #refinitiv
+        company_name_rdp: [_firstvalue_join],
+        company_businessentity: [_firstvalue_join],
+        #company_isin: [_firstvalue_join],
+        company_cusip: [_firstvalue_join],
+        company_ric: [_firstvalue_join],
+        company_oapermid: [_firstvalue_join],
         }
-    dict_agg_colfunctions=dict_firstvalue|dict_agg_colfunctions
     df=_groupby(df, by, dict_agg_colfunctions)
+
+    cols_id=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_bool=True
+    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+
+    ordered_cols=[
+        violtrack_parent_id,
+        violtrack_initiation_year,
+        violtrack_penalty_year,
+        violtrack_initiation_lag,
+        violtrack_penalty_amount,
+        violtrack_docket_number,
+        violtrack_pacer_link,
+
+        #company
+        "company",
+        "current_parent_name",
+        "current_parent_isin",
+        "current_parent_ownership_structure",
+        "current_parent_cik",
+
+        #case
+        "offense_group", #e.g., employment-related offenses
+        "case_category", #private litigation or agency action
+        "agency_code", #e.g., MULTI-AG
+        "govt_level", #federal/state
+        "court", #e.g., Northern District of Illinois
+        "litigation_case_title", #e.g., Gerlib, et al v. R R Donnelley & Sons, et al
+        "lawsuit_resolution", #settlement or verdict
+
+        #refinitiv
+        company_name_rdp,
+        company_businessentity,
+        #company_isin,
+        company_cusip,
+        company_ric,
+        company_oapermid,
+        ]
+    df=df[ordered_cols]
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -1700,6 +1867,8 @@ def _echo_aggregate(folders, items):
         echo_penalty_amount,
         echo_activity_type_code,
         "parent_co_name",
+
+        #refinitiv
         company_name_rdp,
         company_businessentity,
         company_isin,
@@ -1717,9 +1886,8 @@ def _echo_aggregate(folders, items):
         #nrows=1000,
         )
     
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #drop na
     dropna_cols=[
@@ -1736,8 +1904,8 @@ def _echo_aggregate(folders, items):
         echo_penalty_year,
         echo_penalty_amount,
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #initiation lag
     col0=echo_penalty_year
@@ -1758,6 +1926,8 @@ def _echo_aggregate(folders, items):
         echo_initiation_lag: [_firstvalue_join],
         echo_activity_type_code: [_firstvalue_join],
         "parent_co_name": [_firstvalue_join],
+
+        #refinitiv
         company_name_rdp: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
@@ -1779,6 +1949,8 @@ def _echo_aggregate(folders, items):
         echo_initiation_lag: [_firstvalue_join],
         echo_activity_type_code: [_firstvalue_join],
         "parent_co_name": [_firstvalue_join],
+
+        #refinitiv
         company_name_rdp: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
@@ -1796,6 +1968,18 @@ def _echo_aggregate(folders, items):
         ]
     df=df.sort_values(by=sortvalues_cols)
 
+    #full panel
+    cols_id=[
+        echo_parent_id,
+        echo_initiation_year,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_bool=True
+    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
+
     #ordered
     ordered_cols=[
         "case_number",
@@ -1806,6 +1990,8 @@ def _echo_aggregate(folders, items):
         echo_penalty_amount,
         echo_activity_type_code,
         "parent_co_name",
+
+        #refinitiv
         company_name_rdp,
         company_businessentity,
         company_isin,
@@ -1834,18 +2020,26 @@ def _osha_aggregate(folders, items):
     result=items[1]
 
     #usecols
-    cols_id=[
+    usecols=[
         osha_parent_id,
         osha_initiation_year,
         osha_penalty_year,
+        osha_initiation_lag,
         osha_penalty_amount,
         "fta_issuance_year",
         "fta_penalty",
         "gravity",
         "nr_exposure",
         "nr_in_estab",
+
+        #refinitiv
+        company_name_rdp,
+        company_businessentity,
+        company_isin,
+        #company_cusip,
+        company_ric,
+        company_oapermid,
         ]
-    usecols=cols_id+osha_list_firstvalue
 
     #read
     filepath=f"{resources}/{resource}.csv"
@@ -1856,9 +2050,8 @@ def _osha_aggregate(folders, items):
         #nrows=1000,
         )
     
-    #lowercase col values
-    for i, col in enumerate(df.columns):
-        df[col]=df[col].str.lower()
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
 
     #drop na
     dropna_cols=[
@@ -1876,11 +2069,8 @@ def _osha_aggregate(folders, items):
         "nr_exposure",
         "nr_in_estab",
         ]
-    for i, col in enumerate(tonumeric_cols):
-        df[col]=pd.to_numeric(df[col])
-
-    #first value dict
-    dict_firstvalue={x: [_firstvalue_join] for x in osha_list_firstvalue}
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #aggregate over company-init year obs
     by=[
@@ -1893,9 +2083,31 @@ def _osha_aggregate(folders, items):
         "gravity": [np.sum],
         "nr_exposure": [np.sum],
         "nr_in_estab": [np.sum],
+        osha_penalty_year: [_firstvalue_join],
+        osha_initiation_lag: [_firstvalue_join],
+        "fta_issuance_year": [_firstvalue_join],
+
+        #refinitiv
+        company_name_rdp: [_firstvalue_join],
+        company_businessentity: [_firstvalue_join],
+        company_isin: [_firstvalue_join],
+        #company_cusip: [_firstvalue_join],
+        company_ric: [_firstvalue_join],
+        company_oapermid: [_firstvalue_join],
         }
-    dict_agg_colfunctions=dict_firstvalue|dict_agg_colfunctions
     df=_groupby(df, by, dict_agg_colfunctions)
+
+    #full panel
+    cols_id=[
+        osha_parent_id,
+        osha_initiation_year,
+        ]
+    years=[
+        2000,
+        2023,
+        ]
+    fillna_bool=True
+    df=_df_to_fullpanel(df, cols_id, years, fillna_bool)
 
     #ordered
     ordered_cols=usecols
@@ -1905,32 +2117,4 @@ def _osha_aggregate(folders, items):
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
 
-
-#crspcompustat drop dups
-folders=["zhao/data/crspcocompustat", "zhao/_crspcocompustat"]
-items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_dropdups"]
-#_crspcompustat_dropdups(folders, items)
-def _crspcompustat_dropdups(folders, items):
-
-    #folders
-    resources=folders[0]
-    results=folders[1]
-
-    #items
-    resource=items[0]
-    result=items[1]
-
-    #read
-    filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        )
-    
-    #drop duplicates
-    df=df.drop_duplicates(subset=["cusip", "fyear"])
-
-    #save
-    filepath=f"{results}/{result}.csv"
-    df.to_csv(filepath, index=False)
 

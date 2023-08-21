@@ -930,10 +930,11 @@ def _search(folders, items, colname):
 
 
 
-#search facilities_enforcements_milestones_tri ids
-folders=["zhao/_epa", "zhao/_epa"]
-items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen_search"]
-colname="parent_co_name"
+
+#search violtrack ids
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["_violtrack_screen", "_violtrack_screen_search"]
+colname="current_parent_name"
 #_search(folders, items, colname)
 
 

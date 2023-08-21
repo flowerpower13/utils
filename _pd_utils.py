@@ -335,3 +335,162 @@ def _df_to_unmatchedcol(folders, items, colnames):
     df.to_excel(filepath, index=False)
 
 
+#first value
+def _first_value(df):
+
+    #row
+    row=df.iloc[0]
+
+    #return
+    return row
+
+
+#first value (if same) or join (if different)
+def _firstvalue_join(series):
+
+    #sep
+    sep="||"
+
+    #unique
+    unique_values = series.unique()
+    
+    #if
+    if len(unique_values)==1:
+
+        #value
+        value=series.iloc[0]
+    
+    #else
+    else:
+
+        #value
+        value=sep.join(map(str, series))
+    
+    #return
+    return value
+
+
+#lowercase col names and values
+def _lowercase_colnames_values(df):
+
+    #lowercase col names
+    df.columns=df.columns.str.lower()
+
+    #lowercase col values
+    for i, col in enumerate(df.columns):
+        df[col]=df[col].str.lower()
+
+    #return
+    return df
+
+
+#to date cols to df
+def _todatecols_to_df(df, todate_cols, errors, format):
+
+    #new format
+    new_format="%Y-%m-%d"
+    
+    #for
+    for i, col in enumerate(todate_cols):
+
+        #to date
+        df[col]=pd.to_datetime(
+            df[col],
+            errors=errors,
+            format=format,
+            ).dt.strftime(new_format)
+    
+    #return
+    return df
+
+
+#to numeric cols to df
+def _tonumericcols_to_df(df, tonumeric_cols, errors):
+    
+    #for
+    for i, col in enumerate(tonumeric_cols):
+
+        #to date
+        df[col]=pd.to_numeric(
+            df[col],
+            errors=errors,
+            )
+    
+    #return
+    return df
+
+
+#usecols, lowercase col names, lowercase col values, dropna, tonumeric, to date, sortvalues, panel, ordered
+
+
+#full panel
+'''
+cols_id=[
+    crspcomp_cusip,
+    crspcomp_fyear,
+    ]
+years=[
+    2000,
+    2023,
+    ]
+fillna_bool=True
+#'''
+def _df_to_fullpanel(df, cols_id, years, fillna_bool):
+
+    #ids
+    company_id=cols_id[0]
+    fiscal_year=cols_id[1]
+
+    #years
+    start_year=years[0]
+    stop_year=years[1]
+
+    #unique company id
+    span_company_ids=df[company_id].unique()
+
+    #sort
+    span_company_ids=np.sort(span_company_ids)
+
+    #span years
+    span_years=[str(year) for year in range(start_year, stop_year)]
+
+    #data list
+    data_list=[
+        {
+            company_id: x,
+            fiscal_year: str(y),
+            }
+            for x in span_company_ids
+            for y in span_years
+            ]
+
+    #empty
+    df_empty=pd.DataFrame(data=data_list)
+
+    #args
+    indicator=f"_merge_fullpanel"
+    suffixes=('_left', '_right')
+            
+    #merge
+    df=pd.merge(
+        left=df_empty,
+        right=df,
+        how="left",
+        on=cols_id,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate="1:1",
+        )
+
+    #if
+    if fillna_bool==True:
+        df=df.fillna(0)
+
+    #else
+    else:
+        pass
+
+    #return
+    return df
+
+
