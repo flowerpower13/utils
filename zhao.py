@@ -6,7 +6,7 @@ from _zhao_functions import _irs_txt_to_dfs, _irs_contributors_screen, _irs_cont
     _echo_facilities_screen, _echo_enforcements_screen, _echo_milestones_screen, _echo_tri_screen, _echo_aggregate,\
     _violtrack_screen, _violtrack_aggregate,\
     _osha_inspection_screen, _osha_violation_screen, _osha_aggregate,\
-    _crspcompustat_screen
+    _crspcompustat_screen, _crspcompustat_donations_echo_screen
 
 
 
@@ -296,6 +296,17 @@ right_ons=["cusip", "fyear"]
 how="outer"
 validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#donations_echo_crspcompustat screen
+folders=["zhao/_merge", "zhao/_merge"]
+items=["donations_echo_crspcompustat", "donations_echo_crspcompustat_screen"]
+#_crspcompustat_donations_echo_screen(folders, items)
+
+
+#donations_violtrack_crspcompustat screen
+
+
 
 
 #generate floats

@@ -420,7 +420,7 @@ def _tonumericcols_to_df(df, tonumeric_cols, errors):
     return df
 
 
-#usecols, lowercase col names, lowercase col values, dropna, tonumeric, to date, sortvalues, panel, ordered
+#usecols, lowercase, dropna, to numeric, to date, sortvalues, panel, ordered
 
 
 #full panel

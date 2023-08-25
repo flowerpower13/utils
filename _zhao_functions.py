@@ -43,8 +43,8 @@ company_oapermid="oapermid"
 organization_name="a__org_name"
 organization_id="a__ein"
 pivot_columns={
-    "134220019": "democratic_ag",
-    "464501717": "republican_ag",
+    "134220019": "amount_democratic",
+    "464501717": "amount_republican",
     }
 #contributors
 contributor_id="cusip"
@@ -554,7 +554,7 @@ def _echo_facilities_screen(folders, items):
 #initiation lag
 def _initiation_lag(row, col0, col1):
 
-    #rows
+    #values
     value0=row[col0]
     value1=row[col1]
 
@@ -1359,6 +1359,7 @@ def _crspcompustat_screen(folders, items):
         filepath,
         usecols=usecols,
         dtype="string",
+        #nrows=1000,
         )
     
     #lowercase col names and values
@@ -1805,7 +1806,7 @@ def _violtrack_initiation_year(value):
 #keep internal isin, if not present keep external
 def _violtrack_keepisin(row, col0, col1):
 
-    #rows
+    #values
     value0=row[col0]
     value1=row[col1]
 
@@ -2127,3 +2128,240 @@ def _osha_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
+#gen dummy var
+def _dummy_ifpositive(df, oldvar, newvar):
+
+    #oldvar
+    x=df[oldvar]
+
+    #condlist
+    condlist=[
+        x<0,
+        x.isna(),
+        x==0,
+        x>0,
+        ]   
+    
+    #choicelist
+    choicelist=[
+        "error", 
+        np.nan,
+        0,
+        1,
+        ]
+    
+    #y
+    y=np.select(condlist, choicelist, default="error")
+
+    #newvar
+    df[newvar]=y
+
+    #return
+    return df
+
+
+#gen amount pastn
+def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
+
+    #shifted_columns
+    shifted_columns=np.arange(n_shifts)
+
+    #shifted_values
+    shifted_values=df.groupby(col_identifier)[oldvar].transform(lambda x: np.vstack([x] * n_shifts).T)
+
+    #shifted_columns_values
+    shifted_columns_values=shifted_values[:, shifted_columns]
+
+    #aggregated_values
+    aggregated_values=agg_funct(shifted_columns_values, axis=1)
+
+    #newvar
+    newvar=f"{oldvar}_past{n_shifts}"
+    df[newvar]=aggregated_values
+
+    #return
+    return df
+
+
+#donations_echo_crspcompustat screen
+folders=["zhao/_merge", "zhao/_merge"]
+items=["donations_echo_crspcompustat", "crspcompustat_donations_echo_screen"]
+def _crspcompustat_donations_echo_screen(folders, items):
+
+    #https://pandas.pydata.org/docs/user_guide/timeseries.html
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    contributor_id
+    #usecols
+    usecols=[
+        crspcomp_cusip,
+        crspcomp_fyear,
+        "democratic_ag",
+        "republican_ag",
+        echo_initiation_year,
+        echo_penalty_amount,
+        crspcomp_name,
+        crspcomp_assets,
+        crspcomp_liabilities,
+        crspcomp_bookequity,
+        crspcomp_mktequity,
+        crspcomp_sharesoutstanding,
+        crspcomp_dividends,
+        crspcomp_revenues,
+        crspcomp_cogs,
+        crspcomp_oibdp,
+        crspcomp_da,
+        crspcomp_netincome,
+        crspcomp_sic,
+        crspcomp_naics,
+        crspcomp_gics,
+        ]
+    
+    #rename XXX
+    rename_cols={
+        "democratic_ag": "amount_democratic",
+        "republican_ag": "amount_republican",
+        }
+    df=df.rename(columns=rename_cols)
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath,
+        usecols=usecols,
+        dtype="string",
+        nrows=1000,
+        )
+    
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #dropna
+    dropna_cols=[
+        crspcomp_cusip, 
+        crspcomp_fyear, 
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #to numeric
+    tonumeric_cols=[
+        crspcomp_fyear,
+        "amount_democratic",
+        "amount_republican",
+        echo_initiation_year,
+        echo_penalty_amount,
+        crspcomp_assets,
+        crspcomp_liabilities,
+        crspcomp_bookequity,
+        crspcomp_mktequity,
+        crspcomp_sharesoutstanding,
+        crspcomp_dividends,
+        crspcomp_revenues,
+        crspcomp_cogs,
+        crspcomp_oibdp,
+        crspcomp_da,
+        crspcomp_netincome,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #amount_both
+    df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
+
+    #dummy vars
+    tuples=[
+        ("amount_democratic", "dummy_democratic"),
+        ("amount_republican", "dummy_republican"),
+         (echo_penalty_amount, "dummy_echo_penalty"),
+        ]
+    for i, (oldvar, newvar) in enumerate(tuples):
+        df=_dummy_ifpositive(df, oldvar, newvar)
+
+    #amount past3
+    col_identifier=crspcomp_cusip
+    tuples=[
+        ("amount_democratic", np.sum),
+        ("amount_republican", np.sum),
+        ("amount_both", np.sum),
+        ]
+    n_shifts=3
+    for i, (oldvar, agg_funct) in enumerate(tuples):
+        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
+
+    #dummy past3
+    col_identifier=crspcomp_cusip
+    tuples=[
+        ("dummy_democratic", np.prod),
+        ("dummy_republican", np.prod),
+        ("dummy_both", np.prod),
+        ]
+    n_shifts=3
+    for i, (oldvar, agg_funct) in enumerate(tuples):
+        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
+
+    #sortvalues
+    sortvalues_cols=[
+        crspcomp_cusip, 
+        crspcomp_fyear, 
+        ]
+    df=df.sortvalues(by=sortvalues_cols)
+
+    #ordered
+    ordered_cols=[
+        crspcomp_cusip,
+        crspcomp_fyear,
+
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #dummy
+        "dummy_democratic",
+        "dummy_republican",
+        "dummy_both",
+
+        #amount past3
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+
+        #dummy past3
+        "dummy_democratic_past3",
+        "dummy_republican_past3",
+        "dummy_both_past3",
+
+        #echo
+        echo_initiation_year,
+        echo_penalty_amount,
+        "dummy_echo_penalty",
+
+        #crspcomp
+        crspcomp_name,
+        crspcomp_assets,
+        crspcomp_liabilities,
+        crspcomp_bookequity,
+        crspcomp_mktequity,
+        crspcomp_sharesoutstanding,
+        crspcomp_dividends,
+        crspcomp_revenues,
+        crspcomp_cogs,
+        crspcomp_oibdp,
+        crspcomp_da,
+        crspcomp_netincome,
+        crspcomp_sic,
+        crspcomp_naics,
+        crspcomp_gics,
+        ]
+    df=df[ordered_cols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)

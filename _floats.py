@@ -7,7 +7,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from pathlib import Path
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from stargazer.stargazer import Stargazer, LineLocation
 
 
 #functions
@@ -171,14 +173,14 @@ def _donations_table_summary(results):
 
     #cols
     cols=[
-        "democratic_ag",
-        "republican_ag",
+        "amount_democratic",
+        "amount_republican",
         ]
     
     #tuples replace
     tuples_replace=[
-        ("democratic_ag &", "Donation to Dem. AG assn &"),
-        ("republican_ag &", "Donation to Rep. AG assn &"),
+        ("amount_democratic &", "Donation to Dem. AG assn &"),
+        ("amount_republican &", "Donation to Rep. AG assn &"),
         ]
     
     #table notes
@@ -298,6 +300,119 @@ def _echo_crspcomp_table_summary(results):
 
 
 
+#stargazer from vars to results
+def _vars_to_results(df, depvar, indepvars):
+
+    #depvar
+    Y=df[depvar]
+
+    #indep vars
+    X=df[indepvars]
+
+    #add constant
+    X=sm.add_constant(X)
+
+    #model
+    model=sm.OLS(Y,X)
+
+    #results
+    results=model.fit()
+
+    #return
+    return results
+
+
+#stargazer parameters
+def _stargazer_parameters(models, label, caption, tablenotes, sig_digits=2):
+
+    #stargazer
+    stargazer=Stargazer(models)
+
+    #generate_header
+    stargazer.generate_header(label)
+
+    #title
+    stargazer.title(caption)
+
+    #show_header
+    #show_model_numbers
+    #custom_columns
+    #significance_levels
+
+    #significant_digits
+    stargazer.significant_digits(sig_digits)
+
+    #show_confidence_intervals
+    #dependent_variable_name
+    #rename_covariates
+    #covariate_order
+    #reset_covariate_order
+    #show_degrees_of_freedom
+    #custom_note_label
+
+    #add_custom_notes
+    stargazer.add_custom_notes([tablenotes])
+
+    #add_line
+    #append_notes
+
+    #return
+    return stargazer
+
+
+#_preliminary_table_reg(results)
+def _preliminary_table_reg(results):
+
+    #https://github.com/StatsReporting/stargazer
+    #https://github.com/StatsReporting/stargazer/blob/master/examples.ipynb
+
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="preliminary_table_reg"
+
+    #caption
+    caption="Political Contributions and Regulatory Enforcement"
+    
+    #tuples replace
+    tuples_replace=[
+        ("amount_democratic &", "Donation to Dem. AG assn &"),
+        ("amount_republican &", "Donation to Rep. AG assn &"),
+        ]
+    
+    #table notes
+    tablenotes=""
+
+    #vars to res
+    depvar=""
+    indepvars=""
+    res0=_vars_to_results(df, depvar, indepvars)
+
+    #models
+    models=[
+        res0,
+        ]
+
+    #parameters
+    stargazer=_stargazer_parameters(models, label, caption, tablenotes)
+
+    #fixed effects
+    stargazer.add_line('IndustryFE', ["YES", "'NO'"])
+
+    #text
+    text=stargazer.render_latex()
+
+    #replace txt
+    text=_replace_txt(text, tuples_replace)
+
+    #save
+    _save_table(results, label, text)
+
 
 #des stats
 results="zhao/article"
@@ -314,7 +429,7 @@ def _generate_floats(results):
 
 
     #https://github.com/StatsReporting/stargazer
-    #table reg
+    _preliminary_table_reg(results)
 
 
 
