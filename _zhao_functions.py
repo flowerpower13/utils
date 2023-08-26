@@ -11,7 +11,7 @@ from datetime import datetime
 
 #functions
 from _pd_utils import _folder_to_filestems, \
-    _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, \
+    _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, _fillnacols_to_df, \
     _groupby, _df_to_fullpanel, \
     _first_value, _firstvalue_join
     
@@ -631,13 +631,18 @@ def _echo_enforcements_screen(folders, items):
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
 
+    #to numeric
+    tonumeric_cols=[
+        "fed_penalty_assessed_amt",
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
     #fillna
     fillna_cols=[
         "fed_penalty_assessed_amt",
         ]
-    for i, col in enumerate(fillna_cols):
-        df[col]=pd.to_numeric(df[col])
-        df[col]=df[col].fillna(0)
+    df=_fillnacols_to_df(df, fillna_cols)
 
     #dropna
     dropna_cols=[ 
@@ -1081,14 +1086,20 @@ def _osha_violation_screen(folders, items):
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
 
+    #to numeric
+    tonumeric_cols=[
+        "initial_penalty",
+        "fta_penalty",
+        ]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
     #fillna
     fillna_cols=[
         "initial_penalty",
         "fta_penalty",
         ]
-    for i, col in enumerate(fillna_cols):
-        df[col]=pd.to_numeric(df[col])
-        df[col]=df[col].fillna(0)
+    df=_fillnacols_to_df(df, fillna_cols)
 
     #dropna
     dropna_cols=[
@@ -1318,7 +1329,7 @@ def _osha_inspection_screen(folders, items):
 
 
 #crspcompustat screen
-folders=["zhao/data/crspcocompustat", "zhao/_crspcocompustat"]
+folders=["zhao/data/crspcompustat", "zhao/_crspcompustat"]
 items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_screen"]
 def _crspcompustat_screen(folders, items):
 
@@ -1379,20 +1390,9 @@ def _crspcompustat_screen(folders, items):
         ]
     df=df.drop_duplicates(subset=dropdups_cols)
 
-    #full panel
-    cols_id=[
-        crspcomp_cusip,
-        crspcomp_fyear,
-        ]
-    years=[
-        2000,
-        2023,
-        ]
-    fillna_cols=[]
-    df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
-
     #ordered
-    df=df[usecols]
+    ordered_cols=usecols
+    df=df[ordered_cols]
 
     #save
     filepath=f"{results}/{result}.csv"
@@ -1456,6 +1456,7 @@ def _irs_contributors_aggregate(folders, items):
 
     #to numeric
     tonumeric_cols=[
+        contribution_year,
         contribution_amount_ytd,
         ]
     errors="raise"
@@ -1483,7 +1484,7 @@ def _irs_contributors_aggregate(folders, items):
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
-    #pivot
+   #pivot
     index=[
         contributor_id,
         contribution_year,
@@ -1554,7 +1555,6 @@ def _irs_contributors_aggregate(folders, items):
     #save
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
-    #'''
 
 
 #echo aggregate
@@ -2160,24 +2160,40 @@ def _dummy_ifpositive(df, oldvar, newvar):
     return df
 
 
-#gen amount pastn
+#gen aggregate pastn
 def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
 
-    #shifted_columns
-    shifted_columns=np.arange(n_shifts)
+    #init cols
+    var_shifted_cols=[None]*n_shifts
 
-    #shifted_values
-    shifted_values=df.groupby(col_identifier)[oldvar].transform(lambda x: np.vstack([x] * n_shifts).T)
+    #fillna
+    fill_value=0
 
-    #shifted_columns_values
-    shifted_columns_values=shifted_values[:, shifted_columns]
+    #for
+    for i in range(n_shifts):
 
-    #aggregated_values
-    aggregated_values=agg_funct(shifted_columns_values, axis=1)
+        #periods
+        periods=i+1
 
-    #newvar
+        #col name
+        var_shifted=f"{oldvar}_shift{periods}"
+
+        #gen new col
+        df[var_shifted]=df.groupby(col_identifier)[oldvar].shift(periods=periods, fill_value=fill_value)
+
+        #update cols
+        var_shifted_cols[i]=var_shifted
+
+    #to numeric
+    errors="raise"
+    df=_tonumericcols_to_df(df, var_shifted_cols, errors)
+
+    #y
+    y=agg_funct(df[var_shifted_cols], axis=1)
+
+    #gen newvar
     newvar=f"{oldvar}_past{n_shifts}"
-    df[newvar]=aggregated_values
+    df[newvar]=y
 
     #return
     return df
@@ -2185,7 +2201,7 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
 
 #donations_echo_crspcompustat screen
 folders=["zhao/_merge", "zhao/_merge"]
-items=["donations_echo_crspcompustat", "crspcompustat_donations_echo_screen"]
+items=["crspcompustat_donations_echo", "crspcompustat_donations_echo_screen"]
 def _crspcompustat_donations_echo_screen(folders, items):
 
     #https://pandas.pydata.org/docs/user_guide/timeseries.html
@@ -2203,8 +2219,8 @@ def _crspcompustat_donations_echo_screen(folders, items):
     usecols=[
         crspcomp_cusip,
         crspcomp_fyear,
-        "democratic_ag",
-        "republican_ag",
+        "amount_democratic",
+        "amount_republican",
         echo_initiation_year,
         echo_penalty_amount,
         crspcomp_name,
@@ -2224,31 +2240,17 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_gics,
         ]
     
-    #rename XXX
-    rename_cols={
-        "democratic_ag": "amount_democratic",
-        "republican_ag": "amount_republican",
-        }
-    df=df.rename(columns=rename_cols)
-
     #read
     filepath=f"{resources}/{resource}.csv"
     df=pd.read_csv(
         filepath,
         usecols=usecols,
         dtype="string",
-        nrows=1000,
+        #nrows=1000,
         )
     
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
-
-    #dropna
-    dropna_cols=[
-        crspcomp_cusip, 
-        crspcomp_fyear, 
-        ]
-    df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
@@ -2272,6 +2274,14 @@ def _crspcompustat_donations_echo_screen(folders, items):
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
+    #fillna
+    fillna_cols=[
+        "amount_democratic",
+        "amount_republican",
+        echo_penalty_amount,
+        ]
+    df=_fillnacols_to_df(df, fillna_cols)
+
     #amount_both
     df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
 
@@ -2279,39 +2289,31 @@ def _crspcompustat_donations_echo_screen(folders, items):
     tuples=[
         ("amount_democratic", "dummy_democratic"),
         ("amount_republican", "dummy_republican"),
+        ("amount_both", "dummy_both"),
          (echo_penalty_amount, "dummy_echo_penalty"),
         ]
     for i, (oldvar, newvar) in enumerate(tuples):
         df=_dummy_ifpositive(df, oldvar, newvar)
-
-    #amount past3
-    col_identifier=crspcomp_cusip
-    tuples=[
-        ("amount_democratic", np.sum),
-        ("amount_republican", np.sum),
-        ("amount_both", np.sum),
-        ]
-    n_shifts=3
-    for i, (oldvar, agg_funct) in enumerate(tuples):
-        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
-
-    #dummy past3
-    col_identifier=crspcomp_cusip
-    tuples=[
-        ("dummy_democratic", np.prod),
-        ("dummy_republican", np.prod),
-        ("dummy_both", np.prod),
-        ]
-    n_shifts=3
-    for i, (oldvar, agg_funct) in enumerate(tuples):
-        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
 
     #sortvalues
     sortvalues_cols=[
         crspcomp_cusip, 
         crspcomp_fyear, 
         ]
-    df=df.sortvalues(by=sortvalues_cols)
+    df=df.sort_values(by=sortvalues_cols)
+
+    #amount and dummy past3
+    col_identifier=crspcomp_cusip
+    tuples=[
+        ("amount_democratic", np.sum, 3),
+        ("amount_republican", np.sum, 3),
+        ("amount_both", np.sum, 3),
+        ("dummy_democratic", np.prod, 3),
+        ("dummy_republican", np.prod, 3),
+        ("dummy_both", np.prod, 3),
+        ]
+    for i, (oldvar, agg_funct, n_shifts) in enumerate(tuples):
+        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
 
     #ordered
     ordered_cols=[
@@ -2365,3 +2367,4 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #save
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
+    #'''

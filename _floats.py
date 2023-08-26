@@ -88,6 +88,8 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     #percentiles
     percentiles=[
         0.50, 
+        0.90,
+        0.99,
         ]
 
     #df stats
@@ -100,25 +102,16 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
         "Std. Dev.",
         "Min",
         "Median",
+        "90\%",
+        "99\%",
         "Max",
         ]
-    
-    #to divide
-    todivide_cols=[
-        "Mean",
-        "Std. Dev.",
-        "Min",
-        "Median",
-        "Max",
-        ]
-    todivide_by=1000
-    #df[todivide_cols]=df[todivide_cols]/todivide_by
-    
+       
     #styler object
     styler_object=df.style
 
     #format
-    format_styler="{:,.0f}"
+    format_styler="{:,.3f}"
     styler_object=styler_object.format(format_styler)
 
     #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
@@ -155,44 +148,10 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     _save_table(results, label, text)
 
 
-#donations summary stats
-def _donations_table_summary(results):
-
-    filepath="zhao/_irs/donations_ids_aggregate.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
-
-    #label
-    label="donations_table_summary"
-
-    #caption
-    caption="Political Contributions to Attorneys General Associations"
-
-    #cols
-    cols=[
-        "amount_democratic",
-        "amount_republican",
-        ]
-    
-    #tuples replace
-    tuples_replace=[
-        ("amount_democratic &", "Donation to Dem. AG assn &"),
-        ("amount_republican &", "Donation to Rep. AG assn &"),
-        ]
-    
-    #table notes
-    tablenotes="The table above provide summary statistics pertaining to corporate donations directed towards a partisan attorneys general association. The variable \\textit{Donation to Dem. AG assn} captures monetary value of contributions made to the Democratic Attorneys General Association (DAGA) while \\textit{Donation to Rep. AG assn} captures the Republican counterpart."
-
-    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
-
-
-#echo summary stats
+#violtrack summary stats
 def _echo_table_summary(results):
 
-    filepath="zhao/_epa/echo_ids_aggregate.csv"
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
     df=pd.read_csv(
         filepath,
         dtype="string",
@@ -203,77 +162,26 @@ def _echo_table_summary(results):
     label="echo_table_summary"
 
     #caption
-    caption="EPA Enforcement"
+    caption="Donations to AG assn and EPA Enforcement"
 
     #cols
     cols=[
+        #irs
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+        "dummy_democratic_past3",
+        "dummy_republican_past3",
+        "dummy_both_past3",
+
+        #echo
         "fed_penalty_assessed_amt",
-        ]
-    
-    #tuples replace
-    tuples_replace=[
-        ("fed_penalty_assessed_amt &", "EPA Penalty Amount &"),
-        ]
-    
-    #table notes
-    tablenotes="The table above provides a summary of penalty amounts imposed by the Environmental Protection Agency (EPA) on corporations. The variable \\textit{EPA Penalty Amount} represents the monetary value of penalties levied on corporations for various environmental violations"
+        "dummy_echo_penalty",
 
-    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
-
-
-#violtrack summary stats
-def _violtrack_table_summary(results):
-
-    filepath="zhao/_violtrack/violtrack_ids_aggregate.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
-
-    #label
-    label="violtrack_table_summary"
-
-    #caption
-    caption="Court-ordered Enforcement"
-
-    #cols
-    cols=[
-        "penalty",
-        ]
-    
-    #tuples replace
-    tuples_replace=[
-        ("penalty &", "Court-ordered Penalty Amount &"),
-        ]
-    
-    #table notes
-    tablenotes="The table above presents information regarding penalties resulting from court-ordered enforcement, wherein district courts mandate corporations to pay fines. The variable \\textit{Court-ordered Penalty Amount} represents the monetary value of penalties imposed on corporations as a consequence of legal proceedings"
-
-    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
-
-
-#violtrack summary stats
-def _echo_crspcomp_table_summary(results):
-
-    filepath="zhao/_merge/donations_echo_crspcompustat.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
-
-    #label
-    label="echo_crspcomp_table_summary"
-
-    #caption
-    caption="Donations to AG and EPA Enforcement"
-
-    #cols
-    cols=[
-       "democratic_ag",
-        "republican_ag",
-        "fed_penalty_assessed_amt",
+        #crspcompustat
         "at",
         "lt",
         "mkvalt",
@@ -283,9 +191,21 @@ def _echo_crspcomp_table_summary(results):
     
     #tuples replace
     tuples_replace=[
-        ("democratic_ag &", "Donation to Dem. AG assn &"),
-        ("republican_ag &", "Donation to Rep. AG assn &"),
+        ("amount_democratic &", "Donations to Dem. AG assn &"),
+        ("amount_republican &", "Donations to Rep. AG assn &"),
+        ("amount_both &", "Donations to both AG assn &"),
+        ("amount_democratic_past3 &", "Donations to Dem. AG assn past 3y &"),
+        ("amount_republican_past3 &", "Donations to Rep. AG assn past 3y &"),
+        ("amount_both_past3 &", "Donations to both AG assn past 3y &"),
+        ("dummy_democratic_past3 &", "Donated to Dem. AG assn past 3y &"),
+        ("dummy_republican_past3 &", "Donated to Rep. AG assn past 3y &"),
+        ("dummy_both_past3 &", "Donated to both AG assn past 3y &"),
+
+        #echo
         ("fed_penalty_assessed_amt &", "EPA Penalty Amount &"),
+        ("dummy_echo_penalty", "EPA Penalty Dummy"),
+
+        #crspcompustat
         ("at &", "Assets &"),
         ("lt &", "Liabilities &"),
         ("mkvalt &", "Market Value &"),
@@ -294,15 +214,20 @@ def _echo_crspcomp_table_summary(results):
         ]
     
     #table notes
-    tablenotes="The table above provides summary statistics on a sample merging donations to attorneys general associations, EPA enforcement actions, and financial data from CRSP/Compustat for firms."
+    tablenotes="The table above provide summary statistics for donations to attorneys general associations, EPA penalties, and company fundamentals. The variables \\textit{Donations to Dem. AG assn} and \\textit{Donations to Rep. AG assn}captures the monetary amount of the political contribution to the Democratic Attorneys General Association (DAGA) and Republican Attorneys General Association (RAGA), respectively. The variable \\textit{Donations to Dem. AG assn past 3y} captures the sum of political contributions made to DAGA in the past 3 years, while \\textit{Donations to Dem. AG assn past 3y} captures the Republican counterpart. The variable \\textit{Donated to Dem. AG assn past 3y} equals one if the commpany donated consistently to DAGA in the past 3 years, 0 otherwise. The variable \\textit{Donated to Rep. AG assn past 3y} is the Republican counterpart. The variable \\textit{EPA Penalty Amount} represents the monetary value of penalties levied on corporations by the EPA for various environmental violations."
 
+    #table summary
     _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
-
 
 
 #stargazer from vars to results
 def _vars_to_results(df, depvar, indepvars):
 
+    #to numeric
+    tonumeric_cols=[depvar] + indepvars
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    
     #depvar
     Y=df[depvar]
 
@@ -313,7 +238,11 @@ def _vars_to_results(df, depvar, indepvars):
     X=sm.add_constant(X)
 
     #model
-    model=sm.OLS(Y,X)
+    model=sm.OLS(
+        endog=Y,
+        exog=X,
+        missing="drop",
+        )
 
     #results
     results=model.fit()
@@ -323,37 +252,53 @@ def _vars_to_results(df, depvar, indepvars):
 
 
 #stargazer parameters
-def _stargazer_parameters(models, label, caption, tablenotes, sig_digits=2):
+def _stargazer_parameters(models, label, caption, depvar_name, indepvars, tablenotes, sig_digits=3):
 
     #stargazer
     stargazer=Stargazer(models)
 
     #generate_header
-    stargazer.generate_header(label)
+    stargazer.table_label=label
 
     #title
     stargazer.title(caption)
 
     #show_header
+    stargazer.show_header=True
+
     #show_model_numbers
+    stargazer.show_model_numbers(True)
+
     #custom_columns
+
     #significance_levels
 
     #significant_digits
     stargazer.significant_digits(sig_digits)
 
     #show_confidence_intervals
+
     #dependent_variable_name
+    stargazer.dependent_variable_name(depvar_name)
+
     #rename_covariates
+
     #covariate_order
+    ordered_cols=["const"] + indepvars
+    stargazer.covariate_order(ordered_cols)
+
     #reset_covariate_order
+
     #show_degrees_of_freedom
+    stargazer.show_degrees_of_freedom(False)
+
     #custom_note_label
 
     #add_custom_notes
     stargazer.add_custom_notes([tablenotes])
 
     #add_line
+
     #append_notes
 
     #return
@@ -381,16 +326,41 @@ def _preliminary_table_reg(results):
     
     #tuples replace
     tuples_replace=[
-        ("amount_democratic &", "Donation to Dem. AG assn &"),
-        ("amount_republican &", "Donation to Rep. AG assn &"),
+        ("amount_democratic &", "Donations to Dem. AG assn &"),
+        ("amount_republican &", "Donations to Rep. AG assn &"),
+        ("amount_both &", "Donations to both AG assn &"),
+        ("amount_democratic_past3 &", "Donations to Dem. AG assn past 3y &"),
+        ("amount_republican_past3 &", "Donations to Rep. AG assn past 3y &"),
+        ("amount_both_past3 &", "Donations to both AG assn past 3y &"),
+        ("dummy_democratic_past3 &", "Donated to Dem. AG past 3y &"),
+        ("dummy_republican_past3 &", "Donated to Rep. AG past 3y &"),
+        ("dummy_both_past3 &", "Donated to both AG assn past 3y &"),
+
+        #echo
+        ("fed_penalty_assessed_amt &", "EPA Penalty Amount &"),
+        ("dummy_echo_penalty", "EPA Penalty Dummy"),
+
+        #crspcompustat
+        ("at &", "Assets &"),
+        ("lt &", "Liabilities &"),
+        ("mkvalt &", "Market Value &"),
+        ("revt &", "Revenues &"),
+        ("ni &", "Net Income &"),
         ]
     
+    #depvar name
+    depvar_name="EPA Penalty Amount"
+    
     #table notes
-    tablenotes=""
+    tablenotes="first note"
 
     #vars to res
-    depvar=""
-    indepvars=""
+    depvar="fed_penalty_assessed_amt"
+    indepvars=[
+        "amount_both",
+        "at",
+        "ni",
+        ]
     res0=_vars_to_results(df, depvar, indepvars)
 
     #models
@@ -399,10 +369,10 @@ def _preliminary_table_reg(results):
         ]
 
     #parameters
-    stargazer=_stargazer_parameters(models, label, caption, tablenotes)
+    stargazer=_stargazer_parameters(models, label, caption, depvar_name, indepvars, tablenotes)
 
     #fixed effects
-    stargazer.add_line('IndustryFE', ["YES", "'NO'"])
+    stargazer.add_line('IndustryFE', ["No"])
 
     #text
     text=stargazer.render_latex()
@@ -419,16 +389,12 @@ results="zhao/article"
 def _generate_floats(results):
 
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html
+    #https://github.com/StatsReporting/stargazer
 
     #table summary
-    _donations_table_summary(results)
-    _echo_table_summary(results)
-    _violtrack_table_summary(results)
-    _echo_crspcomp_table_summary(results)
-    #_violtrack_crspcomp_table_summary(results)
-
-
-    #https://github.com/StatsReporting/stargazer
+    #_echo_table_summary(results)
+    
+    #table reg
     _preliminary_table_reg(results)
 
 

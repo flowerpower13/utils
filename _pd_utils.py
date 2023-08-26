@@ -420,7 +420,22 @@ def _tonumericcols_to_df(df, tonumeric_cols, errors):
     return df
 
 
-#usecols, lowercase, dropna, to numeric, to date, sortvalues, panel, ordered
+#to fillna cols to df
+def _fillnacols_to_df(df, fillna_cols):
+
+    value=0
+
+    #for
+    for i, col in enumerate(fillna_cols):
+
+        #to date
+        df[col]=df[col].fillna(value)
+
+    #return
+    return df
+
+
+#usecols, lowercase, dropna, to numeric, to date, fillna, sortvalues, panel, ordered
 
 
 #full panel
@@ -472,7 +487,12 @@ def _df_to_fullpanel(df, cols_id, years, fillna_cols):
     #args
     indicator=f"_merge_fullpanel"
     suffixes=('_left', '_right')
-            
+
+    #to numeric
+    tonumeric_cols=[fiscal_year]
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
     #merge
     df=pd.merge(
         left=df_empty,
@@ -487,11 +507,8 @@ def _df_to_fullpanel(df, cols_id, years, fillna_cols):
     #if
     if fillna_cols:
 
-        #for
-        for i, col in enumerate(fillna_cols):
-
-            #fillna
-            df[col]=df[col].fillna(0)
+        #fillna
+        df=_fillnacols_to_df(df, fillna_cols)
 
     #else
     else:

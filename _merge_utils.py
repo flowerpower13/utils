@@ -86,6 +86,9 @@ def _pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, v
         indicator=indicator,
         validate=validate,
         )
+    
+    #sortvalues
+    df=df.sort_values(by=left_ons)
 
     #save
     filepath=f"{results}/{result}.csv"
