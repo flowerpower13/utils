@@ -1,20 +1,53 @@
 
 
 #import
-import stargazer
-import statsmodels
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from pathlib import Path
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-from stargazer.stargazer import Stargazer, LineLocation
+from stargazer.stargazer import Stargazer
 
 
 #functions
 from _string_utils import _replace_txt
 from _pd_utils import _tonumericcols_to_df
+
+
+#vars
+tuples_replace=[
+    ("amount_democratic &",         "Donations to Dem. AG assn &"),
+    ("amount_republican &",         "Donations to Rep. AG assn &"),
+    ("amount_both &",               "Donations to both AG assn &"),
+    ("dummy_democratic &",          "Donated to Dem. AG assn &"),
+    ("dummy_republican &",          "Donated to Rep. AG assn &"),
+    ("dummy_both &",                "Donated to any AG assn &"),
+    ("amount_democratic_past3 &",   "Donations to Dem. AG assn past 3y &"),
+    ("amount_republican_past3 &",   "Donations to Rep. AG assn past 3y &"),
+    ("amount_both_past3 &",         "Donations to both AG assn past 3y &"),
+    ("dummy_democratic_past3 &",    "Donated to Dem. AG assn past 3y &"),
+    ("dummy_republican_past3 &",    "Donated to Rep. AG assn past 3y &"),
+    ("dummy_both_past3 &",          "Donated to any AG assn past 3y &"),
+    ("post2015x",                   "Post2015 $\\times$ "),
+
+    #echo
+    ("fed_penalty_assessed_amt &",  "EPA Penalty Amount &"),
+    ("dummy_echo_enforcement &",    "EPA Enforcement Likelihood &"),
+    ("dummy_echo_penalty &",        "EPA Penalty Likelihood &"),
+
+    #crspcompustat
+    ("firm_size &",                 "Firm Size &"),
+    ("leverage_ratio &",            "Leverage &"),
+    ("roa &",                       "ROA &"),
+    ("mtb &",                       "Market-to-Book &"),
+    ]
+
+
+#table notes
+filepath="zhao/article/tablenotes.txt"
+with open(filepath, "r") as file_object:
+    tablenotes=file_object.read()
 
 
 #save table
@@ -132,7 +165,7 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
         #tabular
         f"{tabular}" + "}" + "\n"
 
-        #tablenotes
+        #table notes
         "\\begin{tablenotes}" + "\n"
         f"{tablenotes}" + "\n"
         "\\end{tablenotes}" + "\n"
@@ -148,80 +181,71 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     _save_table(results, label, text)
 
 
-#violtrack summary stats
-def _echo_table_summary(results):
+#interact var names
+def _interact_varnames(time_dummy, explanvars):
 
-    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
+    #if
+    if time_dummy==None:
 
-    #label
-    label="echo_table_summary"
+        #interact vars
+        interact_vars=None
 
-    #caption
-    caption="Donations to AG assn and EPA Enforcement"
+    #if
+    elif time_dummy!=None:
 
-    #cols
-    cols=[
-        #irs
-        "amount_democratic",
-        "amount_republican",
-        "amount_both",
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
-        "dummy_democratic_past3",
-        "dummy_republican_past3",
-        "dummy_both_past3",
+        #init
+        interact_vars=[None]*len(explanvars)
 
-        #echo
-        "fed_penalty_assessed_amt",
-        "dummy_echo_penalty",
+        #interactions
+        for i, col in enumerate(explanvars):  
 
-        #crspcompustat
-        "at",
-        "lt",
-        "mkvalt",
-        "revt",
-        "ni",
-        ]
+            #var name
+            interact_var=f"{time_dummy}x{col}"
+
+            #update
+            interact_vars[i]=interact_var
+
+    #return
+    return interact_vars
+
+
+#ordered cols
+def _ordered_cols(time_dummy, explanvars, controlvars):
+
+    #if
+    if time_dummy==None:
+
+        #orderedd cols
+        ordered_cols=["const"] + explanvars + controlvars
+
+    #elif
+    elif time_dummy!=None:
+
+        interact_vars=_interact_varnames(time_dummy, explanvars)
+
+        #orderedd cols
+        ordered_cols=["const"] + interact_vars + [time_dummy] + explanvars + controlvars
+
+    #return
+    return ordered_cols
     
-    #tuples replace
-    tuples_replace=[
-        ("amount_democratic &", "Donations to Dem. AG assn &"),
-        ("amount_republican &", "Donations to Rep. AG assn &"),
-        ("amount_both &", "Donations to both AG assn &"),
-        ("amount_democratic_past3 &", "Donations to Dem. AG assn past 3y &"),
-        ("amount_republican_past3 &", "Donations to Rep. AG assn past 3y &"),
-        ("amount_both_past3 &", "Donations to both AG assn past 3y &"),
-        ("dummy_democratic_past3 &", "Donated to Dem. AG assn past 3y &"),
-        ("dummy_republican_past3 &", "Donated to Rep. AG assn past 3y &"),
-        ("dummy_both_past3 &", "Donated to both AG assn past 3y &"),
-
-        #echo
-        ("fed_penalty_assessed_amt &", "EPA Penalty Amount &"),
-        ("dummy_echo_penalty", "EPA Penalty Dummy"),
-
-        #crspcompustat
-        ("at &", "Assets &"),
-        ("lt &", "Liabilities &"),
-        ("mkvalt &", "Market Value &"),
-        ("revt &", "Revenues &"),
-        ("ni &", "Net Income &"),
-        ]
-    
-    #table notes
-    tablenotes="The table above provide summary statistics for donations to attorneys general associations, EPA penalties, and company fundamentals. The variables \\textit{Donations to Dem. AG assn} and \\textit{Donations to Rep. AG assn}captures the monetary amount of the political contribution to the Democratic Attorneys General Association (DAGA) and Republican Attorneys General Association (RAGA), respectively. The variable \\textit{Donations to Dem. AG assn past 3y} captures the sum of political contributions made to DAGA in the past 3 years, while \\textit{Donations to Dem. AG assn past 3y} captures the Republican counterpart. The variable \\textit{Donated to Dem. AG assn past 3y} equals one if the commpany donated consistently to DAGA in the past 3 years, 0 otherwise. The variable \\textit{Donated to Rep. AG assn past 3y} is the Republican counterpart. The variable \\textit{EPA Penalty Amount} represents the monetary value of penalties levied on corporations by the EPA for various environmental violations."
-
-    #table summary
-    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
-
 
 #stargazer from vars to results
-def _vars_to_results(df, depvar, indepvars):
+def _vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars):
+
+    #if
+    if time_dummy==None:
+
+        #indepvars
+        indepvars=explanvars_i + controlvars
+
+    #if
+    if time_dummy!=None:
+
+        interact_vars=_interact_varnames(time_dummy, explanvars_i)
+
+        #indepvars
+        indepvars=interact_vars + [time_dummy] + explanvars_i +  controlvars
 
     #to numeric
     tonumeric_cols=[depvar] + indepvars
@@ -252,64 +276,135 @@ def _vars_to_results(df, depvar, indepvars):
 
 
 #stargazer parameters
-def _stargazer_parameters(models, label, caption, depvar_name, indepvars, tablenotes, sig_digits=3):
+def _stargazer_parameters(models, label, caption, depvar_name, time_dummy, explanvars, controlvars, sig_digits=3):
+
+    #https://github.com/StatsReporting/stargazer
+    #https://github.com/StatsReporting/stargazer/blob/master/examples.ipynb
 
     #stargazer
     stargazer=Stargazer(models)
 
-    #generate_header
-    stargazer.table_label=label
+    #ordered cols
+    ordered_cols=_ordered_cols(time_dummy, explanvars, controlvars)
 
-    #title
-    stargazer.title(caption)
-
-    #show_header
-    stargazer.show_header=True
-
-    #show_model_numbers
-    stargazer.show_model_numbers(True)
-
-    #custom_columns
-
+    #functions
+    #stargazer.title
+    #stargazer.show_model_numbers
+    #stargazer.custom_columns()
     #significance_levels
-
-    #significant_digits
-    stargazer.significant_digits(sig_digits)
-
-    #show_confidence_intervals
-
-    #dependent_variable_name
+    #stargazer.significant_digits
+    #stargazer.show_confidence_intervals
     stargazer.dependent_variable_name(depvar_name)
-
-    #rename_covariates
-
-    #covariate_order
-    ordered_cols=["const"] + indepvars
+    #stargazer.rename_covariates
     stargazer.covariate_order(ordered_cols)
+    #stargazer.reset_covariate_order
+    #stargazer.show_degrees_of_freedom
+    #stargazer.custom_note_label
+    #stargazer.add_custom_notes
+    #stargazer.add_line
+    #stargazer.append_notes
 
-    #reset_covariate_order
-
-    #show_degrees_of_freedom
-    stargazer.show_degrees_of_freedom(False)
-
-    #custom_note_label
-
-    #add_custom_notes
-    stargazer.add_custom_notes([tablenotes])
-
-    #add_line
-
-    #append_notes
+    #parameters
+    stargazer.title_text = caption
+    #stargazer.show_header = True
+    stargazer.dep_var_name = 'Dependent variable: '
+    #stargazer.column_labels = None
+    #stargazer.column_separators = None
+    #stargazer.show_model_nums = True
+    #stargazer.original_cov_names = None
+    #stargazer.cov_map = None
+    #stargazer.cov_spacing = None
+    #stargazer.show_precision = True
+    #stargazer.show_sig = True
+    #stargazer.sig_levels = [0.1, 0.05, 0.01]
+    stargazer.sig_digits = sig_digits
+    #stargazer.confidence_intervals = False
+    #stargazer.show_footer = True
+    #stargazer.custom_lines = defaultdict(list)
+    #stargazer.show_n = True
+    #stargazer.show_r2 = True
+    #stargazer.show_adj_r2 = True
+    stargazer.show_residual_std_err = False
+    #stargazer.show_f_statistic = True
+    stargazer.show_dof = False
+    stargazer.show_notes = False
+    #stargazer.notes_label = 'Note:'
+    #stargazer.notes_append = True 
+    #stargazer.custom_notes = [] 
+    #stargazer.show_stars = True
+    stargazer.table_label = label
 
     #return
     return stargazer
 
 
-#_preliminary_table_reg(results)
-def _preliminary_table_reg(results):
+#add table note
+def _add_tablenotes(text, tablenotes):
 
-    #https://github.com/StatsReporting/stargazer
-    #https://github.com/StatsReporting/stargazer/blob/master/examples.ipynb
+    #end
+    old="\\end{table}"
+    new=(
+        "\\begin{tablenotes}" + "\n"
+        f"{tablenotes}" + "\n"
+        "\\end{tablenotes}" + "\n"
+        "\\end{table}" + "\n"
+        )
+    
+    #text
+    text=text.replace(old, new)
+
+    #return
+    return text
+
+
+#add resizebox
+def _add_resizebox(text):
+
+    #begin
+    old="\\begin{tabular}"
+    new=(
+        "\\resizebox{\\textwidth}{!}{%" + "\n"
+        "\\begin{tabular}" + "\n"
+        )
+    
+    #text
+    text=text.replace(old, new)
+
+    #end
+    old="\\end{tabular}"
+    new=(
+        "\\end{tabular}" + "%" + "\n"
+        "}" + "\n"
+        )
+    
+    #text
+    text=text.replace(old, new)
+
+    #return
+    return text
+
+
+#stargazer to save
+def _stargazer_to_save(stargazer, tuples_replace, tablenotes, results, label):
+
+    #text
+    text=stargazer.render_latex()
+
+    #covariates name
+    text=_replace_txt(text, tuples_replace)
+
+    #table notes
+    text=_add_tablenotes(text, tablenotes)
+
+    #resize box
+    text=_add_resizebox(text)
+    
+    #save
+    _save_table(results, label, text)
+
+
+#echo summary stats
+def _echo_table_summary(results):
 
     filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
     df=pd.read_csv(
@@ -319,69 +414,393 @@ def _preliminary_table_reg(results):
         )
 
     #label
-    label="preliminary_table_reg"
+    label="echo_table_summary"
 
     #caption
-    caption="Political Contributions and Regulatory Enforcement"
-    
-    #tuples replace
-    tuples_replace=[
-        ("amount_democratic &", "Donations to Dem. AG assn &"),
-        ("amount_republican &", "Donations to Rep. AG assn &"),
-        ("amount_both &", "Donations to both AG assn &"),
-        ("amount_democratic_past3 &", "Donations to Dem. AG assn past 3y &"),
-        ("amount_republican_past3 &", "Donations to Rep. AG assn past 3y &"),
-        ("amount_both_past3 &", "Donations to both AG assn past 3y &"),
-        ("dummy_democratic_past3 &", "Donated to Dem. AG past 3y &"),
-        ("dummy_republican_past3 &", "Donated to Rep. AG past 3y &"),
-        ("dummy_both_past3 &", "Donated to both AG assn past 3y &"),
+    caption="Donations to AG assn and EPA Enforcement"
+
+    #cols
+    cols=[
+        #irs
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+        "dummy_democratic_past3",
+        "dummy_republican_past3",
+        "dummy_both_past3",
 
         #echo
-        ("fed_penalty_assessed_amt &", "EPA Penalty Amount &"),
-        ("dummy_echo_penalty", "EPA Penalty Dummy"),
+        "dummy_echo_enforcement",
+        "fed_penalty_assessed_amt",
+        "dummy_echo_penalty",
 
         #crspcompustat
-        ("at &", "Assets &"),
-        ("lt &", "Liabilities &"),
-        ("mkvalt &", "Market Value &"),
-        ("revt &", "Revenues &"),
-        ("ni &", "Net Income &"),
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
         ]
     
-    #depvar name
-    depvar_name="EPA Penalty Amount"
-    
-    #table notes
-    tablenotes="first note"
+    #table summary
+    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
 
-    #vars to res
-    depvar="fed_penalty_assessed_amt"
-    indepvars=[
+
+#_likelihood_table_reg
+def _likelihood_table_reg(results):
+
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="likelihood_table_reg"
+
+    #caption
+    caption="Political Contributions and Enforcement Likelihood"
+
+    #depvar
+    depvar="dummy_echo_enforcement"
+    depvar_name="EPA Enforcement Likelihood"
+
+    #time dummy
+    time_dummy=None
+
+    #explanatory vars
+    explanvars=[
+        "amount_democratic",
+        "amount_republican",
         "amount_both",
-        "at",
-        "ni",
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
         ]
-    res0=_vars_to_results(df, depvar, indepvars)
+    
+    #control vars
+    controlvars=[
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
+        ]
 
-    #models
-    models=[
-        res0,
-        ]
+    #init models
+    models=list()
+
+    #res
+    explanvars_i=["amount_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
 
     #parameters
-    stargazer=_stargazer_parameters(models, label, caption, depvar_name, indepvars, tablenotes)
+    stargazer=_stargazer_parameters(models, label, caption, depvar_name, time_dummy, explanvars, controlvars)
+    stargazer.custom_columns(
+        ["Full sample", "Full sample", "Full sample", "Full sample", "Full sample", "Full sample"], 
+        [1]*len(models)
+        )
+    stargazer.add_line(
+        "IndustryFE", ["No", "No", "No", "No", "No", "No"]
+        )
 
-    #fixed effects
-    stargazer.add_line('IndustryFE', ["No"])
+    #stargazer to save
+    _stargazer_to_save(stargazer, tuples_replace, tablenotes, results, label)
 
-    #text
-    text=stargazer.render_latex()
 
-    #replace txt
-    text=_replace_txt(text, tuples_replace)
+#_likelihood_post_table_reg
+def _likelihood_post_table_reg(results):
 
-    #save
-    _save_table(results, label, text)
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="likelihood_post_table_reg"
+
+    #caption
+    caption="Political Contributions and Enforcement Likelihood - DiD"
+
+    #depvar
+    depvar="dummy_echo_enforcement"
+    depvar_name="EPA Enforcement Likelihood"
+
+    #time dummy
+    time_dummy="post2015"
+
+    #explanatory vars
+    explanvars=[
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
+        ]
+    
+    #control vars
+    controlvars=[
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
+        ]
+
+    #init models
+    models=list()
+
+    #res
+    explanvars_i=["amount_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #parameters
+    stargazer=_stargazer_parameters(models, label, caption, depvar_name, time_dummy, explanvars, controlvars)
+    stargazer.custom_columns(
+        ["Full sample", "Full sample", "Full sample", "Full sample", "Full sample", "Full sample"], 
+        [1]*len(models)
+        )
+    stargazer.add_line(
+        "IndustryFE", ["No", "No", "No", "No", "No", "No"]
+        )
+
+    #stargazer to save
+    _stargazer_to_save(stargazer, tuples_replace, tablenotes, results, label)
+
+
+#_severity_table_reg
+def _severity_table_reg(results):
+
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="severity_table_reg"
+
+    #caption
+    caption="Political Contributions and Enforcement Severity"
+
+    #depvar
+    depvar="fed_penalty_assessed_amt"
+    depvar_name="EPA Penalty Amount"
+
+    #time dummy
+    time_dummy=None
+
+    #explanatory vars
+    explanvars=[
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
+        ]
+    
+    #control vars
+    controlvars=[
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
+        ]
+
+    #init models
+    models=list()
+
+    #res
+    explanvars_i=["amount_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #parameters
+    stargazer=_stargazer_parameters(models, label, caption, depvar_name, time_dummy, explanvars, controlvars)
+    stargazer.custom_columns(
+        ["Full sample", "Full sample", "Full sample", "Full sample", "Full sample", "Full sample"], 
+        [1]*len(models)
+        )
+    stargazer.add_line(
+        "IndustryFE", ["No", "No", "No", "No", "No", "No"]
+        )
+
+    #stargazer to save
+    _stargazer_to_save(stargazer, tuples_replace, tablenotes, results, label)
+
+
+#_severity_post_table_reg
+def _severity_post_table_reg(results):
+
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="severity_post_table_reg"
+
+    #caption
+    caption="Political Contributions and Enforcement Severity - DiD"
+
+    #depvar
+    depvar="fed_penalty_assessed_amt"
+    depvar_name="EPA Penalty Amount"
+
+    #time dummy
+    time_dummy="post2015"
+
+    #explanatory vars
+    explanvars=[
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
+        ]
+    
+    #control vars
+    controlvars=[
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
+        ]
+
+    #init models
+    models=list()
+
+    #res
+    explanvars_i=["amount_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["amount_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_democratic"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_republican"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #res
+    explanvars_i=["dummy_both"]
+    res=_vars_to_results(df, depvar, time_dummy, explanvars_i, controlvars)
+    models.append(res)
+
+    #parameters
+    stargazer=_stargazer_parameters(models, label, caption, depvar_name, time_dummy, explanvars, controlvars)
+    stargazer.custom_columns(
+        ["Full sample", "Full sample", "Full sample", "Full sample", "Full sample", "Full sample"], 
+        [1]*len(models)
+        )
+    stargazer.add_line(
+        "IndustryFE", ["No", "No", "No", "No", "No", "No"]
+        )
+
+    #stargazer to save
+    _stargazer_to_save(stargazer, tuples_replace, tablenotes, results, label)
 
 
 #des stats
@@ -392,10 +811,16 @@ def _generate_floats(results):
     #https://github.com/StatsReporting/stargazer
 
     #table summary
-    #_echo_table_summary(results)
+    _echo_table_summary(results)
     
-    #table reg
-    _preliminary_table_reg(results)
+    #table regs
+    _likelihood_table_reg(results)
+    _likelihood_post_table_reg(results)
+
+    _severity_table_reg(results)
+    _severity_post_table_reg(results)
+
+    pass
 
 
 

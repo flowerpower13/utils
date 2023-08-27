@@ -346,11 +346,8 @@ def _first_value(df):
 
 
 #first value (if same) or join (if different)
-def _firstvalue_join(series):
-
-    #sep
-    sep="||"
-
+def _firstvalue_join(series, sep="||"):
+    
     #unique
     unique_values = series.unique()
     
@@ -385,11 +382,8 @@ def _lowercase_colnames_values(df):
 
 
 #to date cols to df
-def _todatecols_to_df(df, todate_cols, errors, format):
+def _todatecols_to_df(df, todate_cols, errors, format, new_format="%Y-%m-%d"):
 
-    #new format
-    new_format="%Y-%m-%d"
-    
     #for
     for i, col in enumerate(todate_cols):
 
@@ -421,9 +415,11 @@ def _tonumericcols_to_df(df, tonumeric_cols, errors):
 
 
 #to fillna cols to df
-def _fillnacols_to_df(df, fillna_cols):
+def _fillnacols_to_df(df, fillna_cols, value=0):
 
-    value=0
+    tonumeric_cols=fillna_cols
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #for
     for i, col in enumerate(fillna_cols):

@@ -30,7 +30,7 @@ buffer_size=8192
 
 
 #vars refinitiv
-company_name_rdp="dtsubjectname"
+company_name="dtsubjectname"
 company_businessentity="businessentity"
 company_ric="ric"
 company_isin="issueisin"
@@ -48,7 +48,7 @@ pivot_columns={
     }
 #contributors
 contributor_id="cusip"
-contributor_name_irs="a__contributor_name"
+contributor_name="a__contributor_name"
 contributor_employer="a__contributor_employer"
 contributor_employer_new="a__contributor_employer_new"
 contributor_donor_isfirm="a__donor_isfirm"
@@ -303,7 +303,7 @@ def _irs_contributors_screen(folders, items):
     usecols=[
         organization_name,
         organization_id,
-        contributor_name_irs,
+        contributor_name,
         contributor_employer,
         f"{contribution_date}\r", #???
         contribution_amount_ytd,
@@ -364,7 +364,7 @@ def _irs_contributors_screen(folders, items):
 
     #sortvalues
     sortvalues_cols=[
-        contributor_name_irs,
+        contributor_name,
         organization_id,
         contribution_year,
         contribution_date,
@@ -383,7 +383,7 @@ def _irs_contributors_screen(folders, items):
     #groupby
     by=[
         organization_id,
-        contributor_name_irs,
+        contributor_name,
         contribution_year,
         ]
     dict_agg_colfunctions={
@@ -420,7 +420,7 @@ def _irs_contributors_screen(folders, items):
     df[contributor_employer_new]=df[contributor_employer].replace(dict_replace)
 
     #init series
-    x0=df[contributor_name_irs]
+    x0=df[contributor_name]
     x1=df[contributor_employer_new]
 
     condlist=[
@@ -445,7 +445,7 @@ def _irs_contributors_screen(folders, items):
     ordered_cols=[
         organization_name,
         organization_id,
-        contributor_name_irs,
+        contributor_name,
         contributor_employer,
         contributor_employer_new,
         contributor_donor_isfirm,
@@ -630,13 +630,6 @@ def _echo_enforcements_screen(folders, items):
 
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
-
-    #to numeric
-    tonumeric_cols=[
-        "fed_penalty_assessed_amt",
-        ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #fillna
     fillna_cols=[
@@ -1086,14 +1079,6 @@ def _osha_violation_screen(folders, items):
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
 
-    #to numeric
-    tonumeric_cols=[
-        "initial_penalty",
-        "fta_penalty",
-        ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
-
     #fillna
     fillna_cols=[
         "initial_penalty",
@@ -1416,16 +1401,16 @@ def _irs_contributors_aggregate(folders, items):
     usecols=[
         organization_id,
         contributor_id,
+        contributor_name,
         contribution_year,
         contribution_amount_ytd,
         contributor_employer,
         contributor_employer_new,
         contributor_donor_isfirm,
         contributor_company_involved,
-        contributor_name_irs,
 
         #refinitiv
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         #company_cusip,
@@ -1470,12 +1455,12 @@ def _irs_contributors_aggregate(folders, items):
         ]
     dict_agg_colfunctions={
         contribution_amount_ytd: [np.sum],
+        contributor_name: [_firstvalue_join],
         contributor_employer: [_firstvalue_join],
         contributor_employer_new: [_firstvalue_join],
         contributor_donor_isfirm: [_firstvalue_join],
         contributor_company_involved: [_firstvalue_join],
-        contributor_name_irs: [_firstvalue_join],
-        company_name_rdp: [_firstvalue_join],
+        company_name: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
         #company_cusip: [_firstvalue_join],
@@ -1535,6 +1520,7 @@ def _irs_contributors_aggregate(folders, items):
 
     #ordered
     ordered_cols= [
+        contributor_name,
         contributor_id,
         contribution_year
         ] + list_pivot_columns + [
@@ -1542,8 +1528,7 @@ def _irs_contributors_aggregate(folders, items):
         contributor_employer_new,
         contributor_donor_isfirm,
         contributor_company_involved,
-        contributor_name_irs,
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         #company_cusip,
@@ -1582,7 +1567,7 @@ def _echo_aggregate(folders, items):
         "parent_co_name",
 
         #refinitiv
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         #company_cusip,
@@ -1641,7 +1626,7 @@ def _echo_aggregate(folders, items):
         "parent_co_name": [_firstvalue_join],
 
         #refinitiv
-        company_name_rdp: [_firstvalue_join],
+        company_name: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
         #company_cusip: [_firstvalue_join],
@@ -1664,7 +1649,7 @@ def _echo_aggregate(folders, items):
         "parent_co_name": [_firstvalue_join],
 
         #refinitiv
-        company_name_rdp: [_firstvalue_join],
+        company_name: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
         #company_cusip: [_firstvalue_join],
@@ -1707,7 +1692,7 @@ def _echo_aggregate(folders, items):
         "parent_co_name",
 
         #refinitiv
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         #company_cusip,
@@ -1874,7 +1859,7 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution", #settlement or verdict
 
         #refinitiv        
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         company_cusip,
@@ -1948,7 +1933,7 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution": [_firstvalue_join],
 
         #refinitiv
-        company_name_rdp: [_firstvalue_join],
+        company_name: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
         company_cusip: [_firstvalue_join],
@@ -1996,7 +1981,7 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution", #settlement or verdict
 
         #refinitiv
-        company_name_rdp,
+        company_name,
         company_businessentity,
         #company_isin,
         company_cusip,
@@ -2037,7 +2022,7 @@ def _osha_aggregate(folders, items):
         "nr_in_estab",
 
         #refinitiv
-        company_name_rdp,
+        company_name,
         company_businessentity,
         company_isin,
         #company_cusip,
@@ -2092,7 +2077,7 @@ def _osha_aggregate(folders, items):
         "fta_issuance_year": [_firstvalue_join],
 
         #refinitiv
-        company_name_rdp: [_firstvalue_join],
+        company_name: [_firstvalue_join],
         company_businessentity: [_firstvalue_join],
         company_isin: [_firstvalue_join],
         #company_cusip: [_firstvalue_join],
@@ -2128,8 +2113,15 @@ def _osha_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#gen dummy var
+#gen dummy if positive
 def _dummy_ifpositive(df, oldvar, newvar):
+
+    #to numeric
+    tonumeric_cols=[
+        oldvar,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #oldvar
     x=df[oldvar]
@@ -2163,11 +2155,15 @@ def _dummy_ifpositive(df, oldvar, newvar):
 #gen aggregate pastn
 def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
 
+    #to numeric
+    tonumeric_cols=[
+        oldvar,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
     #init cols
     var_shifted_cols=[None]*n_shifts
-
-    #fillna
-    fill_value=0
 
     #for
     for i in range(n_shifts):
@@ -2179,14 +2175,14 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
         var_shifted=f"{oldvar}_shift{periods}"
 
         #gen new col
-        df[var_shifted]=df.groupby(col_identifier)[oldvar].shift(periods=periods, fill_value=fill_value)
+        df[var_shifted]=df.groupby(col_identifier)[oldvar].shift(periods=periods, fill_value=0)
 
         #update cols
         var_shifted_cols[i]=var_shifted
 
-    #to numeric
-    errors="raise"
-    df=_tonumericcols_to_df(df, var_shifted_cols, errors)
+    #to numeric XXX
+    #errors="raise"
+    #df=_tonumericcols_to_df(df, var_shifted_cols, errors)
 
     #y
     y=agg_funct(df[var_shifted_cols], axis=1)
@@ -2197,6 +2193,192 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
 
     #return
     return df
+
+
+#donations newvars
+def _donations_newvars(df):
+
+    #amount_both
+    df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
+
+    #dummy vars
+    tuples=[
+        ("amount_democratic", "dummy_democratic"),
+        ("amount_republican", "dummy_republican"),
+        ("amount_both", "dummy_both"),
+         (echo_penalty_amount, "dummy_echo_penalty"),
+        ]
+    for i, (oldvar, newvar) in enumerate(tuples):
+        df=_dummy_ifpositive(df, oldvar, newvar)
+
+    #amount and dummy past3
+    col_identifier=crspcomp_cusip
+    n_shifts=3
+    tuples=[
+        ("amount_democratic", np.sum, n_shifts),
+        ("amount_republican", np.sum, n_shifts),
+        ("amount_both", np.sum, n_shifts),
+        ("dummy_democratic", np.prod, n_shifts),
+        ("dummy_republican", np.prod, n_shifts),
+        ("dummy_both", np.prod, n_shifts),
+        ]
+    for i, (oldvar, agg_funct, n_shifts) in enumerate(tuples):
+        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
+    
+    #donation vars
+    donation_vars=[
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #dummy
+        "dummy_democratic",
+        "dummy_republican",
+        "dummy_both",
+
+        #amount past3
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+
+        #dummy past3
+        "dummy_democratic_past3",
+        "dummy_republican_past3",
+        "dummy_both_past3",
+        ]
+
+    #return
+    return df, donation_vars
+
+
+#echo newvars
+def _echo_newvars(df):
+
+    #dummy vars
+    tuples=[
+         (echo_penalty_amount, "dummy_echo_penalty"),
+        ]
+    for i, (oldvar, newvar) in enumerate(tuples):
+        df=_dummy_ifpositive(df, oldvar, newvar)
+
+    #dummy enforcement action
+    df["dummy_echo_enforcement"]=np.where(df[echo_initiation_year].notna(), 1, 0)
+
+    #echo vars
+    echo_vars=[
+        "dummy_echo_enforcement",
+        echo_penalty_amount,
+        "dummy_echo_penalty",
+        ]
+
+    #return
+    return df, echo_vars
+
+
+def _divide_vars(df, newvar, numerator, denominator):
+
+    #to numeric
+    tonumeric_cols=[
+        numerator,
+        denominator,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #condlist
+    condlist=[
+        df[numerator].isna(),
+        df[denominator].isna(),
+        df[denominator]==0,
+        df[denominator]!=0,
+        ]
+
+    #choicelist
+    choicelist=[
+        None,
+        None,
+        None,
+        df[numerator] / df[denominator],
+        ]
+    #y
+    y=np.select(condlist, choicelist, default="error")
+
+    #newvar
+    df[newvar]=y
+
+    #return
+    return df
+
+
+#crspcompustat newvars
+def _crspcompustat_newvars(df):
+
+    #to numeric
+    tonumeric_cols=[
+        crspcomp_assets,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #firm size
+    df["firm_size"]=np.log1p(df[crspcomp_assets])
+
+    #leverage_ratio
+    df=_divide_vars(df, "leverage_ratio", crspcomp_liabilities, crspcomp_assets)
+
+    #roa
+    df=_divide_vars(df, "roa", crspcomp_netincome, crspcomp_assets)
+
+    #roe
+    df=_divide_vars(df, "roe", crspcomp_netincome, crspcomp_bookequity)
+
+    #mtb
+    df=_divide_vars(df, "mtb", crspcomp_mktequity, crspcomp_bookequity)
+
+    #crspcompustat vars
+    crspcompustat_vars=[
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "roe",
+        "mtb",
+        ]
+
+    #return
+    return df, crspcompustat_vars
+
+
+#post interaction
+def _post_interaction(df, year, time_dummy, level_vars):
+
+    #to numeric
+    tonumeric_cols=[
+        crspcomp_fyear,
+        ] + level_vars
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #gen var
+    df[time_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
+
+    #init
+    interact_vars=[None]*len(level_vars)
+
+    #interactions
+    for i, col in enumerate(level_vars):  
+
+        #var name
+        interact_var=f"{time_dummy}x{col}"
+
+        #gen var
+        df[interact_var]=df[time_dummy]*df[col]
+
+        #update
+        interact_vars[i]=interact_var
+
+    #return
+    return df, interact_vars
 
 
 #donations_echo_crspcompustat screen
@@ -2217,13 +2399,16 @@ def _crspcompustat_donations_echo_screen(folders, items):
     contributor_id
     #usecols
     usecols=[
+        contributor_name,
+        "dtsubjectname_left",
+        "dtsubjectname_right",
+        crspcomp_name,
         crspcomp_cusip,
         crspcomp_fyear,
         "amount_democratic",
         "amount_republican",
         echo_initiation_year,
         echo_penalty_amount,
-        crspcomp_name,
         crspcomp_assets,
         crspcomp_liabilities,
         crspcomp_bookequity,
@@ -2252,28 +2437,6 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #lowercase col names and values
     df=_lowercase_colnames_values(df)
 
-    #to numeric
-    tonumeric_cols=[
-        crspcomp_fyear,
-        "amount_democratic",
-        "amount_republican",
-        echo_initiation_year,
-        echo_penalty_amount,
-        crspcomp_assets,
-        crspcomp_liabilities,
-        crspcomp_bookequity,
-        crspcomp_mktequity,
-        crspcomp_sharesoutstanding,
-        crspcomp_dividends,
-        crspcomp_revenues,
-        crspcomp_cogs,
-        crspcomp_oibdp,
-        crspcomp_da,
-        crspcomp_netincome,
-        ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
-
     #fillna
     fillna_cols=[
         "amount_democratic",
@@ -2282,19 +2445,6 @@ def _crspcompustat_donations_echo_screen(folders, items):
         ]
     df=_fillnacols_to_df(df, fillna_cols)
 
-    #amount_both
-    df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
-
-    #dummy vars
-    tuples=[
-        ("amount_democratic", "dummy_democratic"),
-        ("amount_republican", "dummy_republican"),
-        ("amount_both", "dummy_both"),
-         (echo_penalty_amount, "dummy_echo_penalty"),
-        ]
-    for i, (oldvar, newvar) in enumerate(tuples):
-        df=_dummy_ifpositive(df, oldvar, newvar)
-
     #sortvalues
     sortvalues_cols=[
         crspcomp_cusip, 
@@ -2302,69 +2452,37 @@ def _crspcompustat_donations_echo_screen(folders, items):
         ]
     df=df.sort_values(by=sortvalues_cols)
 
-    #amount and dummy past3
-    col_identifier=crspcomp_cusip
-    tuples=[
-        ("amount_democratic", np.sum, 3),
-        ("amount_republican", np.sum, 3),
-        ("amount_both", np.sum, 3),
-        ("dummy_democratic", np.prod, 3),
-        ("dummy_republican", np.prod, 3),
-        ("dummy_both", np.prod, 3),
-        ]
-    for i, (oldvar, agg_funct, n_shifts) in enumerate(tuples):
-        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
+    #donations newvars
+    df, donation_vars = _donations_newvars(df)
+
+    #echo newvars
+    df, echo_vars = _echo_newvars(df)
+
+    #crspcompustat newvars
+    df, crspcompustat_vars =_crspcompustat_newvars(df)
+
+    #post 2015 + interation
+    year=2015
+    time_dummy=f"post{year}"
+    level_vars=donation_vars
+    df, interact_vars = _post_interaction(df, year, time_dummy, level_vars)
 
     #ordered
     ordered_cols=[
+        contributor_name,
+        "dtsubjectname_left",
+        "dtsubjectname_right",
+        crspcomp_name,
         crspcomp_cusip,
         crspcomp_fyear,
-
-        #amount
-        "amount_democratic",
-        "amount_republican",
-        "amount_both",
-
-        #dummy
-        "dummy_democratic",
-        "dummy_republican",
-        "dummy_both",
-
-        #amount past3
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
-
-        #dummy past3
-        "dummy_democratic_past3",
-        "dummy_republican_past3",
-        "dummy_both_past3",
-
-        #echo
-        echo_initiation_year,
-        echo_penalty_amount,
-        "dummy_echo_penalty",
-
-        #crspcomp
-        crspcomp_name,
-        crspcomp_assets,
-        crspcomp_liabilities,
-        crspcomp_bookequity,
-        crspcomp_mktequity,
-        crspcomp_sharesoutstanding,
-        crspcomp_dividends,
-        crspcomp_revenues,
-        crspcomp_cogs,
-        crspcomp_oibdp,
-        crspcomp_da,
-        crspcomp_netincome,
-        crspcomp_sic,
-        crspcomp_naics,
-        crspcomp_gics,
-        ]
+        time_dummy,
+        ] + donation_vars + interact_vars + echo_vars + crspcompustat_vars
     df=df[ordered_cols]
 
     #save
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
-    #'''
+
+
+_crspcompustat_donations_echo_screen(folders, items)
+print("done")
