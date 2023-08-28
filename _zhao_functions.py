@@ -2113,6 +2113,7 @@ def _osha_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
+#ln vars
 def _ln_vars(df, oldvars):
 
     #to numeric
@@ -2131,6 +2132,66 @@ def _ln_vars(df, oldvars):
 
         #gen
         df[newvar]=np.log1p(df[col])
+
+        #update
+        newvars[i]=newvar
+
+    #return
+    return df, newvars
+
+
+#lagged vars
+def _lag_vars(df, oldvars):
+
+    #periods
+    periods=1
+
+    #to numeric
+    tonumeric_cols=oldvars
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, col in enumerate(oldvars):
+
+        #newvar
+        newvar=f"lag_{col}"
+
+        #gen
+        df[newvar]=df[col].shift(periods=periods, fill_value=0)
+
+        #update
+        newvars[i]=newvar
+
+    #return
+    return df, newvars
+
+
+#change vars
+def _change_vars(df, oldvars):
+
+    #periods
+    periods=1
+
+    #to numeric
+    tonumeric_cols=oldvars
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, col in enumerate(oldvars):
+
+        #newvar
+        newvar=f"change_{col}"
+
+        #gen
+        df[newvar]=df[col] - df[col].shift(periods=periods, fill_value=0)
 
         #update
         newvars[i]=newvar
@@ -2216,10 +2277,6 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
         #update cols
         var_shifted_cols[i]=var_shifted
 
-    #to numeric XXX
-    #errors="raise"
-    #df=_tonumericcols_to_df(df, var_shifted_cols, errors)
-
     #y
     y=agg_funct(df[var_shifted_cols], axis=1)
 
@@ -2239,22 +2296,23 @@ def _donations_newvars(df):
     #amount_both
     df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
 
-    #dummy vars
+    #oldvars
     oldvars=[
-        #amount
         "amount_democratic",
         "amount_republican",
         "amount_both",
         ]
     df, newvars = _dummyifpositive_vars(df, oldvars)
 
-    #amount and dummy past3
+    #agreggate past
     col_identifier=crspcomp_cusip
     n_shifts=3
     tuples=[
+        #amount
         ("amount_democratic", np.sum, n_shifts),
         ("amount_republican", np.sum, n_shifts),
         ("amount_both", np.sum, n_shifts),
+        #dummy
         ("dummy_democratic", np.prod, n_shifts),
         ("dummy_republican", np.prod, n_shifts),
         ("dummy_both", np.prod, n_shifts),
@@ -2274,7 +2332,40 @@ def _donations_newvars(df):
         "amount_republican_past3",
         "amount_both_past3",
         ]
-    df, newvars = _ln_vars(df, oldvars)
+    df, ln_vars = _ln_vars(df, oldvars)
+
+    #lagged
+    oldvars=[
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #ln amount
+        "ln_amount_democratic",
+        "ln_amount_republican",
+        "ln_amount_both",
+
+        #dummy
+        "dummy_democratic",
+        "dummy_republican", 
+        "dummy_both",
+        ]
+    df, lag_vars = _lag_vars(df, oldvars)
+
+    #change
+    oldvars=[
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #ln amount
+        "ln_amount_democratic",
+        "ln_amount_republican",
+        "ln_amount_both",
+        ]
+    df, change_vars = _change_vars(df, oldvars)
 
     #donation vars
     donation_vars=[
@@ -2283,21 +2374,21 @@ def _donations_newvars(df):
         "amount_republican",
         "amount_both",
 
-        #dummy
-        "dummy_democratic",
-        "dummy_republican",
-        "dummy_both",
-
         #amount past
         "amount_democratic_past3",
         "amount_republican_past3",
         "amount_both_past3",
 
+        #dummy
+        "dummy_democratic",
+        "dummy_republican", 
+        "dummy_both",
+
         #dummy past
         "dummy_democratic_past3",
         "dummy_republican_past3",
         "dummy_both_past3",
-        ] + newvars
+        ] + ln_vars + lag_vars + change_vars
 
     #return
     return df, donation_vars
@@ -2406,7 +2497,7 @@ def _crspcompustat_newvars(df):
 
 
 #post interaction
-def _post_interaction(df, year, time_dummy, level_vars):
+def _post_vars(df, year, time_dummy, level_vars):
 
     #to numeric
     tonumeric_cols=[
@@ -2415,7 +2506,7 @@ def _post_interaction(df, year, time_dummy, level_vars):
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #gen
+    #time dummy
     df[time_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
 
     #init
@@ -2525,6 +2616,9 @@ def _industry_famafrench(value):
                 #newval
                 newval=ff_name
 
+        #lowercase
+        newval=newval.lower()
+
     #return
     return newval
 
@@ -2545,8 +2639,29 @@ def _industry_drop(df, col, industry_col):
     return df
 
 
+#gen dummies
+def _dummies(df, col, prefix):
+
+    #get dummies
+    dummies=pd.get_dummies(
+        df[col],
+        prefix=prefix,
+        prefix_sep="_",
+        drop_first=True,
+        )
+
+    #colnames
+    dummies_cols=list(dummies.columns)
+
+    #concat
+    df=pd.concat([df, dummies], axis=1)
+
+    #return
+    return df, dummies_cols
+
+
 #drop industry
-def _drop_industry(df):
+def _industry_newvars(df):
 
     #industry col
     industry_col="industry_famafrench"
@@ -2570,14 +2685,20 @@ def _drop_industry(df):
     col="echo_enforcement_dummy"
     df=_industry_drop(df, col, industry_col)
 
+    #industry dummies
+    col=industry_col
+    prefix="industry_ff_dummy"
+    df, dummies_cols = _dummies(df, col, prefix)
+
     #newvars
     newvars=[
         crspcomp_sic,
         industry_col,
-        ]
+        ] + dummies_cols
 
     #return
     return df, newvars
+
 
 #donations_echo_crspcompustat screen
 folders=["zhao/_merge", "zhao/_merge"]
@@ -2657,14 +2778,14 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #crspcompustat newvars
     df, crspcompustat_vars =_crspcompustat_newvars(df)
 
-    #post 2015 + interation
+    #post 2015 + interation 
     year=2015
     time_dummy=f"post{year}"
     level_vars=donation_vars
-    df, interact_vars = _post_interaction(df, year, time_dummy, level_vars)
+    df, interact_vars = _post_vars(df, year, time_dummy, level_vars)
 
     #industry
-    df, industry_vars = _drop_industry(df)
+    df, industry_vars = _industry_newvars(df)
 
     #ordered
     ordered_cols=[

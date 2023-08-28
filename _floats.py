@@ -17,7 +17,12 @@ from _pd_utils import _tonumericcols_to_df
 
 #vars
 tuples_replace=[
-    #log amount
+    #log ln amount
+    ("lag_ln_amount_democratic &",          "Donations (logs, lag 1y) to Dem. AG assn &"),
+    ("lag_ln_amount_republican &",          "Donations (logs, lag 1y) to Rep. AG assn &"),
+    ("lag_ln_amount_both &",                "Donations (logs, lag 1y) to both AG assn &"),
+
+    #ln amount
     ("ln_amount_democratic &",          "Donations (logs) to Dem. AG assn &"),
     ("ln_amount_republican &",          "Donations (logs) to Rep. AG assn &"),
     ("ln_amount_both &",                "Donations (logs) to both AG assn &"),
@@ -27,12 +32,17 @@ tuples_replace=[
     ("amount_republican &",             "Donations to Rep. AG assn &"),
     ("amount_both &",                   "Donations to both AG assn &"),
 
+    #lag dummy
+    ("lag_dummy_democratic &",              "Donated (lag 1y) to Dem. AG assn &"),
+    ("lag_dummy_republican &",              "Donated (lag 1y) to Rep. AG assn &"),
+    ("lag_dummy_both &",                    "Donated (lag 1y) to any AG assn &"),
+
     #dummy
     ("dummy_democratic &",              "Donated to Dem. AG assn &"),
     ("dummy_republican &",              "Donated to Rep. AG assn &"),
     ("dummy_both &",                    "Donated to any AG assn &"),
 
-    #log amount past
+    #ln amount past
     ("ln_amount_democratic_past3 &",    "Donations (logs) to Dem. AG assn past 3y &"),
     ("ln_amount_republican_past3 &",    "Donations (logs) to Rep. AG assn past 3y &"),
     ("ln_amount_both_past3 &",          "Donations (logs) to both AG assn past 3y &"),
@@ -201,6 +211,61 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     _save_table(results, label, text)
 
 
+#echo summary stats
+def _table_summaries(results):
+
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="echo_tablesummary"
+
+    #caption
+    caption="Donations to AG assn and EPA Enforcement"
+
+    #cols
+    cols=[
+        #irs
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #dummy
+        "dummy_democratic", 
+        "dummy_republican",
+        "dummy_both",
+
+        #amount past
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+
+        #dummy past
+        "dummy_democratic_past3",
+        "dummy_republican_past3",
+        "dummy_both_past3",
+
+        #echo
+        "echo_enforcement_dummy",
+        "echo_penalty_dummy",
+        "echo_penalty_amount",
+
+        #crspcompustat
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
+        ]
+    
+    #getable summary
+    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
+
+
 #interact var names
 def _interact_varnames(time_dummy, explanvars):
 
@@ -310,7 +375,7 @@ def _add_resizebox(text):
 
 
 #table reg
-def _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, controlvars, fe_name, inputs, results):
+def _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name):
 
     #n_models
     n_models=len(inputs)
@@ -328,7 +393,26 @@ def _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, cont
         subsample_name=input_i["subsample"]["subsample_name"]
         fe_included=input_i[fe_name]
 
+        #indepvars
         indepvars=_indepvars(time_dummy, explanvars_i, controlvars)
+
+        #if
+        if fe_included=="Yes":
+
+            #prefix
+            prefix="industry_ff_dummy"
+
+            #industry dummies cols
+            dummies_cols=[x for x in df.columns if x.startswith(prefix)]
+
+            #indepvars
+            indepvars=indepvars + dummies_cols
+
+        #elif
+        elif fe_included=="No":
+
+            #pass
+            pass
 
         #to numeric
         tonumeric_cols=[depvar] + indepvars
@@ -336,7 +420,7 @@ def _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, cont
         df=_tonumericcols_to_df(df, tonumeric_cols, errors)
         
         #Y
-        Y=df[depvar]
+        y=df[depvar]
 
         #X
         X=df[indepvars]
@@ -346,7 +430,7 @@ def _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, cont
 
         #model
         mod=sm.OLS(
-            endog=Y,
+            endog=y,
             exog=X,
             missing="drop",
             )
@@ -434,35 +518,44 @@ def _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, cont
     _save_table(results, label, text)
 
 
-#_severitypost_table_reg
-def _severitypost_table_reg(results):
+#table regs
+def _table_regs(results):
 
+    #filepath
     filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
 
-    #label
-    label="_severitypost_table_reg"
-
-    #caption
-    caption="Political Contributions and Enforcement Severity - DiD"
-
-    #depvar
-    depvar="ln_echo_penalty_amount"
-    depvar_name="EPA Penalty Amount (logs)"
+    #read
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
 
     #time dummy
     time_dummy="post2015"
+    time_dummy=None
 
     #explanatory vars
     explanvars=[
         #amount
-        "ln_amount_democratic",
-        "ln_amount_republican",
-        #"ln_amount_both",
+        #"lag_ln_amount_democratic",
+        #"lag_ln_amount_republican",
+        #"lag_ln_amount_both",
+
+        #amount past
+        #"ln_amount_democratic_past3",
+        #"ln_amount_republican_past3",
+        #"ln_amount_both_past3",
 
         #dummy
-        #"dummy_democratic", 
-        #"dummy_republican",
-        #"dummy_both",
+        #"lag_dummy_democratic", 
+        #"lag_dummy_republican",
+        #"lag_dummy_both",
+
+        #dummy past
+        "dummy_democratic_past3", 
+        "dummy_republican_past3",
+        #"dummy_both_past3",
         ]
     
     #control vars
@@ -473,102 +566,110 @@ def _severitypost_table_reg(results):
         "mtb",
         ]
     
-    #subsamples
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
-    #df0=df[df["echo_enforcement_dummy"]==0]
-
     #fe
     fe_name="IndustryFE"
+
+    #subsamples
+    df0=df[df["echo_enforcement_dummy"]=="1"]
     
     #inputs
     inputs=[
         {
-            "explanvars_i": ["ln_amount_democratic"],
+            "explanvars_i": ["dummy_democratic_past3"],
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             fe_name: "No",
             },
 
         {
-            "explanvars_i": ["ln_amount_republican"],
+            "explanvars_i": ["dummy_democratic_past3"],
+            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
+            fe_name: "Yes",
+            },
+
+        {
+            "explanvars_i": ["dummy_democratic_past3"],
+            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            fe_name: "No",
+            },
+
+        {
+            "explanvars_i": ["dummy_democratic_past3"],
+            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            fe_name: "Yes",
+            },
+
+        {
+            "explanvars_i": ["dummy_republican_past3"],
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             fe_name: "No",
             },
+
+        {
+            "explanvars_i": ["dummy_republican_past3"],
+            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
+            fe_name: "Yes",
+            },
+
+        {
+            "explanvars_i": ["dummy_republican_past3"],
+            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            fe_name: "No",
+            },
+
+        {
+            "explanvars_i": ["dummy_republican_past3"],
+            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            fe_name: "Yes",
+            },
         ]
 
-    _table_reg(label, caption, depvar, depvar_name, time_dummy, explanvars, controlvars, fe_name, inputs, results)
 
-    
-#echo summary stats
-def _echo_table_summary(results):
-
-    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
-    df=pd.read_csv(
-        filepath,
-        dtype="string",
-        #nrows=1000,
-        )
-
+    #enforcement likelihood
     #label
-    label="echo_table_summary"
+    label="echo_enforcementlikelihood_tablereg"
 
     #caption
-    caption="Donations to AG assn and EPA Enforcement"
+    caption="Political Contributions and Enforcement Likelihood - DiD"
 
-    #cols
-    cols=[
-        #irs
-        #amount
-        "amount_democratic",
-        "amount_republican",
-        "amount_both",
+    #depvar
+    depvar="echo_enforcement_dummy"
+    depvar_name="EPA Enforcement Likelihood"
 
-        #log amount 
-        "ln_amount_democratic",
-        "ln_amount_republican",
-        "ln_amount_both",
-
-        #dummy
-        "dummy_democratic", 
-        "dummy_republican",
-        "dummy_both",
-
-        #amount past
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
-
-        #log amount past
-        "ln_amount_democratic_past3",
-        "ln_amount_republican_past3",
-        "ln_amount_both_past3",
-
-        #dummy past
-        "dummy_democratic_past3",
-        "dummy_republican_past3",
-        "dummy_both_past3",
-
-        #echo
-        "echo_enforcement_dummy",
-        "echo_penalty_dummy",
-        "echo_penalty_amount",
-        "ln_echo_penalty_amount",
-
-        #crspcompustat
-        "firm_size",
-        "leverage_ratio",
-        "roa",
-        "mtb",
-        ]
-    
-    #table summary
-    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
+    #table reg
+    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
 
 
-#des stats
+    #penalty likelihood
+    #label
+    label="echo_penaltylikelihood_tablereg"
+
+    #caption
+    caption="Political Contributions and Penalty Likelihood - DiD"
+
+    #depvar
+    depvar="echo_penalty_dummy"
+    depvar_name="EPA Penalty Likelihood"
+
+    #table reg
+    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
+
+
+    #severity
+    #label
+    label="echo_severity_tablereg"
+
+    #caption
+    caption="Political Contributions and Enforcement Severity - DiD"
+
+    #depvar
+    depvar="ln_echo_penalty_amount"
+    depvar_name="EPA Penalty Amount (logs)"
+
+    #table reg
+    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
+
+
+#gen floats
 results="zhao/article"
 def _generate_floats(results):
 
@@ -576,10 +677,12 @@ def _generate_floats(results):
     #https://github.com/StatsReporting/stargazer
 
     #table summary
-    _echo_table_summary(results)
+    _table_summaries(results)
     
     #table regs
-    _severitypost_table_reg(results)
+    _table_regs(results)
+
+    #figures
 
     pass
 
