@@ -2113,43 +2113,79 @@ def _osha_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#gen dummy if positive
-def _dummy_ifpositive(df, oldvar, newvar):
+def _ln_vars(df, oldvars):
 
     #to numeric
-    tonumeric_cols=[
-        oldvar,
-        ]
+    tonumeric_cols=oldvars
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #oldvar
-    x=df[oldvar]
+    #init
+    newvars=[None]*len(oldvars)
 
-    #condlist
-    condlist=[
-        x<0,
-        x.isna(),
-        x==0,
-        x>0,
-        ]   
-    
-    #choicelist
-    choicelist=[
-        "error", 
-        np.nan,
-        0,
-        1,
-        ]
-    
-    #y
-    y=np.select(condlist, choicelist, default="error")
+    #for
+    for i, col in enumerate(oldvars):
 
-    #newvar
-    df[newvar]=y
+        #newvar
+        newvar=f"ln_{col}"
+
+        #gen
+        df[newvar]=np.log1p(df[col])
+
+        #update
+        newvars[i]=newvar
 
     #return
-    return df
+    return df, newvars
+
+
+#gen dummy if positive
+def _dummyifpositive_vars(df, oldvars):
+
+    #to numeric
+    tonumeric_cols=oldvars
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, col in enumerate(oldvars):
+
+        #x
+        x=df[col]
+
+        #condlist
+        condlist=[
+            x<0,
+            x.isna(),
+            x==0,
+            x>0,
+            ]   
+        
+        #choicelist
+        choicelist=[
+            "error", 
+            np.nan,
+            0,
+            1,
+            ]
+        
+        #y
+        y=np.select(condlist, choicelist, default="error")
+
+        #newvar
+        newvar=col.replace("amount", "dummy")
+
+        #gen
+        df[newvar]=y
+
+        #update
+        newvars[i]=newvar
+
+    #return
+    return df, newvars
 
 
 #gen aggregate pastn
@@ -2187,8 +2223,10 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
     #y
     y=agg_funct(df[var_shifted_cols], axis=1)
 
-    #gen newvar
+    #newvar
     newvar=f"{oldvar}_past{n_shifts}"
+
+    #gen
     df[newvar]=y
 
     #return
@@ -2202,14 +2240,13 @@ def _donations_newvars(df):
     df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
 
     #dummy vars
-    tuples=[
-        ("amount_democratic", "dummy_democratic"),
-        ("amount_republican", "dummy_republican"),
-        ("amount_both", "dummy_both"),
-         (echo_penalty_amount, "dummy_echo_penalty"),
+    oldvars=[
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
         ]
-    for i, (oldvar, newvar) in enumerate(tuples):
-        df=_dummy_ifpositive(df, oldvar, newvar)
+    df, newvars = _dummyifpositive_vars(df, oldvars)
 
     #amount and dummy past3
     col_identifier=crspcomp_cusip
@@ -2225,6 +2262,20 @@ def _donations_newvars(df):
     for i, (oldvar, agg_funct, n_shifts) in enumerate(tuples):
         df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
     
+    #ln
+    oldvars=[
+        #amount
+        "amount_democratic",
+        "amount_republican",
+        "amount_both",
+
+        #amount past
+        "amount_democratic_past3",
+        "amount_republican_past3",
+        "amount_both_past3",
+        ]
+    df, newvars = _ln_vars(df, oldvars)
+
     #donation vars
     donation_vars=[
         #amount
@@ -2237,16 +2288,16 @@ def _donations_newvars(df):
         "dummy_republican",
         "dummy_both",
 
-        #amount past3
+        #amount past
         "amount_democratic_past3",
         "amount_republican_past3",
         "amount_both_past3",
 
-        #dummy past3
+        #dummy past
         "dummy_democratic_past3",
         "dummy_republican_past3",
         "dummy_both_past3",
-        ]
+        ] + newvars
 
     #return
     return df, donation_vars
@@ -2255,22 +2306,27 @@ def _donations_newvars(df):
 #echo newvars
 def _echo_newvars(df):
 
+    df=df.rename(columns={echo_penalty_amount: "echo_penalty_amount"})
+
     #dummy vars
-    tuples=[
-         (echo_penalty_amount, "dummy_echo_penalty"),
+    oldvars=[
+        "echo_penalty_amount",
         ]
-    for i, (oldvar, newvar) in enumerate(tuples):
-        df=_dummy_ifpositive(df, oldvar, newvar)
+    df, newvars = _dummyifpositive_vars(df, oldvars)
+
+    #ln
+    oldvars=["echo_penalty_amount"]
+    df, newvars = _ln_vars(df, oldvars)
 
     #dummy enforcement action
-    df["dummy_echo_enforcement"]=np.where(df[echo_initiation_year].notna(), 1, 0)
+    df["echo_enforcement_dummy"]=np.where(df[echo_initiation_year].notna(), 1, 0)
 
     #echo vars
     echo_vars=[
-        "dummy_echo_enforcement",
-        echo_penalty_amount,
-        "dummy_echo_penalty",
-        ]
+        "echo_enforcement_dummy",
+        "echo_penalty_dummy",
+        "echo_penalty_amount",
+        ] + newvars
 
     #return
     return df, echo_vars
@@ -2359,7 +2415,7 @@ def _post_interaction(df, year, time_dummy, level_vars):
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #gen var
+    #gen
     df[time_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
 
     #init
@@ -2371,7 +2427,7 @@ def _post_interaction(df, year, time_dummy, level_vars):
         #var name
         interact_var=f"{time_dummy}x{col}"
 
-        #gen var
+        #gen
         df[interact_var]=df[time_dummy]*df[col]
 
         #update
@@ -2380,6 +2436,148 @@ def _post_interaction(df, year, time_dummy, level_vars):
     #return
     return df, interact_vars
 
+
+#industry famafrench
+def _industry_famafrench(value):
+
+    #https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_12_ind_port.html
+
+    mapping={
+        range(100, 1000): 'NoDur',
+        range(2000, 2400): 'NoDur',
+        range(2700, 2750): 'NoDur',
+        range(2770, 2800): 'NoDur',
+        range(3100, 3200): 'NoDur',
+        range(3940, 3990): 'NoDur',
+        
+        range(2500, 2520): 'Durbl',
+        range(2590, 2600): 'Durbl',
+        range(3630, 3660): 'Durbl',
+        range(3710, 3712): 'Durbl',
+        range(3714, 3715): 'Durbl',
+        range(3716, 3717): 'Durbl',
+        range(3750, 3752): 'Durbl',
+        range(3792, 3793): 'Durbl',
+        range(3900, 3940): 'Durbl',
+        range(3990, 4000): 'Durbl',
+        
+        range(2520, 2590): 'Manuf',
+        range(2600, 2700): 'Manuf',
+        range(2750, 2770): 'Manuf',
+        range(3000, 3100): 'Manuf',
+        range(3200, 3570): 'Manuf',
+        range(3580, 3630): 'Manuf',
+        range(3700, 3710): 'Manuf',
+        range(3712, 3714): 'Manuf',
+        range(3715, 3716): 'Manuf',
+        range(3717, 3750): 'Manuf',
+        range(3752, 3792): 'Manuf',
+        range(3793, 3800): 'Manuf',
+        range(3830, 3840): 'Manuf',
+        range(3860, 3900): 'Manuf',
+        
+        range(1200, 1400): 'Enrgy',
+        range(2900, 3000): 'Enrgy',
+        
+        range(2800, 2830): 'Chems',
+        range(2840, 2900): 'Chems',
+        
+        range(3570, 3580): 'BusEq',
+        range(3660, 3693): 'BusEq',
+        range(3694, 3700): 'BusEq',
+        range(3810, 3830): 'BusEq',
+        range(7370, 7380): 'BusEq',
+        
+        range(4800, 4900): 'Telcm',
+        
+        range(4900, 4950): 'Utils',
+        
+        range(5000, 6000): 'Shops',
+        range(7200, 7300): 'Shops',
+        range(7600, 7700): 'Shops',
+        
+        range(2830, 2840): 'Hlth',
+        range(3693, 3694): 'Hlth',
+        range(3840, 3860): 'Hlth',
+        range(8000, 8100): 'Hlth',
+        
+        range(6000, 7000): 'Money',
+    }
+
+    #if
+    if pd.isna(value):
+
+        #new
+        newval=None
+
+    #elif
+    elif pd.notna(value):
+
+        #newval
+        newval="Other"
+
+        #if
+        for i, (sic_range, ff_name) in enumerate(mapping.items()):
+
+            #if
+            if value in sic_range:
+
+                #newval
+                newval=ff_name
+
+    #return
+    return newval
+
+
+#industry drop
+def _industry_drop(df, col, industry_col):
+
+    #industry_counts
+    industry_counts=df.groupby(industry_col)[col].value_counts().unstack(fill_value=0)
+
+    #industries_to_drop
+    industries_to_drop=industry_counts.index[industry_counts[1] == 0]
+
+    #keep if not in
+    df=df[~df[industry_col].isin(industries_to_drop)]
+
+    #return
+    return df
+
+
+#drop industry
+def _drop_industry(df):
+
+    #industry col
+    industry_col="industry_famafrench"
+
+    #to numeric
+    tonumeric_cols=[
+        crspcomp_sic,
+        ]
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #gen
+    oldvalues=df[crspcomp_sic].values
+    df[industry_col]=np.array([_industry_famafrench(x) for x in oldvalues])
+
+    #irs drop
+    col="dummy_both"
+    df=_industry_drop(df, col, industry_col)
+
+    #echo drop
+    col="echo_enforcement_dummy"
+    df=_industry_drop(df, col, industry_col)
+
+    #newvars
+    newvars=[
+        crspcomp_sic,
+        industry_col,
+        ]
+
+    #return
+    return df, newvars
 
 #donations_echo_crspcompustat screen
 folders=["zhao/_merge", "zhao/_merge"]
@@ -2421,8 +2619,6 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_da,
         crspcomp_netincome,
         crspcomp_sic,
-        crspcomp_naics,
-        crspcomp_gics,
         ]
     
     #read
@@ -2467,6 +2663,9 @@ def _crspcompustat_donations_echo_screen(folders, items):
     level_vars=donation_vars
     df, interact_vars = _post_interaction(df, year, time_dummy, level_vars)
 
+    #industry
+    df, industry_vars = _drop_industry(df)
+
     #ordered
     ordered_cols=[
         contributor_name,
@@ -2476,7 +2675,7 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_cusip,
         crspcomp_fyear,
         time_dummy,
-        ] + donation_vars + interact_vars + echo_vars + crspcompustat_vars
+        ] + donation_vars + interact_vars + echo_vars + crspcompustat_vars + industry_vars
     df=df[ordered_cols]
 
     #save
