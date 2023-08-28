@@ -1,31 +1,48 @@
-import pandas as pd
+inputs = [
+    {
+        "fixedeffects": [
+            {"name": "IndustryFE",  "present": "Yes", "prefix": "industry_ff_dummy"}, 
+            {"name": "YearFE",      "present": "Yes", "prefix": "year_dummy"},  
+            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+        ]
+    },
 
-# Create a sample panel data DataFrame
-data = {
-    'firm': ['A', 'B', 'C', 'A', 'B'],
-    'year': [2019, 2019, 2019, 2020, 2020],
-    'dummy': [1, 1, 0, 0, 0],  # Updated to have some 0s
-    'industry_code': [123, 456, 789, 123, 789]
-}
+    {
+        "fixedeffects": [
+            {"name": "IndustryFE",  "present": "Yes", "prefix": "industry_ff_dummy"}, 
+            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
+            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+        ]
+    },
+]
 
-panel_data = pd.DataFrame(data)
+#init
+new_dictfe=dict()
 
-# Display the original panel data DataFrame
-print("Original Panel Data:")
-print(panel_data)
+#for
+for j, input in enumerate(inputs):
 
-# Calculate industry-wise dummy value counts
-industry_counts = panel_data.groupby('industry_code')['dummy'].value_counts().unstack(fill_value=0)
+    #list fe
+    list_fe=input["fixedeffects"]
+    
+    #for
+    for k, dict_fe in enumerate(list_fe):
 
-# Identify industry codes with only dummy=0
-industries_to_drop = industry_counts.index[industry_counts[1] == 0]
+        #unpack
+        name=dict_fe["name"]
+        present=dict_fe["present"]
 
-# Drop observations with industry codes in 'industries_to_drop'
-filtered_panel_data = panel_data[~panel_data['industry_code'].isin(industries_to_drop)]
+        if name not in new_dictfe:
 
-# Reset index
-filtered_panel_data.reset_index(drop=True, inplace=True)
+            #gen
+            new_dictfe[name]=[None]*len(inputs)
 
-# Display the filtered panel data DataFrame
-print("\nFiltered Panel Data:")
-print(filtered_panel_data)
+
+
+        #update
+        new_dictfe[name][j]=present
+
+print(new_dictfe)
+
+
+

@@ -58,7 +58,29 @@ tuples_replace=[
     ("dummy_both_past3 &",              "Donated to any AG assn past 3y &"),
 
     #post
+    ("post2000x",                       "Post2000 $\\times$ "),
+    ("post2001x",                       "Post2001 $\\times$ "),
+    ("post2002x",                       "Post2002 $\\times$ "),
+    ("post2003x",                       "Post2003 $\\times$ "),
+    ("post2004x",                       "Post2004 $\\times$ "),
+    ("post2005x",                       "Post2005 $\\times$ "),
+    ("post2006x",                       "Post2006 $\\times$ "),
+    ("post2007x",                       "Post2007 $\\times$ "),
+    ("post2008x",                       "Post2008 $\\times$ "),
+    ("post2009x",                       "Post2009 $\\times$ "),
+    ("post2010x",                       "Post2010 $\\times$ "),
+    ("post2011x",                       "Post2011 $\\times$ "),
+    ("post2012x",                       "Post2012 $\\times$ "),
+    ("post2013x",                       "Post2013 $\\times$ "),
+    ("post2014x",                       "Post2014 $\\times$ "),
     ("post2015x",                       "Post2015 $\\times$ "),
+    ("post2016x",                       "Post2016 $\\times$ "),
+    ("post2017x",                       "Post2017 $\\times$ "),
+    ("post2018x",                       "Post2018 $\\times$ "),
+    ("post2019x",                       "Post2019 $\\times$ "),
+    ("post2020x",                       "Post2020 $\\times$ "),
+    ("post2021x",                       "Post2021 $\\times$ "),
+    ("post2022x",                       "Post2022 $\\times$ "),
 
     #echo
     ("ln_echo_penalty_amount &",        "EPA Penalty Amount (logs) &"),
@@ -267,7 +289,7 @@ def _table_summaries(results):
 
 
 #interact var names
-def _interact_varnames(time_dummy, explanvars):
+def _interact_varnames(post_year_dummy, explanvars):
 
     #init
     interact_vars=[None]*len(explanvars)
@@ -276,7 +298,7 @@ def _interact_varnames(time_dummy, explanvars):
     for i, col in enumerate(explanvars):  
 
         #var name
-        interact_var=f"{time_dummy}x{col}"
+        interact_var=f"{post_year_dummy}x{col}"
 
         #update
         interact_vars[i]=interact_var
@@ -286,43 +308,134 @@ def _interact_varnames(time_dummy, explanvars):
 
 
 #indepvars
-def _indepvars(time_dummy, explanvars_i, controlvars):
+def _indepvars(post_year_dummy, explanvars_i, controlvars):
 
     #if
-    if time_dummy==None:
+    if post_year_dummy==None:
 
         #indepvars
         indepvars=explanvars_i + controlvars
 
     #if
-    if time_dummy!=None:
+    if post_year_dummy!=None:
 
         #interact vars
-        interact_vars=_interact_varnames(time_dummy, explanvars_i)
+        interact_vars=_interact_varnames(post_year_dummy, explanvars_i)
 
         #indepvars
-        indepvars=interact_vars + [time_dummy] + explanvars_i +  controlvars
+        indepvars=interact_vars + [post_year_dummy] + explanvars_i +  controlvars
 
     #return
     return indepvars
 
 
-#ordered cols
-def _ordered_cols(time_dummy, explanvars, controlvars):
+#fe indepvars
+def _fe_indepvars(df, list_fe):
+
+    #for
+    for i, dict_fe in enumerate(list_fe):
+
+        #unpack
+        present=dict_fe["present"]
+        prefix=dict_fe["prefix"]
+
+        #if
+        if present=="Yes":
+
+            #industry dummies cols
+            dummies=[x for x in df.columns if x.startswith(prefix)]
+
+            #indepvars
+            indepvars=indepvars + dummies
+
+        #elif
+        elif present=="No":
+
+            #pass
+            pass
+        
+    #return
+    return indepvars
+
+
+def _sm_results(df, mod, clusters):
 
     #if
-    if time_dummy==None:
+    if clusters==None:
+
+        #res
+        res.mod.fit()
+
+    #elif
+    elif clusters!=None:
+
+        #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
+
+        #group
+        clustering_groups = [df[col] for col in clusters]
+
+        #res
+        res=mod.fit(
+            cov_type="cluster",
+            cov_kwds={"groups": clustering_groups},
+            )
+    
+    #return
+    return res
+
+#fe addline
+def _fe_addline(stargazer, inputs):
+
+    #init
+    new_dictfe=dict()
+
+    #for
+    for j, input in enumerate(inputs):
+
+        #list fe
+        list_fe=input["fixedeffects"]
+        
+        #for
+        for k, dict_fe in enumerate(list_fe):
+
+            #unpack
+            name=dict_fe["name"]
+            present=dict_fe["present"]
+
+            if name not in new_dictfe:
+
+                #gen
+                new_dictfe[name]=[None]*len(inputs)
+
+            #update
+            new_dictfe[name][j]=present
+
+    #for
+    for i, (name, presents) in enumerate(new_dictfe.items()):
+
+        #add line
+        stargazer.add_line(name, presents)
+
+    #return
+    return stargazer
+
+
+#ordered cols
+def _ordered_cols(post_year_dummy, explanvars, controlvars):
+
+    #if
+    if post_year_dummy==None:
 
         #orderedd cols
         ordered_cols=["const"] + explanvars + controlvars
 
     #elif
-    elif time_dummy!=None:
+    elif post_year_dummy!=None:
 
-        interact_vars=_interact_varnames(time_dummy, explanvars)
+        interact_vars=_interact_varnames(post_year_dummy, explanvars)
 
         #orderedd cols
-        ordered_cols=["const"] + interact_vars + [time_dummy] + explanvars + controlvars
+        ordered_cols=["const"] + interact_vars + [post_year_dummy] + explanvars + controlvars
 
     #return
     return ordered_cols
@@ -375,7 +488,7 @@ def _add_resizebox(text):
 
 
 #table reg
-def _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name):
+def _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name):
 
     #n_models
     n_models=len(inputs)
@@ -383,36 +496,22 @@ def _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, la
     #init
     models=[None]*n_models
     subsample_names=[None]*n_models
-    fe_includeds=[None]*n_models
+    fe_presents=[None]*n_models
 
-    for i, input_i in enumerate(inputs):
+    for i, input in enumerate(inputs):
 
         #dict
-        explanvars_i=input_i["explanvars_i"]
-        df=input_i["subsample"]["subsample_df"]
-        subsample_name=input_i["subsample"]["subsample_name"]
-        fe_included=input_i[fe_name]
+        explanvars_i=input["explanvars_i"]
+        df=input["subsample"]["subsample_df"]
+        subsample_name=input["subsample"]["subsample_name"]
+        clusters=input["clusters"]
+        list_fe=input["fixedeffects"]
 
         #indepvars
-        indepvars=_indepvars(time_dummy, explanvars_i, controlvars)
+        indepvars=_indepvars(post_year_dummy, explanvars_i, controlvars)
 
-        #if
-        if fe_included=="Yes":
-
-            #prefix
-            prefix="industry_ff_dummy"
-
-            #industry dummies cols
-            dummies_cols=[x for x in df.columns if x.startswith(prefix)]
-
-            #indepvars
-            indepvars=indepvars + dummies_cols
-
-        #elif
-        elif fe_included=="No":
-
-            #pass
-            pass
+        #fe
+        indepvars=_fe_indepvars(df, list_fe)
 
         #to numeric
         tonumeric_cols=[depvar] + indepvars
@@ -435,16 +534,14 @@ def _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, la
             missing="drop",
             )
 
-        #results
-        res=mod.fit()
+        res=_sm_results(df, mod, clusters)
 
         #update
         models[i]=res
         subsample_names[i]=subsample_name
-        fe_includeds[i]=fe_included
 
     #ordered cols
-    ordered_cols=_ordered_cols(time_dummy, explanvars, controlvars)
+    ordered_cols=_ordered_cols(post_year_dummy, explanvars, controlvars)
 
     #sig_digits
     sig_digits=3
@@ -469,7 +566,7 @@ def _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, la
     #stargazer.show_degrees_of_freedom
     #stargazer.custom_note_label
     #stargazer.add_custom_notes
-    stargazer.add_line(fe_name, fe_includeds)
+    stargazer=_fe_addline(stargazer, inputs)
     #stargazer.append_notes
 
     #parameters
@@ -532,8 +629,8 @@ def _table_regs(results):
         )
 
     #time dummy
-    time_dummy="post2015"
-    time_dummy=None
+    post_year_dummy="post2015"
+    post_year_dummy=None
 
     #explanatory vars
     explanvars=[
@@ -554,7 +651,7 @@ def _table_regs(results):
 
         #dummy past
         "dummy_democratic_past3", 
-        "dummy_republican_past3",
+        #"dummy_republican_past3",
         #"dummy_both_past3",
         ]
     
@@ -566,93 +663,22 @@ def _table_regs(results):
         "mtb",
         ]
     
-    #fe
-    fe_name="IndustryFE"
-
     #subsamples
     df0=df[df["echo_enforcement_dummy"]=="1"]
     
     #inputs
     inputs=[
-        {
+            {
             "explanvars_i": ["dummy_democratic_past3"],
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            fe_name: "No",
-            },
-
-        {
-            "explanvars_i": ["dummy_democratic_past3"],
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            fe_name: "Yes",
-            },
-
-        {
-            "explanvars_i": ["dummy_democratic_past3"],
-            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
-            fe_name: "No",
-            },
-
-        {
-            "explanvars_i": ["dummy_democratic_past3"],
-            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
-            fe_name: "Yes",
-            },
-
-        {
-            "explanvars_i": ["dummy_republican_past3"],
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            fe_name: "No",
-            },
-
-        {
-            "explanvars_i": ["dummy_republican_past3"],
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            fe_name: "Yes",
-            },
-
-        {
-            "explanvars_i": ["dummy_republican_past3"],
-            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
-            fe_name: "No",
-            },
-
-        {
-            "explanvars_i": ["dummy_republican_past3"],
-            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
-            fe_name: "Yes",
+            "fixedeffects": [
+                            {"name": "IndustryFE",  "present": "No", "prefix": "industry_ff_dummy"}, 
+                            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
+                            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+                            ],
+            "clusters": ["state"],
             },
         ]
-
-
-    #enforcement likelihood
-    #label
-    label="echo_enforcementlikelihood_tablereg"
-
-    #caption
-    caption="Political Contributions and Enforcement Likelihood - DiD"
-
-    #depvar
-    depvar="echo_enforcement_dummy"
-    depvar_name="EPA Enforcement Likelihood"
-
-    #table reg
-    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
-
-
-    #penalty likelihood
-    #label
-    label="echo_penaltylikelihood_tablereg"
-
-    #caption
-    caption="Political Contributions and Penalty Likelihood - DiD"
-
-    #depvar
-    depvar="echo_penalty_dummy"
-    depvar_name="EPA Penalty Likelihood"
-
-    #table reg
-    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
-
 
     #severity
     #label
@@ -666,7 +692,7 @@ def _table_regs(results):
     depvar_name="EPA Penalty Amount (logs)"
 
     #table reg
-    _table_reg(results, time_dummy, explanvars, controlvars, fe_name, inputs, label, caption, depvar, depvar_name)
+    _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
 
 
 #gen floats

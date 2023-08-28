@@ -95,6 +95,8 @@ crspcomp_fyear="fyear" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_
 crspcomp_cik="cik" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CIK/
 crspcomp_ein="ein" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/EIN/
 crspcomp_name="conm" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CONM/
+crspcomp_state="state" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/STATE/
+crspcomp_incorp="incorp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/INCORP/
 #balance sheet
 crspcomp_assets="at" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/AT/
 crspcomp_liabilities="lt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/LT/
@@ -113,7 +115,6 @@ crspcomp_sic="sic" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_meta
 crspcomp_naics="naics" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/NAICS/
 crspcomp_gics="gind" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/GIND/
 #size, lev, btm, roe, industry
-
 
 #irs code and columns
 def _irs_codecolumns(resources):
@@ -1333,6 +1334,8 @@ def _crspcompustat_screen(folders, items):
         crspcomp_cik,
         crspcomp_ein,
         crspcomp_name,
+        crspcomp_state,
+        crspcomp_incorp,
         crspcomp_assets,
         crspcomp_liabilities,
         crspcomp_bookequity,
@@ -2290,6 +2293,66 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
     return df
 
 
+#post interaction
+def _post_vars(df, start_year, stop_year, level_vars):
+
+    #to numeric
+    tonumeric_cols=[
+        crspcomp_fyear,
+        ] + level_vars
+    errors="raise"
+    _tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #years
+    years=list(range(start_year, (stop_year+1)))
+
+    #init vars
+    post_year_dummies=[None]*len(years)
+    interact_vars=[None]*(len(level_vars)*len(years))
+
+    #newdict
+    newdict=dict()
+
+    #init i
+    i=0
+
+    #for
+    for j, year in enumerate(years):
+
+        #var name
+        post_year_dummy=f"post{year}"
+
+        #newdict
+        newdict[post_year_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
+
+        #update var
+        post_year_dummies[j]=post_year_dummy
+
+        #interactions
+        for k, col in enumerate(level_vars):  
+
+            #var name
+            interact_var=f"{post_year_dummy}x{col}"
+
+            #newdict
+            newdict[interact_var]=df[post_year_dummy]*df[col]
+
+            #update var
+            interact_vars[i]=interact_var
+
+            #update i
+            i+=1
+
+    #new df
+    new_df=pd.DataFrame(newdict)
+
+    #concat
+    df=pd.concat([df, new_df], axis=1)
+
+    #return
+    return df, post_year_dummies, interact_vars
+
+
 #donations newvars
 def _donations_newvars(df):
 
@@ -2390,14 +2453,23 @@ def _donations_newvars(df):
         "dummy_both_past3",
         ] + ln_vars + lag_vars + change_vars
 
+    #post year + interation
+    start_year=2015
+    stop_year=2019
+    level_vars=donation_vars
+    #df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
+
     #return
-    return df, donation_vars
+    return df, donation_vars, #post_year_dummies, donation_interact_vars
 
 
 #echo newvars
 def _echo_newvars(df):
 
-    df=df.rename(columns={echo_penalty_amount: "echo_penalty_amount"})
+    df=df.rename(columns={
+        echo_penalty_amount: "echo_penalty_amount",
+        echo_penalty_year: "echo_penalty_year",
+        })
 
     #dummy vars
     oldvars=[
@@ -2410,13 +2482,20 @@ def _echo_newvars(df):
     df, newvars = _ln_vars(df, oldvars)
 
     #dummy enforcement action
-    df["echo_enforcement_dummy"]=np.where(df[echo_initiation_year].notna(), 1, 0)
+    df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
 
     #echo vars
     echo_vars=[
+        #amount
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
         "echo_penalty_amount",
+
+        #years
+        "echo_initiation_year",
+        "echo_penalty_year",
+        "echo_initiation_lag",
+        "case_number",
         ] + newvars
 
     #return
@@ -2490,42 +2569,12 @@ def _crspcompustat_newvars(df):
         "roa",
         "roe",
         "mtb",
+        crspcomp_state,
+        crspcomp_incorp,
         ]
 
     #return
     return df, crspcompustat_vars
-
-
-#post interaction
-def _post_vars(df, year, time_dummy, level_vars):
-
-    #to numeric
-    tonumeric_cols=[
-        crspcomp_fyear,
-        ] + level_vars
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
-
-    #time dummy
-    df[time_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
-
-    #init
-    interact_vars=[None]*len(level_vars)
-
-    #interactions
-    for i, col in enumerate(level_vars):  
-
-        #var name
-        interact_var=f"{time_dummy}x{col}"
-
-        #gen
-        df[interact_var]=df[time_dummy]*df[col]
-
-        #update
-        interact_vars[i]=interact_var
-
-    #return
-    return df, interact_vars
 
 
 #industry famafrench
@@ -2640,7 +2689,7 @@ def _industry_drop(df, col, industry_col):
 
 
 #gen dummies
-def _dummies(df, col, prefix):
+def _gen_dummies(df, col, prefix):
 
     #get dummies
     dummies=pd.get_dummies(
@@ -2688,7 +2737,7 @@ def _industry_newvars(df):
     #industry dummies
     col=industry_col
     prefix="industry_ff_dummy"
-    df, dummies_cols = _dummies(df, col, prefix)
+    df, dummies_cols = _gen_dummies(df, col, prefix)
 
     #newvars
     newvars=[
@@ -2718,16 +2767,26 @@ def _crspcompustat_donations_echo_screen(folders, items):
     contributor_id
     #usecols
     usecols=[
+        #irs
         contributor_name,
         "dtsubjectname_left",
         "dtsubjectname_right",
         crspcomp_name,
+        crspcomp_state,
+        crspcomp_incorp,
         crspcomp_cusip,
         crspcomp_fyear,
         "amount_democratic",
         "amount_republican",
+
+        #echo
         echo_initiation_year,
+        echo_penalty_year,
+        echo_initiation_lag,
         echo_penalty_amount,
+        "case_number",
+
+        #refinitiv
         crspcomp_assets,
         crspcomp_liabilities,
         crspcomp_bookequity,
@@ -2770,7 +2829,9 @@ def _crspcompustat_donations_echo_screen(folders, items):
     df=df.sort_values(by=sortvalues_cols)
 
     #donations newvars
+    #df, donation_vars, post_year_dummies, donation_interact_vars = _donations_newvars(df)
     df, donation_vars = _donations_newvars(df)
+
 
     #echo newvars
     df, echo_vars = _echo_newvars(df)
@@ -2778,14 +2839,28 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #crspcompustat newvars
     df, crspcompustat_vars =_crspcompustat_newvars(df)
 
-    #post 2015 + interation 
-    year=2015
-    time_dummy=f"post{year}"
-    level_vars=donation_vars
-    df, interact_vars = _post_vars(df, year, time_dummy, level_vars)
-
     #industry
     df, industry_vars = _industry_newvars(df)
+
+    #year dummies
+    col=crspcomp_fyear
+    prefix="year_dummy"
+    df, year_dummies = _gen_dummies(df, col, prefix)
+
+    #firm dummies
+    col=crspcomp_cusip
+    prefix="firm_dummy"
+    df, firm_dummies = _gen_dummies(df, col, prefix)
+
+    #state dummies
+    col=crspcomp_state
+    prefix="state_dummy"
+    df, state_dummies = _gen_dummies(df, col, prefix)
+
+    #incorp dummies
+    col=crspcomp_incorp
+    prefix="incorp_dummy"
+    df, incorp_dummies = _gen_dummies(df, col, prefix)
 
     #ordered
     ordered_cols=[
@@ -2795,8 +2870,10 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_name,
         crspcomp_cusip,
         crspcomp_fyear,
-        time_dummy,
-        ] + donation_vars + interact_vars + echo_vars + crspcompustat_vars + industry_vars
+        ]  +\
+        donation_vars +\
+        echo_vars + crspcompustat_vars + industry_vars +\
+        year_dummies + firm_dummies + state_dummies + incorp_dummies
     df=df[ordered_cols]
 
     #save
@@ -2804,5 +2881,5 @@ def _crspcompustat_donations_echo_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-_crspcompustat_donations_echo_screen(folders, items)
+#_crspcompustat_donations_echo_screen(folders, items)
 print("done")
