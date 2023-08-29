@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sns
 from pathlib import Path
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 from stargazer.stargazer import Stargazer
 
@@ -671,8 +672,91 @@ def _table_regs(results):
     depvar_name="EPA Penalty Amount (logs)"
 
     #table reg
-    _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
+    #_table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
 
+
+    #depvars
+    depvars=[
+        "echo_enforcement_dummy",
+        "echo_penalty_dummy",
+        "ln_echo_penalty_amount",
+        ]
+    
+    indepvars=[
+        #amount
+        "lag_ln_amount_democratic",
+        "lag_ln_amount_republican",
+        "lag_ln_amount_both",
+
+        #change
+        "change_ln_amount_democratic",
+        "change_ln_amount_republican",
+        "change_ln_amount_both",
+
+        #amount past
+        "ln_amount_democratic_past3",
+        "ln_amount_republican_past3",
+        "ln_amount_both_past3",
+
+        #dummy
+        "lag_dummy_democratic", 
+        "lag_dummy_republican",
+        "lag_dummy_both",
+
+        #dummy past
+        "dummy_democratic_past3", 
+        "dummy_republican_past3",
+        "dummy_both_past3",
+        ]
+    
+    #post_time_dummy
+    post_time_dummies=[
+        "post2015",
+        "post2016",
+        "post2017",
+        "post2018",
+        "post2019",
+        ]
+    
+    #to numeric
+    tonumeric_cols=depvars + indepvars + post_time_dummies
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+    #for
+    for j, depvar in enumerate(depvars):
+
+        #for
+        for k, indepvar in enumerate(indepvars):
+
+            #for
+            for l, time in enumerate(post_time_dummies):
+                
+                #formula
+                formula=f"{depvar} ~ {time}*{indepvar} + {time} + {indepvar} "
+
+                #model
+                mod=smf.ols(formula, data=df)
+
+                #res
+                res=mod.fit()
+
+                #params
+                params=str(res.params[3:4])
+
+                #betas
+                betas=params.replace("dtype: float64", "")
+                #betas=betas.replace(indepvar, "")
+                #betas=betas.replace(time, "")
+                betas=betas.strip()
+
+                #print
+                print(f"{formula}\n{betas}\n")
+
+
+
+
+    
 
 #gen floats
 results="zhao/article"
@@ -682,7 +766,7 @@ def _generate_floats(results):
     #https://github.com/StatsReporting/stargazer
 
     #table summary
-    _table_summaries(results)
+    #_table_summaries(results)
     
     #table regs
     _table_regs(results)
