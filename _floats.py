@@ -58,29 +58,11 @@ tuples_replace=[
     ("dummy_both_past3 &",              "Donated to any AG assn past 3y &"),
 
     #post
-    ("post2000x",                       "Post2000 $\\times$ "),
-    ("post2001x",                       "Post2001 $\\times$ "),
-    ("post2002x",                       "Post2002 $\\times$ "),
-    ("post2003x",                       "Post2003 $\\times$ "),
-    ("post2004x",                       "Post2004 $\\times$ "),
-    ("post2005x",                       "Post2005 $\\times$ "),
-    ("post2006x",                       "Post2006 $\\times$ "),
-    ("post2007x",                       "Post2007 $\\times$ "),
-    ("post2008x",                       "Post2008 $\\times$ "),
-    ("post2009x",                       "Post2009 $\\times$ "),
-    ("post2010x",                       "Post2010 $\\times$ "),
-    ("post2011x",                       "Post2011 $\\times$ "),
-    ("post2012x",                       "Post2012 $\\times$ "),
-    ("post2013x",                       "Post2013 $\\times$ "),
-    ("post2014x",                       "Post2014 $\\times$ "),
     ("post2015x",                       "Post2015 $\\times$ "),
     ("post2016x",                       "Post2016 $\\times$ "),
     ("post2017x",                       "Post2017 $\\times$ "),
     ("post2018x",                       "Post2018 $\\times$ "),
     ("post2019x",                       "Post2019 $\\times$ "),
-    ("post2020x",                       "Post2020 $\\times$ "),
-    ("post2021x",                       "Post2021 $\\times$ "),
-    ("post2022x",                       "Post2022 $\\times$ "),
 
     #echo
     ("ln_echo_penalty_amount &",        "EPA Penalty Amount (logs) &"),
@@ -121,45 +103,6 @@ def _save_table(results, filestem, text):
         mode="w",
         ) as file_object:
         file_object.write(text)
-
-
-#save figure
-def _save_figure(results, filestem):
-
-    #folderstem
-    folderstem="figures"
-
-    #mkdir
-    directory_path=Path(f"{results}/{folderstem}")
-    directory_path.mkdir(exist_ok=True)
-
-    #filepath
-    filepath=f"{results}/{folderstem}/{filestem}.png"
-
-    #save
-    plt.savefig(filepath)
-
-    #show
-    #plt.show()
-
-
-#figure frequency
-def _figure_frequency(results):
-
-    filestem="frequency_at"
-
-    # Sample data
-    x = [1, 2, 3, 4, 5]
-    y = [10, 20, 15, 25, 30]
-
-    # Create the plot
-    plt.plot(x, y, marker='o')
-    plt.title('Sample Plot')
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-
-    #save
-    _save_figure(results, filestem)
 
 
 #table summary stats
@@ -308,7 +251,7 @@ def _interact_varnames(post_year_dummy, explanvars):
 
 
 #indepvars
-def _indepvars(post_year_dummy, explanvars_i, controlvars):
+def _indepvars(post_year_dummy, explanvars_i, controlvars, list_fe, df):
 
     #if
     if post_year_dummy==None:
@@ -324,13 +267,6 @@ def _indepvars(post_year_dummy, explanvars_i, controlvars):
 
         #indepvars
         indepvars=interact_vars + [post_year_dummy] + explanvars_i +  controlvars
-
-    #return
-    return indepvars
-
-
-#fe indepvars
-def _fe_indepvars(df, list_fe):
 
     #for
     for i, dict_fe in enumerate(list_fe):
@@ -353,47 +289,90 @@ def _fe_indepvars(df, list_fe):
 
             #pass
             pass
-        
+
     #return
     return indepvars
 
 
-def _sm_results(df, mod, clusters):
+#sm model
+def _sm_model(df, depvar, indepvars):
+
+    #Y X
+    y=df[depvar]
+    X=df[indepvars]
+    X=sm.add_constant(X)
+
+    #model
+    mod=sm.OLS(
+        endog=y,
+        exog=X,
+        )
+    
+    #return
+    return mod
+
+
+#sm results
+def _sm_results(df, depvar, indepvars, clusters):
+
+    #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
 
     #if
-    if clusters==None:
+    if clusters==["No"]:
+
+        #dropna
+        dropna_cols=[depvar] + indepvars
+        df=df.dropna(subset=dropna_cols)
+
+        #mod
+        mod=_sm_model(df, depvar, indepvars)
 
         #res
-        res.mod.fit()
+        res=mod.fit()
 
     #elif
-    elif clusters!=None:
+    elif clusters!=["No"]:
 
-        #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
+        #dropna
+        dropna_cols=[depvar] + indepvars + clusters
+        df=df.dropna(subset=dropna_cols)
 
-        #group
-        clustering_groups = [df[col] for col in clusters]
+        #mod
+        mod=_sm_model(df, depvar, indepvars)
+
+        #groups
+        groups=[pd.factorize(df[col])[0] for col in clusters]
 
         #res
         res=mod.fit(
             cov_type="cluster",
-            cov_kwds={"groups": clustering_groups},
+            cov_kwds={"groups": groups},
             )
     
     #return
     return res
 
+
 #fe addline
-def _fe_addline(stargazer, inputs):
+def _addline(stargazer, inputs):
 
     #init
     new_dictfe=dict()
+    clusters_presents=[None]*len(inputs)
 
     #for
     for j, input in enumerate(inputs):
 
         #list fe
         list_fe=input["fixedeffects"]
+        clusters=input["clusters"]
+
+        #cluster
+        clusters=[x.capitalize() for x in clusters]
+        clusters_present="-".join(clusters)
+
+        #update
+        clusters_presents[j]=clusters_present
         
         #for
         for k, dict_fe in enumerate(list_fe):
@@ -402,6 +381,7 @@ def _fe_addline(stargazer, inputs):
             name=dict_fe["name"]
             present=dict_fe["present"]
 
+            #if
             if name not in new_dictfe:
 
                 #gen
@@ -413,8 +393,11 @@ def _fe_addline(stargazer, inputs):
     #for
     for i, (name, presents) in enumerate(new_dictfe.items()):
 
-        #add line
+        #fe
         stargazer.add_line(name, presents)
+
+    #cluster
+    stargazer.add_line("Cluster", clusters_presents)    
 
     #return
     return stargazer
@@ -504,37 +487,19 @@ def _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label,
         explanvars_i=input["explanvars_i"]
         df=input["subsample"]["subsample_df"]
         subsample_name=input["subsample"]["subsample_name"]
-        clusters=input["clusters"]
         list_fe=input["fixedeffects"]
+        clusters=input["clusters"]
 
         #indepvars
-        indepvars=_indepvars(post_year_dummy, explanvars_i, controlvars)
-
-        #fe
-        indepvars=_fe_indepvars(df, list_fe)
+        indepvars=_indepvars(post_year_dummy, explanvars_i, controlvars, list_fe, df)
 
         #to numeric
         tonumeric_cols=[depvar] + indepvars
         errors="raise"
         df=_tonumericcols_to_df(df, tonumeric_cols, errors)
-        
-        #Y
-        y=df[depvar]
 
-        #X
-        X=df[indepvars]
-
-        #const
-        X=sm.add_constant(X)
-
-        #model
-        mod=sm.OLS(
-            endog=y,
-            exog=X,
-            missing="drop",
-            )
-
-        res=_sm_results(df, mod, clusters)
+        #res
+        res=_sm_results(df, depvar, indepvars, clusters)
 
         #update
         models[i]=res
@@ -566,7 +531,7 @@ def _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label,
     #stargazer.show_degrees_of_freedom
     #stargazer.custom_note_label
     #stargazer.add_custom_notes
-    stargazer=_fe_addline(stargazer, inputs)
+    stargazer=_addline(stargazer, inputs)
     #stargazer.append_notes
 
     #parameters
@@ -630,7 +595,10 @@ def _table_regs(results):
 
     #time dummy
     post_year_dummy="post2015"
-    post_year_dummy=None
+    post_year_dummy="post2016"
+    post_year_dummy="post2017"
+    post_year_dummy="post2018"
+    post_year_dummy="post2019"
 
     #explanatory vars
     explanvars=[
@@ -650,8 +618,8 @@ def _table_regs(results):
         #"lag_dummy_both",
 
         #dummy past
-        "dummy_democratic_past3", 
-        #"dummy_republican_past3",
+        #"dummy_democratic_past3", 
+        "dummy_republican_past3",
         #"dummy_both_past3",
         ]
     
@@ -669,14 +637,25 @@ def _table_regs(results):
     #inputs
     inputs=[
             {
-            "explanvars_i": ["dummy_democratic_past3"],
+            "explanvars_i": ["dummy_republican_past3"],
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             "fixedeffects": [
                             {"name": "IndustryFE",  "present": "No", "prefix": "industry_ff_dummy"}, 
                             {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
                             {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
                             ],
-            "clusters": ["state"],
+            "clusters": ["No"],
+            },
+
+            {
+            "explanvars_i": ["dummy_republican_past3"],
+            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            "fixedeffects": [
+                            {"name": "IndustryFE",  "present": "No", "prefix": "industry_ff_dummy"}, 
+                            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
+                            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+                            ],
+            "clusters": ["No"],
             },
         ]
 
@@ -711,7 +690,6 @@ def _generate_floats(results):
     #figures
 
     pass
-
 
 
 _generate_floats(results)

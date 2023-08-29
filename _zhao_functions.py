@@ -85,6 +85,68 @@ osha_initiation_lag="osha_initiation_lag"
 osha_penalty_amount="initial_penalty"
 
 
+sic_to_ff_mapping={
+    range(100, 1000): 'NoDur',
+    range(2000, 2400): 'NoDur',
+    range(2700, 2750): 'NoDur',
+    range(2770, 2800): 'NoDur',
+    range(3100, 3200): 'NoDur',
+    range(3940, 3990): 'NoDur',
+    
+    range(2500, 2520): 'Durbl',
+    range(2590, 2600): 'Durbl',
+    range(3630, 3660): 'Durbl',
+    range(3710, 3712): 'Durbl',
+    range(3714, 3715): 'Durbl',
+    range(3716, 3717): 'Durbl',
+    range(3750, 3752): 'Durbl',
+    range(3792, 3793): 'Durbl',
+    range(3900, 3940): 'Durbl',
+    range(3990, 4000): 'Durbl',
+    
+    range(2520, 2590): 'Manuf',
+    range(2600, 2700): 'Manuf',
+    range(2750, 2770): 'Manuf',
+    range(3000, 3100): 'Manuf',
+    range(3200, 3570): 'Manuf',
+    range(3580, 3630): 'Manuf',
+    range(3700, 3710): 'Manuf',
+    range(3712, 3714): 'Manuf',
+    range(3715, 3716): 'Manuf',
+    range(3717, 3750): 'Manuf',
+    range(3752, 3792): 'Manuf',
+    range(3793, 3800): 'Manuf',
+    range(3830, 3840): 'Manuf',
+    range(3860, 3900): 'Manuf',
+    
+    range(1200, 1400): 'Enrgy',
+    range(2900, 3000): 'Enrgy',
+    
+    range(2800, 2830): 'Chems',
+    range(2840, 2900): 'Chems',
+    
+    range(3570, 3580): 'BusEq',
+    range(3660, 3693): 'BusEq',
+    range(3694, 3700): 'BusEq',
+    range(3810, 3830): 'BusEq',
+    range(7370, 7380): 'BusEq',
+    
+    range(4800, 4900): 'Telcm',
+    
+    range(4900, 4950): 'Utils',
+    
+    range(5000, 6000): 'Shops',
+    range(7200, 7300): 'Shops',
+    range(7600, 7700): 'Shops',
+    
+    range(2830, 2840): 'Hlth',
+    range(3693, 3694): 'Hlth',
+    range(3840, 3860): 'Hlth',
+    range(8000, 8100): 'Hlth',
+    
+    range(6000, 7000): 'Money',
+    }
+
 
 #vars crspcompustat
 #https://wrds-www.wharton.upenn.edu/pages/get-data/center-research-security-prices-crsp/annual-update/crspcompustat-merged/fundamentals-annual/
@@ -2335,7 +2397,7 @@ def _post_vars(df, start_year, stop_year, level_vars):
             interact_var=f"{post_year_dummy}x{col}"
 
             #newdict
-            newdict[interact_var]=df[post_year_dummy]*df[col]
+            newdict[interact_var]=newdict[post_year_dummy]*df[col]
 
             #update var
             interact_vars[i]=interact_var
@@ -2457,10 +2519,10 @@ def _donations_newvars(df):
     start_year=2015
     stop_year=2019
     level_vars=donation_vars
-    #df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
+    df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
 
     #return
-    return df, donation_vars, #post_year_dummies, donation_interact_vars
+    return df, donation_vars, post_year_dummies, donation_interact_vars
 
 
 #echo newvars
@@ -2484,12 +2546,18 @@ def _echo_newvars(df):
     #dummy enforcement action
     df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
 
+    #staggered treated XXX
+
+
     #echo vars
     echo_vars=[
         #amount
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
         "echo_penalty_amount",
+
+        #staggered
+        #"echo_enforcement_treated",
 
         #years
         "echo_initiation_year",
@@ -2582,68 +2650,6 @@ def _industry_famafrench(value):
 
     #https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_12_ind_port.html
 
-    mapping={
-        range(100, 1000): 'NoDur',
-        range(2000, 2400): 'NoDur',
-        range(2700, 2750): 'NoDur',
-        range(2770, 2800): 'NoDur',
-        range(3100, 3200): 'NoDur',
-        range(3940, 3990): 'NoDur',
-        
-        range(2500, 2520): 'Durbl',
-        range(2590, 2600): 'Durbl',
-        range(3630, 3660): 'Durbl',
-        range(3710, 3712): 'Durbl',
-        range(3714, 3715): 'Durbl',
-        range(3716, 3717): 'Durbl',
-        range(3750, 3752): 'Durbl',
-        range(3792, 3793): 'Durbl',
-        range(3900, 3940): 'Durbl',
-        range(3990, 4000): 'Durbl',
-        
-        range(2520, 2590): 'Manuf',
-        range(2600, 2700): 'Manuf',
-        range(2750, 2770): 'Manuf',
-        range(3000, 3100): 'Manuf',
-        range(3200, 3570): 'Manuf',
-        range(3580, 3630): 'Manuf',
-        range(3700, 3710): 'Manuf',
-        range(3712, 3714): 'Manuf',
-        range(3715, 3716): 'Manuf',
-        range(3717, 3750): 'Manuf',
-        range(3752, 3792): 'Manuf',
-        range(3793, 3800): 'Manuf',
-        range(3830, 3840): 'Manuf',
-        range(3860, 3900): 'Manuf',
-        
-        range(1200, 1400): 'Enrgy',
-        range(2900, 3000): 'Enrgy',
-        
-        range(2800, 2830): 'Chems',
-        range(2840, 2900): 'Chems',
-        
-        range(3570, 3580): 'BusEq',
-        range(3660, 3693): 'BusEq',
-        range(3694, 3700): 'BusEq',
-        range(3810, 3830): 'BusEq',
-        range(7370, 7380): 'BusEq',
-        
-        range(4800, 4900): 'Telcm',
-        
-        range(4900, 4950): 'Utils',
-        
-        range(5000, 6000): 'Shops',
-        range(7200, 7300): 'Shops',
-        range(7600, 7700): 'Shops',
-        
-        range(2830, 2840): 'Hlth',
-        range(3693, 3694): 'Hlth',
-        range(3840, 3860): 'Hlth',
-        range(8000, 8100): 'Hlth',
-        
-        range(6000, 7000): 'Money',
-    }
-
     #if
     if pd.isna(value):
 
@@ -2657,7 +2663,7 @@ def _industry_famafrench(value):
         newval="Other"
 
         #if
-        for i, (sic_range, ff_name) in enumerate(mapping.items()):
+        for i, (sic_range, ff_name) in enumerate(sic_to_ff_mapping.items()):
 
             #if
             if value in sic_range:
@@ -2754,8 +2760,6 @@ folders=["zhao/_merge", "zhao/_merge"]
 items=["crspcompustat_donations_echo", "crspcompustat_donations_echo_screen"]
 def _crspcompustat_donations_echo_screen(folders, items):
 
-    #https://pandas.pydata.org/docs/user_guide/timeseries.html
-
     #folders
     resources=folders[0]
     results=folders[1]
@@ -2829,15 +2833,13 @@ def _crspcompustat_donations_echo_screen(folders, items):
     df=df.sort_values(by=sortvalues_cols)
 
     #donations newvars
-    #df, donation_vars, post_year_dummies, donation_interact_vars = _donations_newvars(df)
-    df, donation_vars = _donations_newvars(df)
-
+    df, donation_vars, post_year_dummies, donation_interact_vars = _donations_newvars(df)
 
     #echo newvars
     df, echo_vars = _echo_newvars(df)
 
     #crspcompustat newvars
-    df, crspcompustat_vars =_crspcompustat_newvars(df)
+    df, crspcompustat_vars = _crspcompustat_newvars(df)
 
     #industry
     df, industry_vars = _industry_newvars(df)
@@ -2850,17 +2852,17 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #firm dummies
     col=crspcomp_cusip
     prefix="firm_dummy"
-    df, firm_dummies = _gen_dummies(df, col, prefix)
+    #df, firm_dummies = _gen_dummies(df, col, prefix)
 
     #state dummies
     col=crspcomp_state
     prefix="state_dummy"
-    df, state_dummies = _gen_dummies(df, col, prefix)
+    #df, state_dummies = _gen_dummies(df, col, prefix)
 
     #incorp dummies
     col=crspcomp_incorp
     prefix="incorp_dummy"
-    df, incorp_dummies = _gen_dummies(df, col, prefix)
+    #df, incorp_dummies = _gen_dummies(df, col, prefix)
 
     #ordered
     ordered_cols=[
@@ -2871,15 +2873,29 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_cusip,
         crspcomp_fyear,
         ]  +\
-        donation_vars +\
+        donation_vars + post_year_dummies + donation_interact_vars +\
         echo_vars + crspcompustat_vars + industry_vars +\
-        year_dummies + firm_dummies + state_dummies + incorp_dummies
+        year_dummies #+ firm_dummies + state_dummies + incorp_dummies
     df=df[ordered_cols]
+
+    print("saving")
 
     #save
     filepath=f"{results}/{result}.csv"
-    df.to_csv(filepath, index=False)
+    df.to_csv(
+        filepath, 
+        index=False,
+        #compression="gzip",
+        )
 
 
-#_crspcompustat_donations_echo_screen(folders, items)
+_crspcompustat_donations_echo_screen(folders, items)
 print("done")
+
+
+#staggered did
+
+
+#https://github.com/EddieYang211/ebal-py
+#entropy balancing: based on covariates
+

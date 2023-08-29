@@ -1,48 +1,26 @@
-inputs = [
-    {
-        "fixedeffects": [
-            {"name": "IndustryFE",  "present": "Yes", "prefix": "industry_ff_dummy"}, 
-            {"name": "YearFE",      "present": "Yes", "prefix": "year_dummy"},  
-            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
-        ]
-    },
+import pandas as pd
+import numpy as np
 
-    {
-        "fixedeffects": [
-            {"name": "IndustryFE",  "present": "Yes", "prefix": "industry_ff_dummy"}, 
-            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
-            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
-        ]
-    },
-]
+# Sample data
+data = {
+    'firm': ['a', 'a', 'a', 'a', 'a', 
+             'b', 'b', 'b', 'b', 'b'],
 
-#init
-new_dictfe=dict()
+    'year': [2000, 2001, 2002, 2003, 2004, 
+             2000, 2001, 2002, 2003, 2004],
+    'enforcement_dummy': [0, 0, 0, 0, 0, 
+                          0, 0, 1, 0, 0],
+    'state': ["illinois", "alabama", "louisiana", "california", "illinois", 
+              "illinois", "illinois", "illinois", "illinois", "illinois", ]
+}
 
-#for
-for j, input in enumerate(inputs):
+df = pd.DataFrame(data)
+print(df)
 
-    #list fe
-    list_fe=input["fixedeffects"]
-    
-    #for
-    for k, dict_fe in enumerate(list_fe):
+codes, uniques = pd.factorize(df['state'])
 
-        #unpack
-        name=dict_fe["name"]
-        present=dict_fe["present"]
+print(codes)
 
-        if name not in new_dictfe:
+array=list(codes)
 
-            #gen
-            new_dictfe[name]=[None]*len(inputs)
-
-
-
-        #update
-        new_dictfe[name][j]=present
-
-print(new_dictfe)
-
-
-
+print(array)
