@@ -2894,7 +2894,7 @@ print("done")
 
 
 #staggered did
-
+#y=change donations, right=treated
 
 #https://github.com/EddieYang211/ebal-py
 #entropy balancing: based on covariates
