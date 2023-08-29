@@ -10,11 +10,12 @@ from datetime import datetime
 
 
 #functions
+from _industry_famafrench import _filepath_to_mapping
 from _pd_utils import _folder_to_filestems, \
     _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, _fillnacols_to_df, \
     _groupby, _df_to_fullpanel, \
     _first_value, _firstvalue_join
-    
+
 
 #vars
 from _string_utils import ENCODING
@@ -83,69 +84,6 @@ osha_initiation_year="open_date"
 osha_penalty_year="close_case_date"
 osha_initiation_lag="osha_initiation_lag"
 osha_penalty_amount="initial_penalty"
-
-
-sic_to_ff_mapping={
-    range(100, 1000): 'NoDur',
-    range(2000, 2400): 'NoDur',
-    range(2700, 2750): 'NoDur',
-    range(2770, 2800): 'NoDur',
-    range(3100, 3200): 'NoDur',
-    range(3940, 3990): 'NoDur',
-    
-    range(2500, 2520): 'Durbl',
-    range(2590, 2600): 'Durbl',
-    range(3630, 3660): 'Durbl',
-    range(3710, 3712): 'Durbl',
-    range(3714, 3715): 'Durbl',
-    range(3716, 3717): 'Durbl',
-    range(3750, 3752): 'Durbl',
-    range(3792, 3793): 'Durbl',
-    range(3900, 3940): 'Durbl',
-    range(3990, 4000): 'Durbl',
-    
-    range(2520, 2590): 'Manuf',
-    range(2600, 2700): 'Manuf',
-    range(2750, 2770): 'Manuf',
-    range(3000, 3100): 'Manuf',
-    range(3200, 3570): 'Manuf',
-    range(3580, 3630): 'Manuf',
-    range(3700, 3710): 'Manuf',
-    range(3712, 3714): 'Manuf',
-    range(3715, 3716): 'Manuf',
-    range(3717, 3750): 'Manuf',
-    range(3752, 3792): 'Manuf',
-    range(3793, 3800): 'Manuf',
-    range(3830, 3840): 'Manuf',
-    range(3860, 3900): 'Manuf',
-    
-    range(1200, 1400): 'Enrgy',
-    range(2900, 3000): 'Enrgy',
-    
-    range(2800, 2830): 'Chems',
-    range(2840, 2900): 'Chems',
-    
-    range(3570, 3580): 'BusEq',
-    range(3660, 3693): 'BusEq',
-    range(3694, 3700): 'BusEq',
-    range(3810, 3830): 'BusEq',
-    range(7370, 7380): 'BusEq',
-    
-    range(4800, 4900): 'Telcm',
-    
-    range(4900, 4950): 'Utils',
-    
-    range(5000, 6000): 'Shops',
-    range(7200, 7300): 'Shops',
-    range(7600, 7700): 'Shops',
-    
-    range(2830, 2840): 'Hlth',
-    range(3693, 3694): 'Hlth',
-    range(3840, 3860): 'Hlth',
-    range(8000, 8100): 'Hlth',
-    
-    range(6000, 7000): 'Money',
-    }
 
 
 #vars crspcompustat
@@ -1539,7 +1477,7 @@ def _irs_contributors_aggregate(folders, items):
         contributor_id,
         contribution_year,
         ]
-    pivot_df=pd.pivot_table(
+    df_pivot=pd.pivot_table(
         data=df,
         values=contribution_amount_ytd,
         index=index,
@@ -1548,10 +1486,10 @@ def _irs_contributors_aggregate(folders, items):
         fill_value=0,
         )      
     #reset index
-    pivot_df=pivot_df.reset_index()   
+    df_pivot=df_pivot.reset_index()   
     #rename
     list_pivot_columns=list(pivot_columns.values())
-    pivot_df=pivot_df.rename(columns=pivot_columns)
+    df_pivot=df_pivot.rename(columns=pivot_columns)
 
     #df without dups
     df_withoutdups=df.drop_duplicates(subset=contributor_id)
@@ -1562,7 +1500,7 @@ def _irs_contributors_aggregate(folders, items):
     indicator=f"_merge_dups"
     #merge
     df=pd.merge(
-        left=pivot_df,
+        left=df_pivot,
         right=df_withoutdups,
         how="left",
         on=contributor_id,
@@ -2516,13 +2454,106 @@ def _donations_newvars(df):
         ] + ln_vars + lag_vars + change_vars
 
     #post year + interation
-    start_year=2000
+    start_year=2015
     stop_year=2022
     level_vars=donation_vars
     df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
 
     #return
     return df, donation_vars, post_year_dummies, donation_interact_vars
+
+
+#stagdid prepare
+def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
+
+    #newvars
+    treatment_dummy_firstswitch="treatment_dummy_firstswitch"
+    treatment_dummy="treatment_dummy"
+    time_dummy="time_dummy"
+
+    #treatment dummy first switch
+    df[treatment_dummy_firstswitch]=(df.groupby(unit_var)[treatment_dummy_switch]
+                                    .apply(lambda x: (x == 1) & (x.shift(1) != 1))
+                                    .astype(int)
+                                    )
+    #treatment dummy
+    df[treatment_dummy]=df.groupby(unit_var)[treatment_dummy_switch].cummax()
+
+    #time dummy
+    df[time_dummy]=df[treatment_dummy]
+
+    #gen group dummies
+    df_pivot=pd.pivot_table(
+        data=df,
+        values=treatment_dummy_firstswitch,
+        index=unit_var,
+        columns=time_var,
+        aggfunc=np.sum,
+        fill_value=0,
+        )
+
+    #rename cols
+    df_pivot.columns=[f"group_{x}" for x in df_pivot.columns]
+
+    #reset index
+    df_pivot=df_pivot.reset_index()
+
+    #group dummies
+    group_dummies=list(df_pivot.columns)
+
+    # Merge the pivoted data back into the original DataFrame
+    df=pd.merge(
+        left=df,
+        right=df_pivot,
+        how="left",
+        on=unit_var,
+        validate="m:1"
+        )
+
+    #newvars
+    newvars=[
+        treatment_dummy_firstswitch,
+        treatment_dummy,
+        time_dummy
+        ] + group_dummies
+
+    #return
+    return df, newvars
+
+
+#stagdid gen group dummies
+def _stagdid_groupdummies(df, unit_var, group_var, treatment_dummy):
+
+    #gen group dummies
+    df_pivot=pd.pivot_table(
+        data=df,
+        values=treatment_dummy,
+        index=unit_var,
+        columns=group_var,
+        aggfunc=np.sum,
+        fill_value=0,
+        )
+    
+    #reset index
+    df_pivot=df_pivot.reset_index()
+
+    #rename cols
+    df_pivot.columns=[f"group_{x}" for x in df_pivot.columns]
+
+    #newvars
+    newvars=list(df_pivot.columns)
+
+    # Merge the pivoted data back into the original DataFrame
+    df=pd.merge(
+        left=df,
+        right=df_pivot,
+        how="left",
+        on=unit_var,
+        validate="m:1"
+        )
+    
+    #return
+    return df, newvars
 
 
 #echo newvars
@@ -2534,37 +2565,41 @@ def _echo_newvars(df):
         })
 
     #dummy vars
-    oldvars=[
-        "echo_penalty_amount",
-        ]
+    oldvars=["echo_penalty_amount",]
     df, newvars = _dummyifpositive_vars(df, oldvars)
 
     #ln
     oldvars=["echo_penalty_amount"]
     df, newvars = _ln_vars(df, oldvars)
 
+    #lag
+    oldvars=["ln_echo_penalty_amount"]
+    df, newvars = _lag_vars(df, oldvars)
+
     #dummy enforcement action
     df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
 
-    #staggered treated XXX
-
-
+    #stagdid 
+    unit_var=crspcomp_cusip
+    time_var=crspcomp_fyear
+    treatment_dummy_switch="echo_enforcement_dummy"
+    df, stagdid_vars = _stagdid(df, unit_var, time_var, treatment_dummy_switch)
+    
     #echo vars
     echo_vars=[
         #amount
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
         "echo_penalty_amount",
-
-        #staggered
-        #"echo_enforcement_treated",
+        "ln_echo_penalty_amount"
+        "lag_ln_echo_penalty_amount"
 
         #years
         "echo_initiation_year",
         "echo_penalty_year",
         "echo_initiation_lag",
         "case_number",
-        ] + newvars
+        ] + stagdid_vars
 
     #return
     return df, echo_vars
@@ -2646,9 +2681,10 @@ def _crspcompustat_newvars(df):
 
 
 #industry famafrench
-def _industry_famafrench(value):
+def _sic_to_famafrench(value, mapping):
 
-    #https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/Data_Library/det_12_ind_port.html
+    #default value, e.g., 49 "other"
+    default_val=max(int(value) for value in mapping.values())
 
     #if
     if pd.isna(value):
@@ -2660,19 +2696,18 @@ def _industry_famafrench(value):
     elif pd.notna(value):
 
         #newval
-        newval="Other"
+        newval=default_val
 
         #if
-        for i, (sic_range, ff_name) in enumerate(sic_to_ff_mapping.items()):
+        for i, (sic_range, ff_code) in enumerate(mapping.items()):
 
             #if
             if value in sic_range:
 
                 #newval
-                newval=ff_name
+                newval=ff_code
 
-        #lowercase
-        newval=newval.lower()
+        newval=int(newval)
 
     #return
     return newval
@@ -2695,14 +2730,14 @@ def _industry_drop(df, col, industry_col):
 
 
 #gen dummies
-def _gen_dummies(df, col, prefix):
+def _gen_dummies(df, col, prefix, drop_first):
 
     #get dummies
     dummies=pd.get_dummies(
         df[col],
         prefix=prefix,
         prefix_sep="_",
-        drop_first=True,
+        drop_first=drop_first,
         )
 
     #colnames
@@ -2716,10 +2751,14 @@ def _gen_dummies(df, col, prefix):
 
 
 #drop industry
-def _industry_newvars(df):
+def _industry_newvars(df, filepath):
+
+    #mapping
+    mapping=_filepath_to_mapping(filepath)
 
     #industry col
-    industry_col="industry_famafrench"
+    n=int(''.join(char for char in filepath if char.isdigit()))
+    industry_col=f"industry_famafrench{n}"
 
     #to numeric
     tonumeric_cols=[
@@ -2730,7 +2769,7 @@ def _industry_newvars(df):
 
     #gen
     oldvalues=df[crspcomp_sic].values
-    df[industry_col]=np.array([_industry_famafrench(x) for x in oldvalues])
+    df[industry_col]=np.array([_sic_to_famafrench(x, mapping) for x in oldvalues])
 
     #irs drop
     col="dummy_both"
@@ -2742,8 +2781,9 @@ def _industry_newvars(df):
 
     #industry dummies
     col=industry_col
-    prefix="industry_ff_dummy"
-    df, dummies_cols = _gen_dummies(df, col, prefix)
+    prefix=f"{industry_col}_dummy"
+    drop_first=True
+    df, dummies_cols = _gen_dummies(df, col, prefix, drop_first)
 
     #newvars
     newvars=[
@@ -2841,28 +2881,33 @@ def _crspcompustat_donations_echo_screen(folders, items):
     #crspcompustat newvars
     df, crspcompustat_vars = _crspcompustat_newvars(df)
 
-    #industry
-    df, industry_vars = _industry_newvars(df)
+    #industry 
+    filepath="_resources/Siccodes49.txt"
+    df, industry_vars = _industry_newvars(df, filepath)
 
     #year dummies
     col=crspcomp_fyear
     prefix="year_dummy"
-    df, year_dummies = _gen_dummies(df, col, prefix)
+    drop_first=True
+    df, year_dummies = _gen_dummies(df, col, prefix, drop_first)
 
     #firm dummies
     col=crspcomp_cusip
     prefix="firm_dummy"
-    #df, firm_dummies = _gen_dummies(df, col, prefix)
+    drop_first=True
+    #df, firm_dummies = _gen_dummies(df, col, prefix, drop_first)
 
     #state dummies
     col=crspcomp_state
     prefix="state_dummy"
-    #df, state_dummies = _gen_dummies(df, col, prefix)
+    drop_first=True
+    #df, state_dummies = _gen_dummies(df, col, prefix, drop_first)
 
     #incorp dummies
     col=crspcomp_incorp
     prefix="incorp_dummy"
-    #df, incorp_dummies = _gen_dummies(df, col, prefix)
+    drop_first=True
+    #df, incorp_dummies = _gen_dummies(df, col, prefix, drop_first)
 
     #ordered
     ordered_cols=[
@@ -2893,9 +2938,6 @@ _crspcompustat_donations_echo_screen(folders, items)
 print("done")
 
 
-#staggered did
-#y=change donations, right=treated
 
-#https://github.com/EddieYang211/ebal-py
-#entropy balancing: based on covariates
+#stagdid
 

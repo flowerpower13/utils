@@ -5,7 +5,7 @@ from rapidfuzz import process, utils as fuzz_utils
 
 
 #read csv lowercase
-def _readcsv_lowercase(df_path, df_ons):
+def _readcsv_lowercase(df_path):
 
     #read
     filepath=f"{df_path}.csv"

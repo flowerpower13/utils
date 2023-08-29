@@ -66,6 +66,7 @@ tuples_replace=[
     ("post2019x",                       "Post2019 $\\times$ "),
 
     #echo
+    ("lag_ln_echo_penalty_amount &",    "EPA Penalty Amount (logs, lag 1y) &"),
     ("ln_echo_penalty_amount &",        "EPA Penalty Amount (logs) &"),
     ("echo_enforcement_dummy &",        "EPA Enforcement Likelihood &"),
     ("echo_penalty_dummy &",            "EPA Penalty Likelihood &"),
@@ -711,21 +712,6 @@ def _table_regs(results):
     
     #year
     post_year_dummies = [
-        "post2000",
-        "post2001",
-        "post2002",
-        "post2003",
-        "post2004",
-        "post2005",
-        "post2006",
-        "post2007",
-        "post2008",
-        "post2009",
-        "post2010",
-        "post2011",
-        "post2012",
-        "post2013",
-        "post2014",
         "post2015",
         "post2016",
         "post2017",
@@ -733,10 +719,9 @@ def _table_regs(results):
         "post2019",
         "post2020",
         "post2021",
-        "post2022"
+        "post2022",
     ]
 
-    
     #to numeric
     tonumeric_cols=depvars + indepvars + post_year_dummies
     errors="raise"
