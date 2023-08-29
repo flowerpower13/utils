@@ -2516,8 +2516,8 @@ def _donations_newvars(df):
         ] + ln_vars + lag_vars + change_vars
 
     #post year + interation
-    start_year=2015
-    stop_year=2019
+    start_year=2000
+    stop_year=2022
     level_vars=donation_vars
     df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
 

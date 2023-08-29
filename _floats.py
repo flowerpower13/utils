@@ -709,17 +709,36 @@ def _table_regs(results):
         "dummy_both_past3",
         ]
     
-    #post_time_dummy
-    post_time_dummies=[
+    #year
+    post_year_dummies = [
+        "post2000",
+        "post2001",
+        "post2002",
+        "post2003",
+        "post2004",
+        "post2005",
+        "post2006",
+        "post2007",
+        "post2008",
+        "post2009",
+        "post2010",
+        "post2011",
+        "post2012",
+        "post2013",
+        "post2014",
         "post2015",
         "post2016",
         "post2017",
         "post2018",
         "post2019",
-        ]
+        "post2020",
+        "post2021",
+        "post2022"
+    ]
+
     
     #to numeric
-    tonumeric_cols=depvars + indepvars + post_time_dummies
+    tonumeric_cols=depvars + indepvars + post_year_dummies
     errors="raise"
     df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
@@ -730,7 +749,7 @@ def _table_regs(results):
         for k, indepvar in enumerate(indepvars):
 
             #for
-            for l, time in enumerate(post_time_dummies):
+            for l, time in enumerate(post_year_dummies):
                 
                 #formula
                 formula=f"{depvar} ~ {time}*{indepvar} + {time} + {indepvar} "
@@ -742,16 +761,21 @@ def _table_regs(results):
                 res=mod.fit()
 
                 #params
-                params=str(res.params[3:4])
+                params=res.params
 
                 #betas
-                betas=params.replace("dtype: float64", "")
-                #betas=betas.replace(indepvar, "")
-                #betas=betas.replace(time, "")
-                betas=betas.strip()
+                beta=params[indepvar]
 
-                #print
-                print(f"{formula}\n{betas}\n")
+                #pvalues
+                pvalues=res.pvalues
+
+                #beta_p
+                beta_pval=pvalues[indepvar]
+
+                if (beta<0) and (beta_pval<0.1):
+
+                    #print
+                    print(f"{formula}\n{beta}\n{beta_pval}\n")
 
 
 
