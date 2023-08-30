@@ -1,69 +1,27 @@
 import pandas as pd
 import numpy as np
+import statsmodels.formula.api as smf
 
-# Sample DataFrame
-data = {'firm': ['a', 'a', 'a', 
-                 'b', 'b', 'b'],
-        'year': [2000, 2001, 2002, 
-                 2000, 2001, 2002],
-        'treatment_dummy_switch': [0, 0, 1, 
-                              1, 1, 0]}
-df = pd.DataFrame(data)
-print(df)
+# Create a DataFrame with fixed values for demonstration
+data = pd.DataFrame({
+    'dependent_variable': np.random.randn(99),  # Corrected to match length
+    'independent_variable': np.random.randn(99),  # Corrected to match length
+    'category_column': ['A', 'B', 'C'] * 33  # Repeats 'A', 'B', 'C' for demonstration
+})
 
+# Specify the formula for the model
+formula_with_dummies = 'dependent_variable ~ independent_variable + C(category_column)'
 
-#oldvars
-unit_var="firm"
-time_var="year"
-treatment_dummy_switch="treatment_dummy_switch"
+# Fit the regression model with fixed effects using dummy variables
+model_with_dummies = smf.ols(formula_with_dummies, data=data).fit()
 
-#newvars
-treatment_dummy_firstswitch="treatment_dummy_firstswitch"
-treatment_dummy="treatment_dummy"
-time_dummy="time_dummy"
+# Using C(category_column) in the formula
+formula_with_C = 'dependent_variable ~ independent_variable + C(category_column)'
+model_with_C = smf.ols(formula_with_C, data=data).fit()
 
-#treatment dummy first switch
-df[treatment_dummy_firstswitch]=(df.groupby(unit_var)[treatment_dummy_switch]
-                                 .apply(lambda x: (x == 1) & (x.shift(1) != 1))
-                                 .astype(int)
-                                 )
-#treatment dummy
-df[treatment_dummy]=df.groupby(unit_var)[treatment_dummy_switch].cummax()
+# Compare results
+print("Model with dummy variables:")
+print(model_with_dummies.summary())
 
-#time dummy
-df[time_dummy]=df[treatment_dummy]
-
-#gen group dummies
-df_pivot=pd.pivot_table(
-    data=df,
-    values=treatment_dummy_firstswitch,
-    index=unit_var,
-    columns=time_var,
-    aggfunc=np.sum,
-    fill_value=0,
-    )
-
-#rename cols
-df_pivot.columns=[f"group_{x}" for x in df_pivot.columns]
-
-#reset index
-df_pivot=df_pivot.reset_index()
-
-#newvars
-group_dummies=list(df_pivot.columns)
-
-# Merge the pivoted data back into the original DataFrame
-df=pd.merge(
-    left=df,
-    right=df_pivot,
-    how="left",
-    on=unit_var,
-    validate="m:1"
-    )
-
-
-newvars=[
-    treatment_dummy_firstswitch,
-    treatment_dummy,
-    time_dummy
-    ] + group_dummies
+print("\nModel using C(category_column) in the formula:")
+print(model_with_C.summary())

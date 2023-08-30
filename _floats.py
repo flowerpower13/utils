@@ -17,21 +17,32 @@ from _pd_utils import _tonumericcols_to_df
 
 
 #vars
+INTERACT=":"
 tuples_replace=[
     #log ln amount
     ("lag_ln_amount_democratic &",          "Donations (logs, lag 1y) to Dem. AG assn &"),
     ("lag_ln_amount_republican &",          "Donations (logs, lag 1y) to Rep. AG assn &"),
     ("lag_ln_amount_both &",                "Donations (logs, lag 1y) to both AG assn &"),
 
+    #change ln amount
+    ("change_ln_amount_democratic &",       "Donations \Delta\% to Dem. AG assn &"),
+    ("change_ln_amount_republican &",       "Donations \Delta\% to Rep. AG assn &"),
+    ("change_ln_amount_both &",             "Donations \Delta\% to both AG assn &"),
+
     #ln amount
-    ("ln_amount_democratic &",          "Donations (logs) to Dem. AG assn &"),
-    ("ln_amount_republican &",          "Donations (logs) to Rep. AG assn &"),
-    ("ln_amount_both &",                "Donations (logs) to both AG assn &"),
+    ("ln_amount_democratic &",              "Donations (logs) to Dem. AG assn &"),
+    ("ln_amount_republican &",              "Donations (logs) to Rep. AG assn &"),
+    ("ln_amount_both &",                    "Donations (logs) to both AG assn &"),
+
+    #change amount
+    ("change_amount_democratic &",          "Donations \Delta to Dem. AG assn &"),
+    ("change_amount_republican &",          "Donations \Delta to Rep. AG assn &"),
+    ("change_amount_both &",                "Donations \Delta to both AG assn &"),
 
     #amount
-    ("amount_democratic &",             "Donations to Dem. AG assn &"),
-    ("amount_republican &",             "Donations to Rep. AG assn &"),
-    ("amount_both &",                   "Donations to both AG assn &"),
+    ("amount_democratic &",                 "Donations to Dem. AG assn &"),
+    ("amount_republican &",                 "Donations to Rep. AG assn &"),
+    ("amount_both &",                       "Donations to both AG assn &"),
 
     #lag dummy
     ("lag_dummy_democratic &",              "Donated (lag 1y) to Dem. AG assn &"),
@@ -39,44 +50,47 @@ tuples_replace=[
     ("lag_dummy_both &",                    "Donated (lag 1y) to any AG assn &"),
 
     #dummy
-    ("dummy_democratic &",              "Donated to Dem. AG assn &"),
-    ("dummy_republican &",              "Donated to Rep. AG assn &"),
-    ("dummy_both &",                    "Donated to any AG assn &"),
+    ("dummy_democratic &",                  "Donated to Dem. AG assn &"),
+    ("dummy_republican &",                  "Donated to Rep. AG assn &"),
+    ("dummy_both &",                        "Donated to any AG assn &"),
 
     #ln amount past
-    ("ln_amount_democratic_past3 &",    "Donations (logs) to Dem. AG assn past 3y &"),
-    ("ln_amount_republican_past3 &",    "Donations (logs) to Rep. AG assn past 3y &"),
-    ("ln_amount_both_past3 &",          "Donations (logs) to both AG assn past 3y &"),
+    ("ln_amount_democratic_past3 &",        "Donations (logs) to Dem. AG assn past 3y &"),
+    ("ln_amount_republican_past3 &",        "Donations (logs) to Rep. AG assn past 3y &"),
+    ("ln_amount_both_past3 &",              "Donations (logs) to both AG assn past 3y &"),
 
     #amount past
-    ("amount_democratic_past3 &",       "Donations to Dem. AG assn past 3y &"),
-    ("amount_republican_past3 &",       "Donations to Rep. AG assn past 3y &"),
-    ("amount_both_past3 &",             "Donations to both AG assn past 3y &"),
+    ("amount_democratic_past3 &",           "Donations to Dem. AG assn past 3y &"),
+    ("amount_republican_past3 &",           "Donations to Rep. AG assn past 3y &"),
+    ("amount_both_past3 &",                 "Donations to both AG assn past 3y &"),
 
     #dummy past
-    ("dummy_democratic_past3 &",        "Donated to Dem. AG assn past 3y &"),
-    ("dummy_republican_past3 &",        "Donated to Rep. AG assn past 3y &"),
-    ("dummy_both_past3 &",              "Donated to any AG assn past 3y &"),
+    ("dummy_democratic_past3 &",            "Donated to Dem. AG assn past 3y &"),
+    ("dummy_republican_past3 &",            "Donated to Rep. AG assn past 3y &"),
+    ("dummy_both_past3 &",                  "Donated to any AG assn past 3y &"),
 
     #post
-    ("post2015x",                       "Post2015 $\\times$ "),
-    ("post2016x",                       "Post2016 $\\times$ "),
-    ("post2017x",                       "Post2017 $\\times$ "),
-    ("post2018x",                       "Post2018 $\\times$ "),
-    ("post2019x",                       "Post2019 $\\times$ "),
+    ("group_2000",                          "Group Dummy 2000"),
+    ("time_dummy",                          "Time Dummy"),
+
+    #echo lag
+    ("lag_ln_echo_penalty_amount &",        "EPA Penalty Amount (logs, lag 1y) &"),
+    ("lag_echo_enforcement_dummy &",        "EPA Enforcement Likelihood (lag 1y) &"),
+    ("lag_echo_penalty_dummy &",            "EPA Penalty Likelihood (lag 1y) &"),
+    ("lag_echo_penalty_amount &",           "EPA Penalty Amount (lag 1y) &"),
 
     #echo
-    ("lag_ln_echo_penalty_amount &",    "EPA Penalty Amount (logs, lag 1y) &"),
-    ("ln_echo_penalty_amount &",        "EPA Penalty Amount (logs) &"),
-    ("echo_enforcement_dummy &",        "EPA Enforcement Likelihood &"),
-    ("echo_penalty_dummy &",            "EPA Penalty Likelihood &"),
-    ("echo_penalty_amount &",           "EPA Penalty Amount &"),
+    ("ln_echo_penalty_amount &",            "EPA Penalty Amount (logs) &"),
+    ("echo_enforcement_dummy &",            "EPA Enforcement Likelihood &"),
+    ("echo_penalty_dummy &",                "EPA Penalty Likelihood &"),
+    ("echo_penalty_amount &",               "EPA Penalty Amount &"),
+    
 
     #crspcompustat
-    ("firm_size &",                     "Firm Size &"),
-    ("leverage_ratio &",                "Leverage &"),
-    ("roa &",                           "ROA &"),
-    ("mtb &",                           "Market-to-Book &"),
+    ("firm_size &",                         "Firm Size &"),
+    ("leverage_ratio &",                    "Leverage &"),
+    ("roa &",                               "ROA &"),
+    ("mtb &",                               "Market-to-Book &"),
     ]
 
 
@@ -234,7 +248,7 @@ def _table_summaries(results):
 
 
 #interact var names
-def _interact_varnames(post_year_dummy, explanvars):
+def _interact_varnames(time_dummy, explanvars):
 
     #init
     interact_vars=[None]*len(explanvars)
@@ -243,7 +257,7 @@ def _interact_varnames(post_year_dummy, explanvars):
     for i, col in enumerate(explanvars):  
 
         #var name
-        interact_var=f"{post_year_dummy}x{col}"
+        interact_var=f"{time_dummy}{INTERACT}{col}"
 
         #update
         interact_vars[i]=interact_var
@@ -253,81 +267,90 @@ def _interact_varnames(post_year_dummy, explanvars):
 
 
 #indepvars
-def _indepvars(post_year_dummy, explanvars_i, controlvars, list_fe, df):
+def _indepvars(time_dummy, explanvars_i, controlvars):
 
     #if
-    if post_year_dummy==None:
+    if time_dummy=="No":
 
         #indepvars
         indepvars=explanvars_i + controlvars
 
     #if
-    if post_year_dummy!=None:
+    if time_dummy!="No":
 
         #interact vars
-        interact_vars=_interact_varnames(post_year_dummy, explanvars_i)
+        interact_vars=_interact_varnames(time_dummy, explanvars_i)
 
         #indepvars
-        indepvars=interact_vars + [post_year_dummy] + explanvars_i +  controlvars
-
-    #for
-    for i, dict_fe in enumerate(list_fe):
-
-        #unpack
-        present=dict_fe["present"]
-        prefix=dict_fe["prefix"]
-
-        #if
-        if present=="Yes":
-
-            #industry dummies cols
-            dummies=[x for x in df.columns if x.startswith(prefix)]
-
-            #indepvars
-            indepvars=indepvars + dummies
-
-        #elif
-        elif present=="No":
-
-            #pass
-            pass
+        indepvars=interact_vars + [time_dummy] + explanvars_i +  controlvars
 
     #return
     return indepvars
 
 
 #sm model
-def _sm_model(df, depvar, indepvars):
+def _sm_model(df, depvar, indepvars, list_fe):
+    
+    #join
+    join_indepvars=" + ".join(indepvars)
 
-    #Y X
-    y=df[depvar]
-    X=df[indepvars]
-    X=sm.add_constant(X)
+    #formula
+    formula=f"{depvar} ~ {join_indepvars}"
+
+    #for
+    for i, dict_fe in enumerate(list_fe):
+
+        #unpack
+        present=dict_fe["present"]
+        colname=dict_fe["colname"]
+
+        #if
+        if present=="Yes":
+
+            #dropna
+            dropna_cols=[colname]
+            df=df.dropna(subset=dropna_cols)
+
+            #to numeric
+            tonumeric_cols=[colname]
+            errors="raise"
+            df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+
+            #formula
+            formula=f"{formula} + C({colname})"
+
+    #remove interact_vars
+    indepvars=[x for x in indepvars if INTERACT not in x]
+
+    #dropna
+    dropna_cols=[depvar] + indepvars
+    df=df.dropna(subset=dropna_cols)
+
+    #to numeric
+    tonumeric_cols=[depvar] + indepvars
+    errors="raise"
+    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
     #model
-    mod=sm.OLS(
-        endog=y,
-        exog=X,
+    mod=smf.ols(
+        formula=formula,
+        data=df,
         )
-    
+
     #return
     return mod
 
 
 #sm results
-def _sm_results(df, depvar, indepvars, clusters):
+def _sm_results(df, depvar, indepvars, clusters, list_fe):
 
     #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
 
     #if
     if clusters==["No"]:
 
-        #dropna
-        dropna_cols=[depvar] + indepvars
-        df=df.dropna(subset=dropna_cols)
-
         #mod
-        mod=_sm_model(df, depvar, indepvars)
+        mod=_sm_model(df, depvar, indepvars, list_fe)
 
         #res
         res=mod.fit()
@@ -336,11 +359,11 @@ def _sm_results(df, depvar, indepvars, clusters):
     elif clusters!=["No"]:
 
         #dropna
-        dropna_cols=[depvar] + indepvars + clusters
+        dropna_cols=clusters
         df=df.dropna(subset=dropna_cols)
 
         #mod
-        mod=_sm_model(df, depvar, indepvars)
+        mod=_sm_model(df, depvar, indepvars, list_fe)
 
         #groups
         groups=[pd.factorize(df[col])[0] for col in clusters]
@@ -406,21 +429,21 @@ def _addline(stargazer, inputs):
 
 
 #ordered cols
-def _ordered_cols(post_year_dummy, explanvars, controlvars):
+def _ordered_cols(time_dummy, explanvars, controlvars):
 
     #if
-    if post_year_dummy==None:
+    if time_dummy=="No":
 
         #orderedd cols
-        ordered_cols=["const"] + explanvars + controlvars
+        ordered_cols=explanvars + controlvars
 
     #elif
-    elif post_year_dummy!=None:
+    elif time_dummy!="No":
 
-        interact_vars=_interact_varnames(post_year_dummy, explanvars)
+        interact_vars=_interact_varnames(time_dummy, explanvars)
 
         #orderedd cols
-        ordered_cols=["const"] + interact_vars + [post_year_dummy] + explanvars + controlvars
+        ordered_cols=interact_vars + [time_dummy] + explanvars + controlvars
 
     #return
     return ordered_cols
@@ -473,7 +496,7 @@ def _add_resizebox(text):
 
 
 #table reg
-def _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name):
+def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, depvar, depvar_name):
 
     #n_models
     n_models=len(inputs)
@@ -481,34 +504,30 @@ def _table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label,
     #init
     models=[None]*n_models
     subsample_names=[None]*n_models
-    fe_presents=[None]*n_models
 
+    #for
     for i, input in enumerate(inputs):
 
         #dict
         explanvars_i=input["explanvars_i"]
+        time_dummy=input["time_dummy"]
         df=input["subsample"]["subsample_df"]
         subsample_name=input["subsample"]["subsample_name"]
         list_fe=input["fixedeffects"]
         clusters=input["clusters"]
 
         #indepvars
-        indepvars=_indepvars(post_year_dummy, explanvars_i, controlvars, list_fe, df)
-
-        #to numeric
-        tonumeric_cols=[depvar] + indepvars
-        errors="raise"
-        df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+        indepvars=_indepvars(time_dummy, explanvars_i, controlvars)
 
         #res
-        res=_sm_results(df, depvar, indepvars, clusters)
+        res=_sm_results(df, depvar, indepvars, clusters, list_fe)
 
         #update
         models[i]=res
         subsample_names[i]=subsample_name
 
     #ordered cols
-    ordered_cols=_ordered_cols(post_year_dummy, explanvars, controlvars)
+    ordered_cols=_ordered_cols(time_dummy, explanvars, controlvars)
 
     #sig_digits
     sig_digits=3
@@ -595,34 +614,10 @@ def _table_regs(results):
         #nrows=1000,
         )
 
-    #time dummy
-    post_year_dummy="post2015"
-    post_year_dummy="post2016"
-    post_year_dummy="post2017"
-    post_year_dummy="post2018"
-    post_year_dummy="post2019"
-
     #explanatory vars
     explanvars=[
-        #amount
-        #"lag_ln_amount_democratic",
-        #"lag_ln_amount_republican",
-        #"lag_ln_amount_both",
-
-        #amount past
-        #"ln_amount_democratic_past3",
-        #"ln_amount_republican_past3",
-        #"ln_amount_both_past3",
-
-        #dummy
-        #"lag_dummy_democratic", 
-        #"lag_dummy_republican",
-        #"lag_dummy_both",
-
-        #dummy past
-        #"dummy_democratic_past3", 
-        "dummy_republican_past3",
-        #"dummy_both_past3",
+        #group dummies
+        "group_2000",
         ]
     
     #control vars
@@ -632,98 +627,89 @@ def _table_regs(results):
         "roa",
         "mtb",
         ]
-    
+
     #subsamples
-    df0=df[df["echo_enforcement_dummy"]=="1"]
+    #df0=df[df["echo_enforcement_dummy"]=="1"]
     
     #inputs
     inputs=[
             {
-            "explanvars_i": ["dummy_republican_past3"],
+            "explanvars_i": ["group_2000"],
+            "time_dummy": "time_dummy",
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "No", "prefix": "industry_ff_dummy"}, 
-                            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
-                            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+                            {"name": "IndustryFE",  "present": "No", "colname": "industry_famafrench49"}, 
+                            {"name": "YearFE",      "present": "No", "colname": "fyear"},
                             ],
             "clusters": ["No"],
             },
 
-            {
-            "explanvars_i": ["dummy_republican_past3"],
-            "subsample": {"subsample_df": df0, "subsample_name": "Enforcement sample"},
+            {"explanvars_i": ["group_2000"],
+            "time_dummy": "time_dummy",
+            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "No", "prefix": "industry_ff_dummy"}, 
-                            {"name": "YearFE",      "present": "No", "prefix": "year_dummy"},  
-                            {"name": "FirmFE",      "present": "No", "prefix": "firm_dummy"}, 
+                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
+                            {"name": "YearFE",      "present": "No", "colname": "fyear"},
                             ],
             "clusters": ["No"],
             },
         ]
 
-    #severity
+    #stagdid
     #label
-    label="echo_severity_tablereg"
+    label="echo_stagdid_tablereg"
 
     #caption
-    caption="Political Contributions and Enforcement Severity - DiD"
+    caption="Enforcement and Political Contributions - Staggered DiD"
 
     #depvar
-    depvar="ln_echo_penalty_amount"
-    depvar_name="EPA Penalty Amount (logs)"
+    depvar="change_ln_amount_democratic"
+    depvar_name="Donations change"
 
     #table reg
-    #_table_reg(results, post_year_dummy, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
+    _table_reg(df, results, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
 
+
+
+
+
+
+
+#iter regs
+def _iter_regs():
 
     #depvars
     depvars=[
-        "echo_enforcement_dummy",
-        "echo_penalty_dummy",
-        "ln_echo_penalty_amount",
+        #change ln amount
+        "change_ln_amount_democratic"
+        "change_ln_amount_republican"
+        "change_ln_amount_both"
+
+        #ln amount
+        "ln_amount_democratic"
+        "ln_amount_republican"
+        "ln_amount_both"
+
+        #change amount
+        "change_amount_democratic"
+        "change_amount_republican"
+        "change_amount_both"
         ]
     
     indepvars=[
-        #amount
-        "lag_ln_amount_democratic",
-        "lag_ln_amount_republican",
-        "lag_ln_amount_both",
-
-        #change
-        "change_ln_amount_democratic",
-        "change_ln_amount_republican",
-        "change_ln_amount_both",
-
-        #amount past
-        "ln_amount_democratic_past3",
-        "ln_amount_republican_past3",
-        "ln_amount_both_past3",
-
-        #dummy
-        "lag_dummy_democratic", 
-        "lag_dummy_republican",
-        "lag_dummy_both",
-
-        #dummy past
-        "dummy_democratic_past3", 
-        "dummy_republican_past3",
-        "dummy_both_past3",
+        #lag
+        "group_2000",
+        "group_2001",
+        "group_2002",
         ]
     
     #year
-    post_year_dummies = [
-        "post2015",
-        "post2016",
-        "post2017",
-        "post2018",
-        "post2019",
-        "post2020",
-        "post2021",
-        "post2022",
-    ]
+    time_dummies = [
+        "time_dummy",
+        ]
 
     #to numeric
-    tonumeric_cols=depvars + indepvars + post_year_dummies
+    tonumeric_cols=depvars + indepvars + time_dummies
     errors="raise"
     df=_tonumericcols_to_df(df, tonumeric_cols, errors)
 
@@ -734,10 +720,10 @@ def _table_regs(results):
         for k, indepvar in enumerate(indepvars):
 
             #for
-            for l, time in enumerate(post_year_dummies):
+            for l, time in enumerate(time_dummies):
                 
                 #formula
-                formula=f"{depvar} ~ {time}*{indepvar} + {time} + {indepvar} "
+                formula=f"{depvar} ~ {time}:{indepvar} + {time} + {indepvar} "
 
                 #model
                 mod=smf.ols(formula, data=df)
@@ -763,10 +749,6 @@ def _table_regs(results):
                     print(f"{formula}\n{beta}\n{beta_pval}\n")
 
 
-
-
-    
-
 #gen floats
 results="zhao/article"
 def _generate_floats(results):
@@ -780,7 +762,8 @@ def _generate_floats(results):
     #table regs
     _table_regs(results)
 
-    #figures
+    #iter regs
+    #_iter_regs()
 
     pass
 

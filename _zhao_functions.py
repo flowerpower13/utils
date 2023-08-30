@@ -2293,13 +2293,13 @@ def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
     return df
 
 
-#post interaction
-def _post_vars(df, start_year, stop_year, level_vars):
+#post
+def _post_year_dummies(df, start_year, stop_year):
 
     #to numeric
     tonumeric_cols=[
         crspcomp_fyear,
-        ] + level_vars
+        ]
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
@@ -2308,13 +2308,6 @@ def _post_vars(df, start_year, stop_year, level_vars):
 
     #init vars
     post_year_dummies=[None]*len(years)
-    interact_vars=[None]*(len(level_vars)*len(years))
-
-    #newdict
-    newdict=dict()
-
-    #init i
-    i=0
 
     #for
     for j, year in enumerate(years):
@@ -2322,35 +2315,14 @@ def _post_vars(df, start_year, stop_year, level_vars):
         #var name
         post_year_dummy=f"post{year}"
 
-        #newdict
-        newdict[post_year_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
+        #gen var
+        df[post_year_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
 
         #update var
         post_year_dummies[j]=post_year_dummy
 
-        #interactions
-        for k, col in enumerate(level_vars):  
-
-            #var name
-            interact_var=f"{post_year_dummy}x{col}"
-
-            #newdict
-            newdict[interact_var]=newdict[post_year_dummy]*df[col]
-
-            #update var
-            interact_vars[i]=interact_var
-
-            #update i
-            i+=1
-
-    #new df
-    new_df=pd.DataFrame(newdict)
-
-    #concat
-    df=pd.concat([df, new_df], axis=1)
-
     #return
-    return df, post_year_dummies, interact_vars
+    return df, post_year_dummies
 
 
 #donations newvars
@@ -2457,13 +2429,13 @@ def _donations_newvars(df):
     start_year=2015
     stop_year=2022
     level_vars=donation_vars
-    df, post_year_dummies, donation_interact_vars = _post_vars(df, start_year, stop_year, level_vars)
+    df, post_year_dummies = _post_year_dummies(df, start_year, stop_year)
 
     #return
-    return df, donation_vars, post_year_dummies, donation_interact_vars
+    return df, donation_vars, post_year_dummies
 
 
-#stagdid prepare
+#stagdid
 def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
 
     #newvars
@@ -2471,11 +2443,20 @@ def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
     treatment_dummy="treatment_dummy"
     time_dummy="time_dummy"
 
-    #treatment dummy first switch
-    df[treatment_dummy_firstswitch]=(df.groupby(unit_var)[treatment_dummy_switch]
-                                    .apply(lambda x: (x == 1) & (x.shift(1) != 1))
-                                    .astype(int)
-                                    )
+    #sortvalues
+    sortvalues_cols=[
+        unit_var,
+        time_var,
+        ]
+    df=df.sort_values(by=sortvalues_cols)
+
+    #min indices
+    min_indices = df[df[treatment_dummy_switch] == 1].groupby(unit_var).apply(lambda x: x.index.min())
+
+    #treatment dummy firstswitch
+    df[treatment_dummy_firstswitch] = 0
+    df.loc[min_indices, treatment_dummy_firstswitch] = 1
+
     #treatment dummy
     df[treatment_dummy]=df.groupby(unit_var)[treatment_dummy_switch].cummax()
 
@@ -2498,7 +2479,7 @@ def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
     #reset index
     df_pivot=df_pivot.reset_index()
 
-    #group dummies
+    #newvars
     group_dummies=list(df_pivot.columns)
 
     # Merge the pivoted data back into the original DataFrame
@@ -2517,52 +2498,20 @@ def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
         time_dummy
         ] + group_dummies
 
-    #return
-    return df, newvars
-
-
-#stagdid gen group dummies
-def _stagdid_groupdummies(df, unit_var, group_var, treatment_dummy):
-
-    #gen group dummies
-    df_pivot=pd.pivot_table(
-        data=df,
-        values=treatment_dummy,
-        index=unit_var,
-        columns=group_var,
-        aggfunc=np.sum,
-        fill_value=0,
-        )
-    
-    #reset index
-    df_pivot=df_pivot.reset_index()
-
-    #rename cols
-    df_pivot.columns=[f"group_{x}" for x in df_pivot.columns]
-
-    #newvars
-    newvars=list(df_pivot.columns)
-
-    # Merge the pivoted data back into the original DataFrame
-    df=pd.merge(
-        left=df,
-        right=df_pivot,
-        how="left",
-        on=unit_var,
-        validate="m:1"
-        )
-    
-    #return
     return df, newvars
 
 
 #echo newvars
 def _echo_newvars(df):
 
+    #rename
     df=df.rename(columns={
         echo_penalty_amount: "echo_penalty_amount",
         echo_penalty_year: "echo_penalty_year",
         })
+    
+    #dummy enforcement action
+    df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
 
     #dummy vars
     oldvars=["echo_penalty_amount",]
@@ -2573,11 +2522,14 @@ def _echo_newvars(df):
     df, newvars = _ln_vars(df, oldvars)
 
     #lag
-    oldvars=["ln_echo_penalty_amount"]
+    oldvars=[
+        "echo_enforcement_dummy",
+        "echo_penalty_dummy",
+        "echo_penalty_amount",
+        "ln_echo_penalty_amount",
+        ]
     df, newvars = _lag_vars(df, oldvars)
 
-    #dummy enforcement action
-    df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
 
     #stagdid 
     unit_var=crspcomp_cusip
@@ -2587,12 +2539,19 @@ def _echo_newvars(df):
     
     #echo vars
     echo_vars=[
-        #amount
+        #dummy
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
+
+        #amount
         "echo_penalty_amount",
-        "ln_echo_penalty_amount"
-        "lag_ln_echo_penalty_amount"
+        "ln_echo_penalty_amount",
+
+        #lag
+        "lag_echo_enforcement_dummy",
+        "lag_echo_penalty_dummy",
+        "lag_echo_penalty_amount",
+        "lag_ln_echo_penalty_amount",
 
         #years
         "echo_initiation_year",
@@ -2714,44 +2673,26 @@ def _sic_to_famafrench(value, mapping):
 
 
 #industry drop
-def _industry_drop(df, col, industry_col):
+def _industry_drop(df, dropind_cols, industry_col):
 
-    #industry_counts
-    industry_counts=df.groupby(industry_col)[col].value_counts().unstack(fill_value=0)
+    #for
+    for i, col in enumerate(dropind_cols):
 
-    #industries_to_drop
-    industries_to_drop=industry_counts.index[industry_counts[1] == 0]
+        #industry_counts
+        industry_counts=df.groupby(industry_col)[col].value_counts().unstack(fill_value=0)
 
-    #keep if not in
-    df=df[~df[industry_col].isin(industries_to_drop)]
+        #industries_to_drop
+        industries_to_drop=industry_counts.index[industry_counts[1] == 0]
+
+        #keep if not in
+        df=df[~df[industry_col].isin(industries_to_drop)]
 
     #return
     return df
 
 
-#gen dummies
-def _gen_dummies(df, col, prefix, drop_first):
-
-    #get dummies
-    dummies=pd.get_dummies(
-        df[col],
-        prefix=prefix,
-        prefix_sep="_",
-        drop_first=drop_first,
-        )
-
-    #colnames
-    dummies_cols=list(dummies.columns)
-
-    #concat
-    df=pd.concat([df, dummies], axis=1)
-
-    #return
-    return df, dummies_cols
-
-
 #drop industry
-def _industry_newvars(df, filepath):
+def _industry_newvars(df, dropind_cols, filepath):
 
     #mapping
     mapping=_filepath_to_mapping(filepath)
@@ -2767,29 +2708,18 @@ def _industry_newvars(df, filepath):
     errors="raise"
     _tonumericcols_to_df(df, tonumeric_cols, errors)
 
-    #gen
+    #gen var
     oldvalues=df[crspcomp_sic].values
     df[industry_col]=np.array([_sic_to_famafrench(x, mapping) for x in oldvalues])
 
-    #irs drop
-    col="dummy_both"
-    df=_industry_drop(df, col, industry_col)
-
-    #echo drop
-    col="echo_enforcement_dummy"
-    df=_industry_drop(df, col, industry_col)
-
-    #industry dummies
-    col=industry_col
-    prefix=f"{industry_col}_dummy"
-    drop_first=True
-    df, dummies_cols = _gen_dummies(df, col, prefix, drop_first)
+    #drop industries if some cols always 0
+    df=_industry_drop(df, dropind_cols, industry_col)
 
     #newvars
     newvars=[
         crspcomp_sic,
         industry_col,
-        ] + dummies_cols
+        ] 
 
     #return
     return df, newvars
@@ -2873,7 +2803,7 @@ def _crspcompustat_donations_echo_screen(folders, items):
     df=df.sort_values(by=sortvalues_cols)
 
     #donations newvars
-    df, donation_vars, post_year_dummies, donation_interact_vars = _donations_newvars(df)
+    df, donation_vars, post_year_dummies = _donations_newvars(df)
 
     #echo newvars
     df, echo_vars = _echo_newvars(df)
@@ -2883,31 +2813,11 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
     #industry 
     filepath="_resources/Siccodes49.txt"
-    df, industry_vars = _industry_newvars(df, filepath)
-
-    #year dummies
-    col=crspcomp_fyear
-    prefix="year_dummy"
-    drop_first=True
-    df, year_dummies = _gen_dummies(df, col, prefix, drop_first)
-
-    #firm dummies
-    col=crspcomp_cusip
-    prefix="firm_dummy"
-    drop_first=True
-    #df, firm_dummies = _gen_dummies(df, col, prefix, drop_first)
-
-    #state dummies
-    col=crspcomp_state
-    prefix="state_dummy"
-    drop_first=True
-    #df, state_dummies = _gen_dummies(df, col, prefix, drop_first)
-
-    #incorp dummies
-    col=crspcomp_incorp
-    prefix="incorp_dummy"
-    drop_first=True
-    #df, incorp_dummies = _gen_dummies(df, col, prefix, drop_first)
+    dropind_cols=[
+        "dummy_both",
+        "echo_enforcement_dummy",
+        ]
+    df, industry_vars = _industry_newvars(df, dropind_cols, filepath)
 
     #ordered
     ordered_cols=[
@@ -2918,9 +2828,8 @@ def _crspcompustat_donations_echo_screen(folders, items):
         crspcomp_cusip,
         crspcomp_fyear,
         ]  +\
-        donation_vars + post_year_dummies + donation_interact_vars +\
-        echo_vars + crspcompustat_vars + industry_vars +\
-        year_dummies #+ firm_dummies + state_dummies + incorp_dummies
+        donation_vars + post_year_dummies +\
+        echo_vars + crspcompustat_vars + industry_vars
     df=df[ordered_cols]
 
     print("saving")
@@ -2936,8 +2845,4 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
 _crspcompustat_donations_echo_screen(folders, items)
 print("done")
-
-
-
-#stagdid
 

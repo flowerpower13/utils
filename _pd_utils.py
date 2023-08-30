@@ -86,7 +86,8 @@ def _groupby(df, by, dict_agg_colfunctions):
     not_by=[x for x in df_cols if x not in by]
 
     #groupby
-    df=df.groupby(by=by)[not_by].agg(dict_agg_colfunctions)
+    grouped=df.groupby(by=by)[not_by]
+    df=grouped.agg(dict_agg_colfunctions)
 
     #drop levels
     df.columns=df.columns.droplevel(1)
@@ -431,9 +432,6 @@ def _fillnacols_to_df(df, fillna_cols, value=0):
     return df
 
 
-#usecols, lowercase, dropna, to numeric, to date, fillna, sortvalues, panel, ordered
-
-
 #full panel
 '''
 cols_id=[
@@ -513,4 +511,27 @@ def _df_to_fullpanel(df, cols_id, years, fillna_cols):
     #return
     return df
 
+
+#usecols, lowercase, dropna, to numeric, to date, fillna, sortvalues, fullpanel, ordered
+
+
+#gen dummies
+def _gen_dummies(df, col, prefix, drop_first):
+
+    #get dummies
+    dummies=pd.get_dummies(
+        df[col],
+        prefix=prefix,
+        prefix_sep="_",
+        drop_first=drop_first,
+        )
+
+    #colnames
+    dummies_cols=list(dummies.columns)
+
+    #concat
+    df=pd.concat([df, dummies], axis=1)
+
+    #return
+    return df, dummies_cols
 
