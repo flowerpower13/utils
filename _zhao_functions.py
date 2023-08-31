@@ -2359,7 +2359,6 @@ def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
         #newvars
         treatment_firstswitch_dummy=f"{treatment_switch_dummy}_treatment_firstswitch_dummy"
         treatment_dummy=f"{treatment_switch_dummy}_treatment_dummy"
-        time_dummy=f"{treatment_switch_dummy}_time_dummy"
         group_var=f"{treatment_switch_dummy}_group"
         group_dummy=f"{treatment_switch_dummy}_group_dummy"
 
@@ -2379,9 +2378,6 @@ def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
 
         #treatment dummy
         df[treatment_dummy]=df.groupby(unit_var)[treatment_switch_dummy].cummax()
-
-        #time dummy
-        df[time_dummy]=df[treatment_dummy]
 
         #group var
         grouped=df[df[treatment_firstswitch_dummy] == 1].groupby(unit_var)[time_var].sum()
@@ -2437,7 +2433,6 @@ def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
         newvars_i=[
             treatment_firstswitch_dummy,
             treatment_dummy,
-            time_dummy,
             group_var,
             ] #+ group_dummies
 

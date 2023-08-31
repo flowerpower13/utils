@@ -663,6 +663,48 @@ def _table_regs(results):
 
 
 
+#results to latex
+def _results_to_latex(df, results, caption, label, tablenotes):
+
+    #styler object
+    styler_object=df.style
+
+    #format
+    format_styler="{:,.3f}"
+    #styler_object=styler_object.format(format_styler)
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+    tabular=styler_object.to_latex(hrules=True)
+
+    #replace
+    tabular=tabular.replace("_", " ")
+    
+    #text
+    text=(
+        #begin
+        "\\begin{table}[!htbp]" + "\n"
+        "\\centering" + "\n"
+
+        #caption label
+        f"\\caption{{{caption}}}" + "\n"
+        f"\\label{{{label}}}" + "\n"
+
+        "\\resizebox{\\textwidth}{!}{%" + "\n"
+
+        #tabular
+        f"{tabular}" + "}" + "\n"
+
+        #table notes
+        "\\begin{tablenotes}" + "\n"
+        f"{tablenotes}" + "\n"
+        "\\end{tablenotes}" + "\n"
+
+        #end
+        "\\end{table}" + "\n"
+        )
+
+    #save
+    _save_table(results, label, text)
 
 
 #attgt
@@ -739,50 +781,6 @@ def _csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_
     return att_gt
 
 
-#results to latex
-def _results_to_latex(df, results, caption, label, tablenotes):
-
-    #styler object
-    styler_object=df.style
-
-    #format
-    format_styler="{:,.3f}"
-    #styler_object=styler_object.format(format_styler)
-
-    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    tabular=styler_object.to_latex(hrules=True)
-
-    #replace
-    tabular=tabular.replace("_", " ")
-    
-    #text
-    text=(
-        #begin
-        "\\begin{table}[!htbp]" + "\n"
-        "\\centering" + "\n"
-
-        #caption label
-        f"\\caption{{{caption}}}" + "\n"
-        f"\\label{{{label}}}" + "\n"
-
-        "\\resizebox{\\textwidth}{!}{%" + "\n"
-
-        #tabular
-        f"{tabular}" + "}" + "\n"
-
-        #table notes
-        "\\begin{tablenotes}" + "\n"
-        f"{tablenotes}" + "\n"
-        "\\end{tablenotes}" + "\n"
-
-        #end
-        "\\end{table}" + "\n"
-        )
-
-    #save
-    _save_table(results, label, text)
-
-
 #floats
 def _csdid_floats(att_gt, results):
 
@@ -800,8 +798,8 @@ def _csdid_floats(att_gt, results):
     #types
     types=[
         "time",
-        "event",
-        "cohort",
+        #"event",
+        #"cohort",
         "simple",
         ]
     
@@ -837,7 +835,7 @@ def _csdid_floats(att_gt, results):
         label=type_of_aggregation
 
         #tablenotes
-        tablenotes=f"The Average Treatment Effects on the treated groups \\textit{{g}} at time \\textit{{t}} are aggregated at {type_of_aggregation}-level."
+        tablenotes=f"The Average Treatment Effects for treated group \\textit{{g}} at time \\textit{{t}} are aggregated at {type_of_aggregation}-level."
         
         #to_latex
         _results_to_latex(df, results, caption, label, tablenotes)
@@ -876,7 +874,7 @@ def _csdid(results):
     df=pd.read_csv(
         filepath,
         dtype="string",
-        nrows=1000,
+        #nrows=1000,
         )
     
     #control vars
@@ -887,9 +885,23 @@ def _csdid(results):
         #"mtb",
         ]
     
-    #parameters
+    #control group
+    control_groups=[
+        "never_treated",
+        "not_yet_treated",
+        ]
     control_group="never_treated"
-    est_method="dr"
+
+    #est_method
+    est_methods=[
+        "dr-mle",
+        "dr-ipt",
+        "reg",
+        "std_ipw-mle"
+        ]
+    est_method="dr-mle"
+
+    #cluster_var
     cluster_var=None
 
     #group var
@@ -913,9 +925,7 @@ def _csdid(results):
 
     #figures  
     _csdid_floats(att_gt, results)
-
-    #for XXX
-
+    
 
 _csdid(results)
 #print("done")
