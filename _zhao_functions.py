@@ -343,8 +343,7 @@ def _irs_contributors_screen(folders, items):
         organization_id,
         contribution_amount_ytd,
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #to date
     todate_cols=[
@@ -518,8 +517,7 @@ def _echo_facilities_screen(folders, items):
         "activity_id", 
         "registry_id", 
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #sortvalues
     sortvalues_cols=[
@@ -652,8 +650,7 @@ def _echo_enforcements_screen(folders, items):
         "activity_id",
         "settlement_fy",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
         
     #sortvalues
     sortvalues_cols=[
@@ -753,8 +750,7 @@ def _echo_milestones_screen(folders, items):
     tonumeric_cols=[
         "activity_id",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #to date
     todate_cols=[
@@ -858,8 +854,7 @@ def _echo_tri_screen(folders, items):
         "epa_registry_id",
         "reporting_year",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #sortvalues
     sortvalues_cols=[
@@ -936,8 +931,7 @@ def _violtrack_screen(folders, items):
         violtrack_penalty_year,
         violtrack_penalty_amount,
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #drop na
     dropna_cols=[
@@ -1100,8 +1094,7 @@ def _osha_violation_screen(folders, items):
         "gravity",
         "nr_exposed",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #to date
     todate_cols=[
@@ -1269,8 +1262,7 @@ def _osha_inspection_screen(folders, items):
         "activity_nr",
         "nr_in_estab",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #to date
     todate_cols=[
@@ -1447,8 +1439,7 @@ def _irs_contributors_aggregate(folders, items):
         contribution_year,
         contribution_amount_ytd,
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #aggregate over organization-contributor-year obs
     by=[
@@ -1605,8 +1596,7 @@ def _echo_aggregate(folders, items):
         echo_penalty_year,
         echo_penalty_amount,
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #initiation lag
     col0=echo_penalty_year
@@ -1889,8 +1879,7 @@ def _violtrack_aggregate(folders, items):
         violtrack_initiation_lag,
         violtrack_penalty_amount,
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #keep internal isin, if not present keep external
     col0="current_parent_isin"
@@ -2061,8 +2050,7 @@ def _osha_aggregate(folders, items):
         "nr_exposure",
         "nr_in_estab",
         ]
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #aggregate over company-init year obs
     by=[
@@ -2121,8 +2109,7 @@ def _ln_vars(df, oldvars):
 
     #to numeric
     tonumeric_cols=oldvars
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #init
     newvars=[None]*len(oldvars)
@@ -2151,8 +2138,7 @@ def _lag_vars(df, oldvars):
 
     #to numeric
     tonumeric_cols=oldvars
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #init
     newvars=[None]*len(oldvars)
@@ -2181,8 +2167,7 @@ def _change_vars(df, oldvars):
 
     #to numeric
     tonumeric_cols=oldvars
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #init
     newvars=[None]*len(oldvars)
@@ -2208,8 +2193,7 @@ def _dummyifpositive_vars(df, oldvars):
 
     #to numeric
     tonumeric_cols=oldvars
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #init
     newvars=[None]*len(oldvars)
@@ -2252,56 +2236,14 @@ def _dummyifpositive_vars(df, oldvars):
     return df, newvars
 
 
-#gen aggregate pastn
-def _aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts):
-
-    #to numeric
-    tonumeric_cols=[
-        oldvar,
-        ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
-
-    #init cols
-    var_shifted_cols=[None]*n_shifts
-
-    #for
-    for i in range(n_shifts):
-
-        #periods
-        periods=i+1
-
-        #col name
-        var_shifted=f"{oldvar}_shift{periods}"
-
-        #gen new col
-        df[var_shifted]=df.groupby(col_identifier)[oldvar].shift(periods=periods, fill_value=0)
-
-        #update cols
-        var_shifted_cols[i]=var_shifted
-
-    #y
-    y=agg_funct(df[var_shifted_cols], axis=1)
-
-    #newvar
-    newvar=f"{oldvar}_past{n_shifts}"
-
-    #gen
-    df[newvar]=y
-
-    #return
-    return df
-
-
-#post
+#post year dummies
 def _post_year_dummies(df, start_year, stop_year):
 
     #to numeric
     tonumeric_cols=[
         crspcomp_fyear,
         ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #years
     years=list(range(start_year, (stop_year+1)))
@@ -2339,21 +2281,6 @@ def _donations_newvars(df):
         ]
     df, newvars = _dummyifpositive_vars(df, oldvars)
 
-    #agreggate past
-    col_identifier=crspcomp_cusip
-    n_shifts=3
-    tuples=[
-        #amount
-        ("amount_democratic", np.sum, n_shifts),
-        ("amount_republican", np.sum, n_shifts),
-        ("amount_both", np.sum, n_shifts),
-        #dummy
-        ("dummy_democratic", np.prod, n_shifts),
-        ("dummy_republican", np.prod, n_shifts),
-        ("dummy_both", np.prod, n_shifts),
-        ]
-    for i, (oldvar, agg_funct, n_shifts) in enumerate(tuples):
-        df=_aggregate_pastn(df, col_identifier, oldvar, agg_funct, n_shifts)
     
     #ln
     oldvars=[
@@ -2361,11 +2288,6 @@ def _donations_newvars(df):
         "amount_democratic",
         "amount_republican",
         "amount_both",
-
-        #amount past
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
         ]
     df, ln_vars = _ln_vars(df, oldvars)
 
@@ -2409,25 +2331,15 @@ def _donations_newvars(df):
         "amount_republican",
         "amount_both",
 
-        #amount past
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
-
         #dummy
         "dummy_democratic",
         "dummy_republican", 
         "dummy_both",
-
-        #dummy past
-        "dummy_democratic_past3",
-        "dummy_republican_past3",
-        "dummy_both_past3",
         ] + ln_vars + lag_vars + change_vars
 
-    #post year + interation
+    #post year + interaction
     start_year=2015
-    stop_year=2022
+    stop_year=2019
     level_vars=donation_vars
     df, post_year_dummies = _post_year_dummies(df, start_year, stop_year)
 
@@ -2436,68 +2348,103 @@ def _donations_newvars(df):
 
 
 #stagdid
-def _stagdid(df, unit_var, time_var, treatment_dummy_switch):
+def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
 
-    #newvars
-    treatment_dummy_firstswitch="treatment_dummy_firstswitch"
-    treatment_dummy="treatment_dummy"
-    time_dummy="time_dummy"
+    #init
+    newvars=list()
 
-    #sortvalues
-    sortvalues_cols=[
-        unit_var,
-        time_var,
-        ]
-    df=df.sort_values(by=sortvalues_cols)
+    #for
+    for i, treatment_switch_dummy in enumerate(treatment_switch_dummies):
 
-    #min indices
-    min_indices = df[df[treatment_dummy_switch] == 1].groupby(unit_var).apply(lambda x: x.index.min())
+        #newvars
+        treatment_firstswitch_dummy=f"{treatment_switch_dummy}_treatment_firstswitch_dummy"
+        treatment_dummy=f"{treatment_switch_dummy}_treatment_dummy"
+        time_dummy=f"{treatment_switch_dummy}_time_dummy"
+        group_var=f"{treatment_switch_dummy}_group"
+        group_dummy=f"{treatment_switch_dummy}_group_dummy"
 
-    #treatment dummy firstswitch
-    df[treatment_dummy_firstswitch] = 0
-    df.loc[min_indices, treatment_dummy_firstswitch] = 1
+        #sortvalues
+        sortvalues_cols=[
+            unit_var,
+            time_var,
+            ]
+        df=df.sort_values(by=sortvalues_cols)
 
-    #treatment dummy
-    df[treatment_dummy]=df.groupby(unit_var)[treatment_dummy_switch].cummax()
+        #min indices
+        min_indices=df[df[treatment_switch_dummy] == 1].groupby(unit_var).apply(lambda x: x.index.min())
 
-    #time dummy
-    df[time_dummy]=df[treatment_dummy]
+        #treatment firstswitch dummy
+        df[treatment_firstswitch_dummy]=0
+        df.loc[min_indices, treatment_firstswitch_dummy]=1
 
-    #gen group dummies
-    df_pivot=pd.pivot_table(
-        data=df,
-        values=treatment_dummy_firstswitch,
-        index=unit_var,
-        columns=time_var,
-        aggfunc=np.sum,
-        fill_value=0,
-        )
+        #treatment dummy
+        df[treatment_dummy]=df.groupby(unit_var)[treatment_switch_dummy].cummax()
 
-    #rename cols
-    df_pivot.columns=[f"group_{x}" for x in df_pivot.columns]
+        #time dummy
+        df[time_dummy]=df[treatment_dummy]
 
-    #reset index
-    df_pivot=df_pivot.reset_index()
+        #group var
+        grouped=df[df[treatment_firstswitch_dummy] == 1].groupby(unit_var)[time_var].sum()
 
-    #newvars
-    group_dummies=list(df_pivot.columns)
+        #reset index
+        grouped=grouped.reset_index()
 
-    # Merge the pivoted data back into the original DataFrame
-    df=pd.merge(
-        left=df,
-        right=df_pivot,
-        how="left",
-        on=unit_var,
-        validate="m:1"
-        )
+        #rename
+        grouped=grouped.rename(columns={time_var: group_var})
 
-    #newvars
-    newvars=[
-        treatment_dummy_firstswitch,
-        treatment_dummy,
-        time_dummy
-        ] + group_dummies
+        #merge
+        df=pd.merge(
+            left=df,
+            right=grouped,
+            how="left",
+            on=unit_var,
+            validate="m:1"
+            )
+        
+        #fillna
+        df[group_var]=df[group_var].fillna(0).astype(int)
 
+        #gen group dummies
+        '''df_pivot=pd.pivot_table(
+            data=df,
+            values=treatment_firstswitch_dummy,
+            index=unit_var,
+            columns=time_var,
+            aggfunc=np.sum,
+            fill_value=0,
+            )
+
+        #rename cols
+        df_pivot.columns=[f"{group_dummy}_{x}" for x in df_pivot.columns]
+
+        #reset index
+        df_pivot=df_pivot.reset_index()
+
+        #group dummies
+        group_dummies=list(df_pivot.columns)
+
+        # Merge the pivoted data back into the original DataFrame
+        df=pd.merge(
+            left=df,
+            right=df_pivot,
+            how="left",
+            on=unit_var,
+            validate="m:1"
+            )
+        #'''
+
+        #newvars
+        newvars_i=[
+            treatment_firstswitch_dummy,
+            treatment_dummy,
+            time_dummy,
+            group_var,
+            ] #+ group_dummies
+
+        #update
+        newvars.extend(newvars_i)
+
+    #return
     return df, newvars
 
 
@@ -2530,13 +2477,15 @@ def _echo_newvars(df):
         ]
     df, newvars = _lag_vars(df, oldvars)
 
-
     #stagdid 
     unit_var=crspcomp_cusip
     time_var=crspcomp_fyear
-    treatment_dummy_switch="echo_enforcement_dummy"
-    df, stagdid_vars = _stagdid(df, unit_var, time_var, treatment_dummy_switch)
-    
+    treatment_switch_dummies=[
+        "echo_enforcement_dummy",
+        "echo_penalty_dummy",
+        ]
+    df, stagdid_vars = _stagdid(df, unit_var, time_var, treatment_switch_dummies)
+
     #echo vars
     echo_vars=[
         #dummy
@@ -2564,6 +2513,7 @@ def _echo_newvars(df):
     return df, echo_vars
 
 
+#divide vars
 def _divide_vars(df, newvar, numerator, denominator):
 
     #to numeric
@@ -2571,8 +2521,7 @@ def _divide_vars(df, newvar, numerator, denominator):
         numerator,
         denominator,
         ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #condlist
     condlist=[
@@ -2606,8 +2555,7 @@ def _crspcompustat_newvars(df):
     tonumeric_cols=[
         crspcomp_assets,
         ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #firm size
     df["firm_size"]=np.log1p(df[crspcomp_assets])
@@ -2672,27 +2620,75 @@ def _sic_to_famafrench(value, mapping):
     return newval
 
 
-#industry drop
-def _industry_drop(df, dropind_cols, industry_col):
+#industry print stats
+def _industry_print_stats(df, unit_var, drop_basedon, industry_col):
+    
+    #n_unique_industries
+    n_unique_industries=df[industry_col].nunique()
 
-    #for
-    for i, col in enumerate(dropind_cols):
+    #n_unique_firms
+    n_unique_firms=df[unit_var].nunique()
 
-        #industry_counts
-        industry_counts=df.groupby(industry_col)[col].value_counts().unstack(fill_value=0)
+    #n_firm_wdummies
+    filtered_df=df[df[drop_basedon]>0]
+    n_firms_wdummies=filtered_df[unit_var].nunique()
 
-        #industries_to_drop
-        industries_to_drop=industry_counts.index[industry_counts[1] == 0]
+    #fraction_firms_wdummies
+    fraction_firms_wdummies=n_firms_wdummies/n_unique_firms
 
-        #keep if not in
-        df=df[~df[industry_col].isin(industries_to_drop)]
+    #n_obs_wdummies
+    n_obs_wdummies=df[drop_basedon].sum()
+
+    #n_obs
+    n_obs=len(df)
+
+    #fraction_dummies
+    fraction_dummies=n_obs_wdummies/n_obs
+
+
+    #print
+    print("n_unique_industries:", n_unique_industries)
+
+    print("n_firms_wdummies:", n_firms_wdummies)
+    print("n_unique_firms:", n_unique_firms)
+    print("fraction_firms_wdummies:", fraction_firms_wdummies)
+
+    print("n_obs_wdummies:", n_obs_wdummies)
+    print("n_obs:", n_obs)
+    print("fraction_dummies:", fraction_dummies)
+
+
+#drop industry based on dummy
+def _industry_drop(df, unit_var, drop_basedon, industry_col):
+
+    #print
+    _industry_print_stats(df, unit_var, drop_basedon, industry_col)
+
+    #grouped
+    grouped=df.groupby(industry_col)[drop_basedon].sum()
+
+    #industries_to_keep
+    industries_to_keep=grouped[grouped>0].index.tolist()
+
+    #industries_to_drop
+    unique_industries=list(df[industry_col].unique())
+    industries_to_drop=[x for x in unique_industries if x not in industries_to_keep]
+    print("industries_to_drop:", industries_to_drop)
+
+    #isin
+    df=df[df[industry_col].isin(industries_to_keep)]
+
+    print(df)
+
+    #print
+    _industry_print_stats(df, unit_var, drop_basedon, industry_col)
 
     #return
     return df
 
 
 #drop industry
-def _industry_newvars(df, dropind_cols, filepath):
+def _industry_newvars(df, filepath):
 
     #mapping
     mapping=_filepath_to_mapping(filepath)
@@ -2705,15 +2701,16 @@ def _industry_newvars(df, dropind_cols, filepath):
     tonumeric_cols=[
         crspcomp_sic,
         ]
-    errors="raise"
-    _tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #gen var
     oldvalues=df[crspcomp_sic].values
     df[industry_col]=np.array([_sic_to_famafrench(x, mapping) for x in oldvalues])
 
-    #drop industries if some cols always 0
-    df=_industry_drop(df, dropind_cols, industry_col)
+    #drop industries
+    unit_var=crspcomp_cusip
+    drop_basedon="echo_enforcement_dummy"
+    df=_industry_drop(df, unit_var, drop_basedon, industry_col)
 
     #newvars
     newvars=[
@@ -2813,11 +2810,7 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
     #industry 
     filepath="_resources/Siccodes49.txt"
-    dropind_cols=[
-        "dummy_both",
-        "echo_enforcement_dummy",
-        ]
-    df, industry_vars = _industry_newvars(df, dropind_cols, filepath)
+    df, industry_vars = _industry_newvars(df, filepath)
 
     #ordered
     ordered_cols=[
@@ -2845,4 +2838,5 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
 _crspcompustat_donations_echo_screen(folders, items)
 print("done")
+
 

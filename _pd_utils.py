@@ -400,17 +400,17 @@ def _todatecols_to_df(df, todate_cols, errors, format, new_format="%Y-%m-%d"):
 
 
 #to numeric cols to df
-def _tonumericcols_to_df(df, tonumeric_cols, errors):
+def _tonumericcols_to_df(df, tonumeric_cols, errors="raise"):
     
     #for
     for i, col in enumerate(tonumeric_cols):
-
+        
         #to date
         df[col]=pd.to_numeric(
             df[col],
             errors=errors,
             )
-    
+
     #return
     return df
 
@@ -534,4 +534,44 @@ def _gen_dummies(df, col, prefix, drop_first):
 
     #return
     return df, dummies_cols
+
+
+#gen aggregate pastn
+def _aggregate_pastn(df, unit_var, oldvar, agg_funct, n_shifts):
+
+    #to numeric
+    tonumeric_cols=[
+        oldvar,
+        ]
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #init cols
+    var_shifted_cols=[None]*n_shifts
+
+    #for
+    for i in range(n_shifts):
+
+        #periods
+        periods=i+1
+
+        #col name
+        var_shifted=f"{oldvar}_shift{periods}"
+
+        #gen new col
+        df[var_shifted]=df.groupby(unit_var)[oldvar].shift(periods=periods, fill_value=0)
+
+        #update cols
+        var_shifted_cols[i]=var_shifted
+
+    #y
+    y=agg_funct(df[var_shifted_cols], axis=1)
+
+    #newvar
+    newvar=f"{oldvar}_past{n_shifts}"
+
+    #gen
+    df[newvar]=y
+
+    #return
+    return df
 

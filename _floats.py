@@ -3,11 +3,9 @@
 #import
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from pathlib import Path
-import statsmodels.api as sm
+from differences import ATTgt
 import statsmodels.formula.api as smf
-import matplotlib.pyplot as plt
 from stargazer.stargazer import Stargazer
 
 
@@ -19,78 +17,49 @@ from _pd_utils import _tonumericcols_to_df
 #vars
 INTERACT=":"
 tuples_replace=[
-    #log ln amount
-    ("lag_ln_amount_democratic &",          "Donations (logs, lag 1y) to Dem. AG assn &"),
-    ("lag_ln_amount_republican &",          "Donations (logs, lag 1y) to Rep. AG assn &"),
-    ("lag_ln_amount_both &",                "Donations (logs, lag 1y) to both AG assn &"),
-
     #change ln amount
-    ("change_ln_amount_democratic &",       "Donations \Delta\% to Dem. AG assn &"),
-    ("change_ln_amount_republican &",       "Donations \Delta\% to Rep. AG assn &"),
-    ("change_ln_amount_both &",             "Donations \Delta\% to both AG assn &"),
+    ("change_ln_amount_democratic",       "Donations \Delta\% to Dem. AG assn"),
+    ("change_ln_amount_republican",       "Donations \Delta\% to Rep. AG assn"),
+    ("change_ln_amount_both",             "Donations \Delta\% to both AG assn"),
 
     #ln amount
-    ("ln_amount_democratic &",              "Donations (logs) to Dem. AG assn &"),
-    ("ln_amount_republican &",              "Donations (logs) to Rep. AG assn &"),
-    ("ln_amount_both &",                    "Donations (logs) to both AG assn &"),
+    ("ln_amount_democratic",              "Donations (logs) to Dem. AG assn"),
+    ("ln_amount_republican",              "Donations (logs) to Rep. AG assn"),
+    ("ln_amount_both",                    "Donations (logs) to both AG assn"),
 
     #change amount
-    ("change_amount_democratic &",          "Donations \Delta to Dem. AG assn &"),
-    ("change_amount_republican &",          "Donations \Delta to Rep. AG assn &"),
-    ("change_amount_both &",                "Donations \Delta to both AG assn &"),
+    ("change_amount_democratic",          "Donations \Delta to Dem. AG assn"),
+    ("change_amount_republican",          "Donations \Delta to Rep. AG assn"),
+    ("change_amount_both",                "Donations \Delta to both AG assn"),
 
     #amount
-    ("amount_democratic &",                 "Donations to Dem. AG assn &"),
-    ("amount_republican &",                 "Donations to Rep. AG assn &"),
-    ("amount_both &",                       "Donations to both AG assn &"),
-
-    #lag dummy
-    ("lag_dummy_democratic &",              "Donated (lag 1y) to Dem. AG assn &"),
-    ("lag_dummy_republican &",              "Donated (lag 1y) to Rep. AG assn &"),
-    ("lag_dummy_both &",                    "Donated (lag 1y) to any AG assn &"),
+    ("amount_democratic",                 "Donations to Dem. AG assn"),
+    ("amount_republican",                 "Donations to Rep. AG assn"),
+    ("amount_both",                       "Donations to both AG assn"),
 
     #dummy
-    ("dummy_democratic &",                  "Donated to Dem. AG assn &"),
-    ("dummy_republican &",                  "Donated to Rep. AG assn &"),
-    ("dummy_both &",                        "Donated to any AG assn &"),
+    ("dummy_democratic",                  "Donated to Dem. AG assn"),
+    ("dummy_republican",                  "Donated to Rep. AG assn"),
+    ("dummy_both",                        "Donated to any AG assn"),
 
-    #ln amount past
-    ("ln_amount_democratic_past3 &",        "Donations (logs) to Dem. AG assn past 3y &"),
-    ("ln_amount_republican_past3 &",        "Donations (logs) to Rep. AG assn past 3y &"),
-    ("ln_amount_both_past3 &",              "Donations (logs) to both AG assn past 3y &"),
-
-    #amount past
-    ("amount_democratic_past3 &",           "Donations to Dem. AG assn past 3y &"),
-    ("amount_republican_past3 &",           "Donations to Rep. AG assn past 3y &"),
-    ("amount_both_past3 &",                 "Donations to both AG assn past 3y &"),
-
-    #dummy past
-    ("dummy_democratic_past3 &",            "Donated to Dem. AG assn past 3y &"),
-    ("dummy_republican_past3 &",            "Donated to Rep. AG assn past 3y &"),
-    ("dummy_both_past3 &",                  "Donated to any AG assn past 3y &"),
-
-    #post
-    ("group_2000",                          "Group Dummy 2000"),
-    ("time_dummy",                          "Time Dummy"),
 
     #echo lag
-    ("lag_ln_echo_penalty_amount &",        "EPA Penalty Amount (logs, lag 1y) &"),
-    ("lag_echo_enforcement_dummy &",        "EPA Enforcement Likelihood (lag 1y) &"),
-    ("lag_echo_penalty_dummy &",            "EPA Penalty Likelihood (lag 1y) &"),
-    ("lag_echo_penalty_amount &",           "EPA Penalty Amount (lag 1y) &"),
+    ("lag_ln_echo_penalty_amount",        "EPA Penalty Amount (logs, lag 1y)"),
+    ("lag_echo_enforcement_dummy",        "EPA Enforcement Likelihood (lag 1y)"),
+    ("lag_echo_penalty_dummy",            "EPA Penalty Likelihood (lag 1y)"),
+    ("lag_echo_penalty_amount",           "EPA Penalty Amount (lag 1y)"),
 
     #echo
-    ("ln_echo_penalty_amount &",            "EPA Penalty Amount (logs) &"),
-    ("echo_enforcement_dummy &",            "EPA Enforcement Likelihood &"),
-    ("echo_penalty_dummy &",                "EPA Penalty Likelihood &"),
-    ("echo_penalty_amount &",               "EPA Penalty Amount &"),
+    ("ln_echo_penalty_amount",            "EPA Penalty Amount (logs)"),
+    ("echo_enforcement_dummy",            "EPA Enforcement Likelihood"),
+    ("echo_penalty_dummy",                "EPA Penalty Likelihood"),
+    ("echo_penalty_amount",               "EPA Penalty Amount"),
     
-
     #crspcompustat
-    ("firm_size &",                         "Firm Size &"),
-    ("leverage_ratio &",                    "Leverage &"),
-    ("roa &",                               "ROA &"),
-    ("mtb &",                               "Market-to-Book &"),
+    ("firm_size",                         "Firm Size"),
+    ("leverage_ratio",                    "Leverage"),
+    ("roa",                               "ROA"),
+    ("mtb",                               "Market-to-Book"),
     ]
 
 
@@ -126,8 +95,7 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
 
     #to numeric
     tonumeric_cols=cols
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df=_tonumericcols_to_df(df, tonumeric_cols)
     
     #percentiles
     percentiles=[
@@ -193,6 +161,7 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
 
 
 #echo summary stats
+results="zhao/article"
 def _table_summaries(results):
 
     filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
@@ -220,16 +189,6 @@ def _table_summaries(results):
         "dummy_democratic", 
         "dummy_republican",
         "dummy_both",
-
-        #amount past
-        "amount_democratic_past3",
-        "amount_republican_past3",
-        "amount_both_past3",
-
-        #dummy past
-        "dummy_democratic_past3",
-        "dummy_republican_past3",
-        "dummy_both_past3",
 
         #echo
         "echo_enforcement_dummy",
@@ -267,30 +226,41 @@ def _interact_varnames(time_dummy, explanvars):
 
 
 #indepvars
-def _indepvars(time_dummy, explanvars_i, controlvars):
+def _indepvars(time_dummy, explanvars, controlvars):
 
     #if
     if time_dummy=="No":
 
-        #indepvars
-        indepvars=explanvars_i + controlvars
+        #interact_vars
+        interact_vars=list()
 
-    #if
-    if time_dummy!="No":
+       #time_dummies
+        time_dummies=list()
+
+        #indepvars
+        indepvars=explanvars + controlvars
+
+    #elif
+    elif time_dummy!="No":
 
         #interact vars
-        interact_vars=_interact_varnames(time_dummy, explanvars_i)
+        interact_vars=_interact_varnames(time_dummy, explanvars)
+
+        #time_dummies
+        time_dummies=[time_dummy]
 
         #indepvars
-        indepvars=interact_vars + [time_dummy] + explanvars_i +  controlvars
+        indepvars=interact_vars + time_dummies + explanvars +  controlvars
 
     #return
-    return indepvars
+    return indepvars, interact_vars, time_dummies
 
 
-#sm model
-def _sm_model(df, depvar, indepvars, list_fe):
-    
+#sm results
+def _sm_results(df, depvar, indepvars, clusters, list_fe):
+
+    #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
+
     #join
     join_indepvars=" + ".join(indepvars)
 
@@ -311,59 +281,44 @@ def _sm_model(df, depvar, indepvars, list_fe):
             dropna_cols=[colname]
             df=df.dropna(subset=dropna_cols)
 
-            #to numeric
-            tonumeric_cols=[colname]
-            errors="raise"
-            df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+            #factorize
+            df[colname]=pd.factorize(df[colname])[0]
 
             #formula
             formula=f"{formula} + C({colname})"
 
-    #remove interact_vars
-    indepvars=[x for x in indepvars if INTERACT not in x]
+    #if
+    if clusters!=["No"]:
+
+        #dropna
+        dropna_cols=clusters
+        df=df.dropna(subset=dropna_cols)
+
+    #indepvars truly in df
+    indepvars_in_df=[x for x in indepvars if INTERACT not in x]
 
     #dropna
-    dropna_cols=[depvar] + indepvars
+    dropna_cols=[depvar] + indepvars_in_df
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
-    tonumeric_cols=[depvar] + indepvars
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    tonumeric_cols=[depvar] + indepvars_in_df
+    df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #model
     mod=smf.ols(
         formula=formula,
         data=df,
         )
-
-    #return
-    return mod
-
-
-#sm results
-def _sm_results(df, depvar, indepvars, clusters, list_fe):
-
-    #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
-
+    
     #if
     if clusters==["No"]:
-
-        #mod
-        mod=_sm_model(df, depvar, indepvars, list_fe)
 
         #res
         res=mod.fit()
 
     #elif
     elif clusters!=["No"]:
-
-        #dropna
-        dropna_cols=clusters
-        df=df.dropna(subset=dropna_cols)
-
-        #mod
-        mod=_sm_model(df, depvar, indepvars, list_fe)
 
         #groups
         groups=[pd.factorize(df[col])[0] for col in clusters]
@@ -373,9 +328,35 @@ def _sm_results(df, depvar, indepvars, clusters, list_fe):
             cov_type="cluster",
             cov_kwds={"groups": groups},
             )
-    
+
     #return
     return res
+
+
+#ordered cols
+def _ordered_cols(olddict, interact_vars, time_dummies, explanvars):
+
+    #empty
+    if not olddict:
+        olddict["interact_vars"]=list()
+        olddict["time_dummies"]=list()
+        olddict["explanvars"]=list()
+
+    #init
+    newdict=dict()
+
+    #newlist
+    interact_vars=[x for x in interact_vars if x not in olddict["interact_vars"]]
+    time_dummies=[x for x in time_dummies if x not in olddict["time_dummies"]]
+    explanvars=[x for x in explanvars if x not in olddict["explanvars"]]
+    
+    #update
+    newdict["interact_vars"]=olddict["interact_vars"] + interact_vars
+    newdict["time_dummies"]=olddict["time_dummies"] + time_dummies
+    newdict["explanvars"]=olddict["explanvars"] + explanvars
+
+    #return
+    return newdict
 
 
 #fe addline
@@ -427,28 +408,7 @@ def _addline(stargazer, inputs):
     #return
     return stargazer
 
-
-#ordered cols
-def _ordered_cols(time_dummy, explanvars, controlvars):
-
-    #if
-    if time_dummy=="No":
-
-        #orderedd cols
-        ordered_cols=explanvars + controlvars
-
-    #elif
-    elif time_dummy!="No":
-
-        interact_vars=_interact_varnames(time_dummy, explanvars)
-
-        #orderedd cols
-        ordered_cols=interact_vars + [time_dummy] + explanvars + controlvars
-
-    #return
-    return ordered_cols
     
-
 #add table note
 def _add_tablenotes(text, tablenotes):
 
@@ -496,7 +456,7 @@ def _add_resizebox(text):
 
 
 #table reg
-def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, depvar, depvar_name):
+def _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name):
 
     #n_models
     n_models=len(inputs)
@@ -504,12 +464,13 @@ def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, dep
     #init
     models=[None]*n_models
     subsample_names=[None]*n_models
+    olddict=dict()
 
     #for
     for i, input in enumerate(inputs):
 
         #dict
-        explanvars_i=input["explanvars_i"]
+        explanvars=input["explanvars"]
         time_dummy=input["time_dummy"]
         df=input["subsample"]["subsample_df"]
         subsample_name=input["subsample"]["subsample_name"]
@@ -517,7 +478,7 @@ def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, dep
         clusters=input["clusters"]
 
         #indepvars
-        indepvars=_indepvars(time_dummy, explanvars_i, controlvars)
+        indepvars, interact_vars, time_dummies = _indepvars(time_dummy, explanvars, controlvars)
 
         #res
         res=_sm_results(df, depvar, indepvars, clusters, list_fe)
@@ -526,11 +487,12 @@ def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, dep
         models[i]=res
         subsample_names[i]=subsample_name
 
-    #ordered cols
-    ordered_cols=_ordered_cols(time_dummy, explanvars, controlvars)
+        #ordered cols
+        olddict=_ordered_cols(olddict, interact_vars, time_dummies, explanvars)
 
-    #sig_digits
-    sig_digits=3
+    #unpack 
+    ordered_cols=olddict["interact_vars"] + olddict["time_dummies"] + olddict["explanvars"] + controlvars
+
 
     #https://github.com/StatsReporting/stargazer
     #https://github.com/StatsReporting/stargazer/blob/master/examples.ipynb
@@ -568,6 +530,7 @@ def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, dep
     #stargazer.show_precision = True
     #stargazer.show_sig = True
     #stargazer.sig_levels = [0.1, 0.05, 0.01]
+    sig_digits=3
     stargazer.sig_digits = sig_digits
     #stargazer.confidence_intervals = False
     #stargazer.show_footer = True
@@ -599,9 +562,11 @@ def _table_reg(df, results, explanvars, controlvars, inputs, label, caption, dep
     
     #save
     _save_table(results, label, text)
+    #'''
 
 
 #table regs
+results="zhao/article"
 def _table_regs(results):
 
     #filepath
@@ -613,12 +578,6 @@ def _table_regs(results):
         dtype="string",
         #nrows=1000,
         )
-
-    #explanatory vars
-    explanvars=[
-        #group dummies
-        "group_2000",
-        ]
     
     #control vars
     controlvars=[
@@ -628,146 +587,336 @@ def _table_regs(results):
         "mtb",
         ]
 
-    #subsamples
-    #df0=df[df["echo_enforcement_dummy"]=="1"]
-    
     #inputs
     inputs=[
-            {
-            "explanvars_i": ["group_2000"],
-            "time_dummy": "time_dummy",
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "No", "colname": "industry_famafrench49"}, 
-                            {"name": "YearFE",      "present": "No", "colname": "fyear"},
-                            ],
-            "clusters": ["No"],
-            },
 
-            {"explanvars_i": ["group_2000"],
-            "time_dummy": "time_dummy",
+            {
+            "explanvars": ["lag_echo_enforcement_dummy"],
+            "time_dummy": "No",
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             "fixedeffects": [
                             {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
-                            {"name": "YearFE",      "present": "No", "colname": "fyear"},
+                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
                             ],
-            "clusters": ["No"],
+            "clusters": ["state"],
             },
+
+            {
+            "explanvars": ["lag_echo_penalty_dummy"],
+            "time_dummy": "No",
+            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
+            "fixedeffects": [
+                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
+                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
+                            ],
+            "clusters": ["state"],
+            },
+
+            {
+            "explanvars": ["lag_ln_echo_penalty_amount"],
+            "time_dummy": "No",
+            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
+            "fixedeffects": [
+                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
+                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
+                            ],
+            "clusters": ["state"],
+            },
+
         ]
 
-    #stagdid
-    #label
-    label="echo_stagdid_tablereg"
-
-    #caption
-    caption="Enforcement and Political Contributions - Staggered DiD"
+    #dem
+    #label and caption
+    label="echo_democratic_tablereg"
+    caption="EPA Enforcement and Contributions - Democrat"
 
     #depvar
-    depvar="change_ln_amount_democratic"
-    depvar_name="Donations change"
+    depvar="ln_amount_democratic"
+    depvar_name="Donations (logs) to Dem. AG assn"
 
     #table reg
-    _table_reg(df, results, explanvars, controlvars, inputs, label, caption, depvar, depvar_name)
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
+
+    #rep
+    #label and caption
+    label="echo_republican_tablereg"
+    caption="EPA Enforcement and Contributions - Republican"
+
+    #depvar
+    depvar="ln_amount_republican"
+    depvar_name="Donations (logs) to Rep. AG assn"
+
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
+
+    #both
+    #label and caption
+    label="echo_both_tablereg"
+    caption="EPA Enforcement and Contributions - Both "
+
+    #depvar
+    depvar="ln_amount_both"
+    depvar_name="Donations (logs) to both AG assn"
+
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
 
 
 
 
 
+#attgt
+def _csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_var, depvar):
+
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.fit
+
+    #ids
+    unit_var, time_var = "cusip", "fyear"
+
+    #dropna
+    dropna_cols=[depvar] + controlvars
+    df=df.dropna(subset=dropna_cols)
+
+    #to numeric
+    tonumeric_cols=[
+        time_var,
+        depvar,
+        group_var,
+        ] + controlvars
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #rename and setindex
+    entity, time = "entity", "time"
+    df=df.rename(columns={unit_var: entity, time_var: time})
+    df=df.set_index([entity, time])
+
+    #group var
+    df[group_var] = np.where(df[group_var] == 0, np.nan, df[group_var])
+
+    #att_gt
+    att_gt = ATTgt(
+        data=df,
+        cohort_name=group_var,
+        #strata_name: str = None,
+        #base_period: str = "varying",
+        #anticipation: int = 0,
+        #freq: str = None
+        )
+
+    #empty
+    if not controlvars:
+
+        #formula
+        formula=f"{depvar}"
+    
+    #elif
+    elif controlvars:
+    
+        #formula
+        join_controlvars=" + ".join(controlvars)
+        formula=f"{depvar} ~ {join_controlvars}"
+
+    #fit
+    att_gt.fit(
+        formula=formula,
+        #weights_name: str = None,
+        control_group=control_group,
+        #base_delta: str | list | dict = "base",
+        est_method=est_method,
+        #as_repeated_cross_section: bool = None,
+        #boot_iterations: int = 0,  # if > 0 mboot will be called
+        #random_state: int = None,
+        alpha=0.01,
+        cluster_var=cluster_var,
+        #split_sample_by: Callable | str | dict = None,
+        #n_jobs: int = 1,
+        #backend: str = "loky",
+        #progress_bar: bool = True,
+        )
+
+    #return
+    return att_gt
 
 
-#iter regs
-def _iter_regs():
+#results to latex
+def _results_to_latex(df, results, caption, label, tablenotes):
+
+    #styler object
+    styler_object=df.style
+
+    #format
+    format_styler="{:,.3f}"
+    #styler_object=styler_object.format(format_styler)
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+    tabular=styler_object.to_latex(hrules=True)
+
+    #replace
+    tabular=tabular.replace("_", " ")
+    
+    #text
+    text=(
+        #begin
+        "\\begin{table}[!htbp]" + "\n"
+        "\\centering" + "\n"
+
+        #caption label
+        f"\\caption{{{caption}}}" + "\n"
+        f"\\label{{{label}}}" + "\n"
+
+        "\\resizebox{\\textwidth}{!}{%" + "\n"
+
+        #tabular
+        f"{tabular}" + "}" + "\n"
+
+        #table notes
+        "\\begin{tablenotes}" + "\n"
+        f"{tablenotes}" + "\n"
+        "\\end{tablenotes}" + "\n"
+
+        #end
+        "\\end{table}" + "\n"
+        )
+
+    #save
+    _save_table(results, label, text)
+
+
+#floats
+def _csdid_floats(att_gt, results):
+
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.aggregate
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.plot
+
+    #aggregate params
+    alpha=0.1
+
+    #plot params
+    configure_axisX={'format': 'c'}
+    width=600
+    height=600
+
+    #types
+    types=[
+        "time",
+        "event",
+        "cohort",
+        "simple",
+        ]
+    
+    type_of_aggregation="not_aggregated"
+    save_fname=f"{results}/figures/{type_of_aggregation}"
+    plt=att_gt.plot(
+        configure_axisX={'format': 'c'},
+        width=width,
+        height=height,
+        save_fname=save_fname,
+        )
+    #plt.show()
+    
+    #for
+    for i, type_of_aggregation in enumerate(types):
+
+        #aggregate
+        x=att_gt.aggregate(
+            type_of_aggregation=type_of_aggregation,
+            alpha=alpha,
+            )
+        
+        #result
+        df=att_gt.results(
+            type_of_aggregation=type_of_aggregation,
+            to_dataframe=True
+            )
+        
+        #caption
+        caption=f"ATT(g,t) aggregated at {type_of_aggregation.capitalize()}-level"
+
+        #label
+        label=type_of_aggregation
+
+        #tablenotes
+        tablenotes=f"The Average Treatment Effects on the treated groups \\textit{{g}} at time \\textit{{t}} are aggregated at {type_of_aggregation}-level."
+        
+        #to_latex
+        _results_to_latex(df, results, caption, label, tablenotes)
+
+        #save_fname
+        save_fname=f"{results}/figures/{type_of_aggregation}"
+        
+        #plot
+        plt=att_gt.plot(
+            type_of_aggregation=type_of_aggregation,
+            configure_axisX=configure_axisX,
+            width=width,
+            height=height,
+            save_fname=save_fname,
+            )
+        #plt.show()
+
+        #print
+        print(f"{i} - {type_of_aggregation}")
+        #'''
+        
+
+#callaway_santanna
+results="zhao/article"
+def _csdid(results):
+
+    #https://differences.readthedocs.io/en/latest/notebooks/attgt.html
+
+    #https://github.com/suahjl/paneleventstudy
+    #https://github.com/d2cml-ai/csdid
+
+    #filepath
+    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+
+    #read
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        nrows=1000,
+        )
+    
+    #control vars
+    controlvars=[
+        #"firm_size",
+        #"leverage_ratio",
+        #"roa",
+        #"mtb",
+        ]
+    
+    #parameters
+    control_group="never_treated"
+    est_method="dr"
+    cluster_var=None
+
+    #group var
+    group_vars=[
+        "echo_enforcement_dummy_group",
+        "echo_penalty_dummy_group",
+        ]
+    group_var="echo_enforcement_dummy_group"
 
     #depvars
     depvars=[
-        #change ln amount
-        "change_ln_amount_democratic"
-        "change_ln_amount_republican"
-        "change_ln_amount_both"
-
         #ln amount
-        "ln_amount_democratic"
-        "ln_amount_republican"
-        "ln_amount_both"
-
-        #change amount
-        "change_amount_democratic"
-        "change_amount_republican"
-        "change_amount_both"
+        "ln_amount_democratic",
+        "ln_amount_republican",
+        "ln_amount_both",
         ]
-    
-    indepvars=[
-        #lag
-        "group_2000",
-        "group_2001",
-        "group_2002",
-        ]
-    
-    #year
-    time_dummies = [
-        "time_dummy",
-        ]
+    depvar="ln_amount_democratic"
 
-    #to numeric
-    tonumeric_cols=depvars + indepvars + time_dummies
-    errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    #att_gt
+    att_gt=_csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_var, depvar)
 
-    #for
-    for j, depvar in enumerate(depvars):
+    #figures  
+    _csdid_floats(att_gt, results)
 
-        #for
-        for k, indepvar in enumerate(indepvars):
-
-            #for
-            for l, time in enumerate(time_dummies):
-                
-                #formula
-                formula=f"{depvar} ~ {time}:{indepvar} + {time} + {indepvar} "
-
-                #model
-                mod=smf.ols(formula, data=df)
-
-                #res
-                res=mod.fit()
-
-                #params
-                params=res.params
-
-                #betas
-                beta=params[indepvar]
-
-                #pvalues
-                pvalues=res.pvalues
-
-                #beta_p
-                beta_pval=pvalues[indepvar]
-
-                if (beta<0) and (beta_pval<0.1):
-
-                    #print
-                    print(f"{formula}\n{beta}\n{beta_pval}\n")
+    #for XXX
 
 
-#gen floats
-results="zhao/article"
-def _generate_floats(results):
-
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html
-    #https://github.com/StatsReporting/stargazer
-
-    #table summary
-    #_table_summaries(results)
-    
-    #table regs
-    _table_regs(results)
-
-    #iter regs
-    #_iter_regs()
-
-    pass
-
-
-_generate_floats(results)
-print("done")
+_csdid(results)
+#print("done")
 
