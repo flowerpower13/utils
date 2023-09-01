@@ -17,20 +17,11 @@ from _pd_utils import _tonumericcols_to_df
 #vars
 INTERACT=":"
 tuples_replace=[
-    #change ln amount
-    ("change_ln_amount_democratic",       "Donations \Delta\% to Dem. AG assn"),
-    ("change_ln_amount_republican",       "Donations \Delta\% to Rep. AG assn"),
-    ("change_ln_amount_both",             "Donations \Delta\% to both AG assn"),
 
     #ln amount
     ("ln_amount_democratic",              "Donations (logs) to Dem. AG assn"),
     ("ln_amount_republican",              "Donations (logs) to Rep. AG assn"),
     ("ln_amount_both",                    "Donations (logs) to both AG assn"),
-
-    #change amount
-    ("change_amount_democratic",          "Donations \Delta to Dem. AG assn"),
-    ("change_amount_republican",          "Donations \Delta to Rep. AG assn"),
-    ("change_amount_both",                "Donations \Delta to both AG assn"),
 
     #amount
     ("amount_democratic",                 "Donations to Dem. AG assn"),
@@ -38,10 +29,9 @@ tuples_replace=[
     ("amount_both",                       "Donations to both AG assn"),
 
     #dummy
-    ("dummy_democratic",                  "Donated to Dem. AG assn"),
-    ("dummy_republican",                  "Donated to Rep. AG assn"),
-    ("dummy_both",                        "Donated to any AG assn"),
-
+    ("dummy_democratic",                  "Donation Likelihood to Dem. AG assn"),
+    ("dummy_republican",                  "Donation Likelihood to Rep. AG assn"),
+    ("dummy_both",                        "Donation Likelihood to any AG assn"),
 
     #echo lag
     ("lag_ln_echo_penalty_amount",        "EPA Penalty Amount (logs, lag 1y)"),
@@ -409,45 +399,44 @@ def _addline(stargazer, inputs):
     return stargazer
 
     
-#add table note
-def _add_tablenotes(text, tablenotes):
+#add elements
+def _add_elements(text, label, tablenotes):
 
-    #end
-    old="\\end{table}"
+    #label
+    #end tabular
+    old="\\label{empty_label}"
     new=(
-        "\\begin{tablenotes}" + "\n"
-        f"{tablenotes}" + "\n"
-        "\\end{tablenotes}" + "\n"
-        "\\end{table}" + "\n"
+        "\\label"
+        "{"
+        f"{label}"
+        "}" 
         )
-    
-    #text
     text=text.replace(old, new)
 
-    #return
-    return text
-
-
-#add resizebox
-def _add_resizebox(text):
-
-    #begin
+    #begin tabular
     old="\\begin{tabular}"
     new=(
-        "\\resizebox{\\textwidth}{!}{%" + "\n"
-        "\\begin{tabular}" + "\n"
+        "\\resizebox{\\textwidth}{!}{%" "\n"
+        "\\begin{tabular}"              "\n"
         )
-    
-    #text
     text=text.replace(old, new)
-
-    #end
+    #end tabular
     old="\\end{tabular}"
     new=(
-        "\\end{tabular}" + "%" + "\n"
-        "}" + "\n"
+        "\\end{tabular}"    "%\n"
+        "}"                 "\n"
         )
-    
+    text=text.replace(old, new)
+
+
+    #end table
+    old="\\end{table}"
+    new=(
+        "\\begin{tablenotes}"   "\n"
+        f"{tablenotes}"         "\n"
+        "\\end{tablenotes}"     "\n"
+        "\\end{table}"          "\n"
+        ) 
     #text
     text=text.replace(old, new)
 
@@ -456,7 +445,7 @@ def _add_resizebox(text):
 
 
 #table reg
-def _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name):
+def _table_reg(df, results, controlvars, inputs, label, caption, depvar):
 
     #n_models
     n_models=len(inputs)
@@ -507,6 +496,7 @@ def _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_
     #significance_levels
     #stargazer.significant_digits
     #stargazer.show_confidence_intervals
+    depvar_name=_replace_txt(depvar, tuples_replace)
     stargazer.dependent_variable_name(depvar_name)
     #stargazer.rename_covariates
     stargazer.covariate_order(ordered_cols)
@@ -546,7 +536,7 @@ def _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_
     #stargazer.notes_append = True 
     #stargazer.custom_notes = [] 
     #stargazer.show_stars = True
-    stargazer.table_label = label
+    stargazer.table_label = "empty_label"
 
     #text
     text=stargazer.render_latex()
@@ -555,11 +545,8 @@ def _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_
     text=_replace_txt(text, tuples_replace)
 
     #table notes
-    text=_add_tablenotes(text, tablenotes)
+    text=_add_elements(text, label, tablenotes)
 
-    #resize box
-    text=_add_resizebox(text)
-    
     #save
     _save_table(results, label, text)
     #'''
@@ -624,43 +611,50 @@ def _table_regs(results):
             },
 
         ]
-
-    #dem
-    #label and caption
-    label="echo_democratic_tablereg"
-    caption="EPA Enforcement and Contributions - Democrat"
-
-    #depvar
-    depvar="ln_amount_democratic"
-    depvar_name="Donations (logs) to Dem. AG assn"
-
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
-
-    #rep
-    #label and caption
-    label="echo_republican_tablereg"
-    caption="EPA Enforcement and Contributions - Republican"
-
-    #depvar
-    depvar="ln_amount_republican"
-    depvar_name="Donations (logs) to Rep. AG assn"
-
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
-
-    #both
-    #label and caption
-    label="echo_both_tablereg"
-    caption="EPA Enforcement and Contributions - Both "
-
-    #depvar
+    
+    #ln_amount_both
     depvar="ln_amount_both"
-    depvar_name="Donations (logs) to both AG assn"
-
+    label="ln_amount_both"
+    caption="EPA Enforcement and Donation Amount - Both"
     #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar, depvar_name)
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
 
+    #ln_amount_democratic
+    depvar="ln_amount_democratic"
+    label="ln_amount_democratic"
+    caption="EPA Enforcement and Donation Amount - Democratic"
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
+
+    #ln_amount_republican
+    depvar="ln_amount_republican"
+    label="ln_amount_republican"
+    caption="EPA Enforcement and Donation Amount - Republican"
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
+
+    #dummy_both
+    depvar="dummy_both"
+    label="dummy_both"
+    caption="EPA Enforcement and Donation Likelihood - Both "
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
+
+
+    #dummy_democratic
+    depvar="dummy_democratic"
+    label="dummy_democratic"
+    caption="EPA Enforcement and Donation Likelihood - Democratic"
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
+
+
+    #dummy_republican
+    depvar="dummy_republican"
+    label="dummy_republican"
+    caption="EPA Enforcement and Donation Likelihood - Republican"
+    #table reg
+    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
 
 
 #results to latex
@@ -708,7 +702,7 @@ def _results_to_latex(df, results, caption, label, tablenotes):
 
 
 #attgt
-def _csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_var, depvar):
+def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar):
 
     #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt
     #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.fit
@@ -769,7 +763,7 @@ def _csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_
         #as_repeated_cross_section: bool = None,
         #boot_iterations: int = 0,  # if > 0 mboot will be called
         #random_state: int = None,
-        alpha=0.01,
+        alpha=alpha,
         cluster_var=cluster_var,
         #split_sample_by: Callable | str | dict = None,
         #n_jobs: int = 1,
@@ -777,27 +771,17 @@ def _csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_
         #progress_bar: bool = True,
         )
 
-    #return
-    return att_gt
-
-
-#floats
-def _csdid_floats(att_gt, results):
-
     #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.aggregate
     #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.plot
 
-    #aggregate params
-    alpha=0.1
-
     #plot params
     configure_axisX={'format': 'c'}
-    width=600
-    height=600
+    width=500
+    height=500
 
     #types
     types=[
-        "time",
+        #"time",
         #"event",
         #"cohort",
         "simple",
@@ -828,17 +812,15 @@ def _csdid_floats(att_gt, results):
             to_dataframe=True
             )
         
-        #caption
-        caption=f"ATT(g,t) aggregated at {type_of_aggregation.capitalize()}-level"
-
-        #label
-        label=type_of_aggregation
+        #label and caption
+        label_i=f"{type_of_aggregation}_{label}"
+        caption_i=f"\( ATT(g, \\tau) \) aggregated at {type_of_aggregation}-level{caption}"
 
         #tablenotes
-        tablenotes=f"The Average Treatment Effects for treated group \\textit{{g}} at time \\textit{{t}} are aggregated at {type_of_aggregation}-level."
+        tablenotes=f"The Average Treatment Effects for treated group \( g \) at time \( t \) are aggregated at {type_of_aggregation}-level."
         
         #to_latex
-        _results_to_latex(df, results, caption, label, tablenotes)
+        _results_to_latex(df, results, caption_i, label_i, tablenotes)
 
         #save_fname
         save_fname=f"{results}/figures/{type_of_aggregation}"
@@ -856,7 +838,7 @@ def _csdid_floats(att_gt, results):
         #print
         print(f"{i} - {type_of_aggregation}")
         #'''
-        
+
 
 #callaway_santanna
 results="zhao/article"
@@ -879,10 +861,10 @@ def _csdid(results):
     
     #control vars
     controlvars=[
-        #"firm_size",
-        #"leverage_ratio",
-        #"roa",
-        #"mtb",
+        "firm_size",
+        "leverage_ratio",
+        "roa",
+        "mtb",
         ]
     
     #control group
@@ -899,7 +881,10 @@ def _csdid(results):
         "reg",
         "std_ipw-mle"
         ]
-    est_method="dr-mle"
+    est_method="reg"
+
+    #alpha
+    alpha=0.01
 
     #cluster_var
     cluster_var=None
@@ -918,15 +903,54 @@ def _csdid(results):
         "ln_amount_republican",
         "ln_amount_both",
         ]
-    depvar="ln_amount_democratic"
-
-    #att_gt
-    att_gt=_csdid_attgt(df, controlvars, control_group, est_method, cluster_var, group_var, depvar)
-
-    #figures  
-    _csdid_floats(att_gt, results)
     
+    #ln_amount_both
+    depvar="ln_amount_both"
+    label="ln_amount_both"
+    caption=" - Donation Amount - Both"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
 
+    #ln_amount_democratic
+    depvar="ln_amount_democratic"
+    label="ln_amount_democratic"
+    caption=" - Donation Amount - Democratic"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
+
+    #ln_amount_republican
+    depvar="ln_amount_republican"
+    label="ln_amount_republican"
+    caption=" - Donation Amount - Republican"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
+
+    #dummy_both
+    depvar="dummy_both"
+    label="dummy_both"
+    caption=" - Donation Likelihood - Both"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
+
+    #dummy_democratic
+    depvar="dummy_democratic"
+    label="dummy_democratic"
+    caption=" - Donation Likelihood - Democratic"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
+
+    #dummy_republican
+    depvar="dummy_republican"
+    label="dummy_republican"
+    caption=" - Donation Likelihood - Republican"
+    #att_gt
+    _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
+
+
+
+
+#_table_summaries(results)
+#_table_regs(results)
 _csdid(results)
-#print("done")
+print("done")
 
