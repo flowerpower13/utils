@@ -59,6 +59,46 @@ with open(filepath, "r") as file_object:
     tablenotes=file_object.read()
 
 
+#tabular to tabletext
+def _tabular_to_tabletext(tabular, caption, label, tablenotes):
+
+    #text
+    text=(
+        #begin
+        "\\begin{table}[!htbp]" "\n"
+        "\\centering"           "\n"
+
+        #caption
+        f"\\caption"
+        "{"
+        f"{caption}"
+        "}"             "\n"
+
+        #label
+        f"\\label"
+        "{"
+        f"{label}"
+        "}"             "\n"
+
+        "\\resizebox{\\textwidth}{!}{%" "\n"
+
+        #tabular
+        f"{tabular}"    "\n"
+        "}"             "\n"
+
+        #table notes
+        "\\begin{tablenotes}"   "\n"
+        f"{tablenotes}"         "\n"
+        "\\end{tablenotes}"     "\n"
+
+        #end table
+        "\\end{table}"          "\n"
+        )
+    
+    #return
+    return text
+
+
 #save table
 def _save_table(results, filestem, text):
 
@@ -119,29 +159,8 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
     tabular=styler_object.to_latex(hrules=True)
     
-    #text
-    text=(
-        #begin
-        "\\begin{table}[!htbp]" + "\n"
-        "\\centering" + "\n"
-
-        #caption label
-        f"\\caption{{{caption}}}" + "\n"
-        f"\\label{{{label}}}" + "\n"
-
-        "\\resizebox{\\textwidth}{!}{%" + "\n"
-
-        #tabular
-        f"{tabular}" + "}" + "\n"
-
-        #table notes
-        "\\begin{tablenotes}" + "\n"
-        f"{tablenotes}" + "\n"
-        "\\end{tablenotes}" + "\n"
-
-        #end
-        "\\end{table}" + "\n"
-        )
+    #tabular to tabletext
+    text=_tabular_to_tabletext(tabular, caption, label, tablenotes)
 
     #replace txt
     text=_replace_txt(text, tuples_replace)
@@ -657,15 +676,33 @@ def _table_regs(results):
     _table_reg(df, results, controlvars, inputs, label, caption, depvar)
 
 
-#results to latex
-def _results_to_latex(df, results, caption, label, tablenotes):
+#df to latex
+def _df_to_latex(df, results, caption, label, tablenotes):
 
-    #styler object
+    #drop level
+    df.columns=df.columns.droplevel(0)
+    df.columns=df.columns.droplevel(0)
+
+    #set index
+    df=df.set_index(df.columns[0])
+
+    #to numeric if possible
+    for col in df.columns:
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except ValueError:
+            pass
+        
+    #numeric_cols
+    numeric_cols=df.select_dtypes(include='number').columns.tolist()
+    print(numeric_cols)
+
+    #styler object XXX
     styler_object=df.style
 
     #format
     format_styler="{:,.3f}"
-    #styler_object=styler_object.format(format_styler)
+    styler_object=styler_object.format({col: format_styler for col in numeric_cols})
 
     #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
     tabular=styler_object.to_latex(hrules=True)
@@ -673,29 +710,8 @@ def _results_to_latex(df, results, caption, label, tablenotes):
     #replace
     tabular=tabular.replace("_", " ")
     
-    #text
-    text=(
-        #begin
-        "\\begin{table}[!htbp]" + "\n"
-        "\\centering" + "\n"
-
-        #caption label
-        f"\\caption{{{caption}}}" + "\n"
-        f"\\label{{{label}}}" + "\n"
-
-        "\\resizebox{\\textwidth}{!}{%" + "\n"
-
-        #tabular
-        f"{tabular}" + "}" + "\n"
-
-        #table notes
-        "\\begin{tablenotes}" + "\n"
-        f"{tablenotes}" + "\n"
-        "\\end{tablenotes}" + "\n"
-
-        #end
-        "\\end{table}" + "\n"
-        )
+    #tabular to tabletext
+    text=_tabular_to_tabletext(tabular, caption, label, tablenotes)
 
     #save
     _save_table(results, label, text)
@@ -820,7 +836,7 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
         tablenotes=f"The Average Treatment Effects for treated group \( g \) at time \( t \) are aggregated at {type_of_aggregation}-level."
         
         #to_latex
-        _results_to_latex(df, results, caption_i, label_i, tablenotes)
+        _df_to_latex(df, results, caption_i, label_i, tablenotes)
 
         #save_fname
         save_fname=f"{results}/figures/{type_of_aggregation}"
@@ -856,7 +872,7 @@ def _csdid(results):
     df=pd.read_csv(
         filepath,
         dtype="string",
-        #nrows=1000,
+        nrows=1000,
         )
     
     #control vars
@@ -912,7 +928,7 @@ def _csdid(results):
     _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
 
     #ln_amount_democratic
-    depvar="ln_amount_democratic"
+    '''depvar="ln_amount_democratic"
     label="ln_amount_democratic"
     caption=" - Donation Amount - Democratic"
     #att_gt
@@ -945,7 +961,7 @@ def _csdid(results):
     caption=" - Donation Likelihood - Republican"
     #att_gt
     _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
-
+    #'''
 
 
 
