@@ -11,7 +11,7 @@ from stargazer.stargazer import Stargazer
 
 #functions
 from _string_utils import _replace_txt
-from _pd_utils import _tonumericcols_to_df
+from _pd_utils import _todatecols_to_df, _tonumericcols_to_df
 
 
 #vars
@@ -19,14 +19,14 @@ INTERACT=":"
 tuples_replace=[
 
     #ln amount
-    ("ln_amount_democratic",              "Donations (logs) to Dem. AG assn"),
-    ("ln_amount_republican",              "Donations (logs) to Rep. AG assn"),
-    ("ln_amount_both",                    "Donations (logs) to both AG assn"),
+    ("ln_amount_democratic",              "Donation Amount (logs) to Dem. AG assn"),
+    ("ln_amount_republican",              "Donation Amount (logs) to Rep. AG assn"),
+    ("ln_amount_both",                    "Donation Amount (logs) to both AG assn"),
 
     #amount
-    ("amount_democratic",                 "Donations to Dem. AG assn"),
-    ("amount_republican",                 "Donations to Rep. AG assn"),
-    ("amount_both",                       "Donations to both AG assn"),
+    ("amount_democratic",                 "Donation Amount to Dem. AG assn"),
+    ("amount_republican",                 "Donation Amount to Rep. AG assn"),
+    ("amount_both",                       "Donation Amount to both AG assn"),
 
     #dummy
     ("dummy_democratic",                  "Donation Likelihood to Dem. AG assn"),
@@ -59,8 +59,11 @@ with open(filepath, "r") as file_object:
     tablenotes=file_object.read()
 
 
-#tabular to tabletext
-def _tabular_to_tabletext(tabular, caption, label, tablenotes):
+#stylerobject to tabletext
+def _stylerobject_to_tabletext(styler_object, caption, label, tablenotes):
+
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+    tabular=styler_object.to_latex(hrules=True)
 
     #text
     text=(
@@ -152,15 +155,15 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     #styler object
     styler_object=df.style
 
-    #format
+    #format styler
     format_styler="{:,.3f}"
-    styler_object=styler_object.format(format_styler)
 
-    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    tabular=styler_object.to_latex(hrules=True)
+    #format cols
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.format.html
+    styler_object=styler_object.format(format_styler)
     
     #tabular to tabletext
-    text=_tabular_to_tabletext(tabular, caption, label, tablenotes)
+    text=_stylerobject_to_tabletext(styler_object, caption, label, tablenotes)
 
     #replace txt
     text=_replace_txt(text, tuples_replace)
@@ -512,7 +515,7 @@ def _table_reg(df, results, controlvars, inputs, label, caption, depvar):
     #stargazer.title
     #stargazer.show_model_numbers
     stargazer.custom_columns(subsample_names, [1]*n_models)
-    #significance_levels
+    #stargazer.significance_levels
     #stargazer.significant_digits
     #stargazer.show_confidence_intervals
     depvar_name=_replace_txt(depvar, tuples_replace)
@@ -676,42 +679,162 @@ def _table_regs(results):
     _table_reg(df, results, controlvars, inputs, label, caption, depvar)
 
 
-#df to latex
-def _df_to_latex(df, results, caption, label, tablenotes):
+#significance levels
+def _significance_levels(alpha):
+
+    #if
+    if alpha==0.1:
+
+        #stars
+        stars="*"
+    
+    #elif
+    elif alpha==0.05:
+
+        #stars
+        stars="**"
+    
+    #elif
+    elif alpha==0.01:
+
+        #stars
+        stars="***"
+    
+    #else
+    else:
+
+        #star
+        stars="error"
+    
+    #return
+    return stars
+
+
+# rename cols
+def _rename_cols(df):
+
+    #oldcols
+    oldcols=list(df.columns)
+
+    #newcols
+    newcols=[None]*len(oldcols)
+
+    #for
+    for i, col in enumerate(oldcols):
+
+        #split
+        words=col.split('_')
+
+        #capitalize
+        words=[x if x.isupper() else x.capitalize() for x in words]
+
+        #newcol
+        newcol=" ".join(words)
+
+        #newcols
+        newcols[i]=newcol
+
+    #newcols
+    df.columns=newcols
+
+    #return
+    return df
+
+
+#csdid save
+def _csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname):
+
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.aggregate
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.results
+
+    #aggregate
+    att_gt.aggregate(
+        type_of_aggregation=type_of_aggregation,
+        alpha=alpha,
+        )
+
+    #result
+    df=att_gt.results(
+        type_of_aggregation=type_of_aggregation,
+        to_dataframe=True
+        )
+
+    #stars
+    stars=_significance_levels(alpha)
+
+    #string cols
+    string_cols=df.select_dtypes(include="object").columns.tolist()
+
+    #for
+    for i, col in enumerate(string_cols):
+        df[col]=df[col].str.replace("*", stars, regex=False)
 
     #drop level
     df.columns=df.columns.droplevel(0)
     df.columns=df.columns.droplevel(0)
 
-    #set index
-    df=df.set_index(df.columns[0])
+    #rename
+    df=_rename_cols(df)
 
+    #save
+    df.to_csv(
+        filepath,
+        index_label="index"
+        )
+    
+    #plot params
+    configure_axisX={'format': 'c'}
+    width=500
+    height=500
+    
+    #plot
+    plt=att_gt.plot(
+        type_of_aggregation=type_of_aggregation,
+        configure_axisX=configure_axisX,
+        width=width,
+        height=height,
+        save_fname=save_fname,
+        )
+    #plt.show()
+
+
+#df to latex
+def _df_to_latex(results, caption, label, filepath, tablenotes):
+    
+    #read
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        index_col="index",
+        )
+    
+    #rename index
+    df=df.rename_axis("")
+    df=df.rename(index={"0": ""})
+    
     #to numeric if possible
     for col in df.columns:
         try:
             df[col] = pd.to_numeric(df[col])
         except ValueError:
-            pass
-        
-    #numeric_cols
-    numeric_cols=df.select_dtypes(include='number').columns.tolist()
-    print(numeric_cols)
+            pass  
 
-    #styler object XXX
+    #numeric_cols
+    numeric_cols=df.select_dtypes(include="number").columns.tolist()
+
+    #styler object
     styler_object=df.style
 
-    #format
+    #format styler
     format_styler="{:,.3f}"
-    styler_object=styler_object.format({col: format_styler for col in numeric_cols})
 
-    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
-    tabular=styler_object.to_latex(hrules=True)
-
-    #replace
-    tabular=tabular.replace("_", " ")
+    #format cols
+    #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.format.html
+    formatter={col: format_styler for col in numeric_cols}
+    styler_object=styler_object.format(formatter)
     
-    #tabular to tabletext
-    text=_tabular_to_tabletext(tabular, caption, label, tablenotes)
+    #df to tabletext
+    text=_stylerobject_to_tabletext(styler_object, caption, label, tablenotes)
 
     #save
     _save_table(results, label, text)
@@ -726,16 +849,28 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
     #ids
     unit_var, time_var = "cusip", "fyear"
 
+    #select cols
+    cols=[unit_var, time_var, depvar, group_var] + controlvars
+    df=df[cols]
+
     #dropna
-    dropna_cols=[depvar] + controlvars
+    dropna_cols=[unit_var, time_var, depvar, group_var] + controlvars
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        time_var,
         depvar,
-        group_var,
         ] + controlvars
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #np where
+    df[group_var]=np.where(df[group_var]=='0', np.nan, df[group_var])
+
+    #to numeric
+    tonumeric_cols=[
+        time_var,
+        group_var,
+        ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #rename and setindex
@@ -743,11 +878,8 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
     df=df.rename(columns={unit_var: entity, time_var: time})
     df=df.set_index([entity, time])
 
-    #group var
-    df[group_var] = np.where(df[group_var] == 0, np.nan, df[group_var])
-
     #att_gt
-    att_gt = ATTgt(
+    att_gt=ATTgt(
         data=df,
         cohort_name=group_var,
         #strata_name: str = None,
@@ -788,12 +920,7 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
         )
 
     #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.aggregate
-    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.plot
-
-    #plot params
-    configure_axisX={'format': 'c'}
-    width=500
-    height=500
+    #https://differences.readthedocs.io/en/latest/api_reference/attgt.html#differences.attgt.attgt.ATTgt.plo
 
     #types
     types=[
@@ -803,53 +930,27 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
         "simple",
         ]
     
-    type_of_aggregation="not_aggregated"
-    save_fname=f"{results}/figures/{type_of_aggregation}"
-    plt=att_gt.plot(
-        configure_axisX={'format': 'c'},
-        width=width,
-        height=height,
-        save_fname=save_fname,
-        )
-    #plt.show()
-    
     #for
     for i, type_of_aggregation in enumerate(types):
-
-        #aggregate
-        x=att_gt.aggregate(
-            type_of_aggregation=type_of_aggregation,
-            alpha=alpha,
-            )
-        
-        #result
-        df=att_gt.results(
-            type_of_aggregation=type_of_aggregation,
-            to_dataframe=True
-            )
         
         #label and caption
         label_i=f"{type_of_aggregation}_{label}"
         caption_i=f"\( ATT(g, \\tau) \) aggregated at {type_of_aggregation}-level{caption}"
-
+        
         #tablenotes
         tablenotes=f"The Average Treatment Effects for treated group \( g \) at time \( t \) are aggregated at {type_of_aggregation}-level."
-        
-        #to_latex
-        _df_to_latex(df, results, caption_i, label_i, tablenotes)
 
-        #save_fname
+        #filepath df
+        filepath=f"{results}/tables/{label_i}.csv"
+
+        #filepath plot
         save_fname=f"{results}/figures/{type_of_aggregation}"
-        
-        #plot
-        plt=att_gt.plot(
-            type_of_aggregation=type_of_aggregation,
-            configure_axisX=configure_axisX,
-            width=width,
-            height=height,
-            save_fname=save_fname,
-            )
-        #plt.show()
+
+        #save
+        _csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname)
+
+        #to_latex
+        _df_to_latex(results, caption_i, label_i, filepath, tablenotes)
 
         #print
         print(f"{i} - {type_of_aggregation}")
@@ -872,7 +973,7 @@ def _csdid(results):
     df=pd.read_csv(
         filepath,
         dtype="string",
-        nrows=1000,
+        #nrows=1000,
         )
     
     #control vars
@@ -923,12 +1024,12 @@ def _csdid(results):
     #ln_amount_both
     depvar="ln_amount_both"
     label="ln_amount_both"
-    caption=" - Donation Amount - Both"
+    caption=" - Donation Amount - Both assn"
     #att_gt
     _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
 
     #ln_amount_democratic
-    '''depvar="ln_amount_democratic"
+    depvar="ln_amount_democratic"
     label="ln_amount_democratic"
     caption=" - Donation Amount - Democratic"
     #att_gt
@@ -944,7 +1045,7 @@ def _csdid(results):
     #dummy_both
     depvar="dummy_both"
     label="dummy_both"
-    caption=" - Donation Likelihood - Both"
+    caption=" - Donation Likelihood - Both assn"
     #att_gt
     _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, cluster_var, group_var, label, caption, depvar)
 
