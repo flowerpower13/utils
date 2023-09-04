@@ -947,13 +947,13 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
         save_fname=f"{results}/figures/{type_of_aggregation}"
 
         #save
-        _csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname)
+        #_csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname)
 
         #to_latex
         _df_to_latex(results, caption_i, label_i, filepath, tablenotes)
 
         #print
-        print(f"{i} - {type_of_aggregation}")
+        print(f"{i} - {label_i}")
         #'''
 
 
@@ -1068,6 +1068,6 @@ def _csdid(results):
 
 #_table_summaries(results)
 #_table_regs(results)
-_csdid(results)
+#_csdid(results)
 print("done")
 

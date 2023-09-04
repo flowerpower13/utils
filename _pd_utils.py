@@ -393,8 +393,14 @@ def _todatecols_to_df(df, todate_cols, errors, format, new_format="%Y-%m-%d"):
             df[col],
             errors=errors,
             format=format,
-            ).dt.strftime(new_format)
+            )
     
+    #for
+    for i, col in enumerate(todate_cols):
+
+        #to date
+        df[col]=df[col].dt.strftime(new_format)
+
     #return
     return df
 
