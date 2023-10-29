@@ -14,17 +14,7 @@ from _hassan_vars import get_generalsets
 set_synonyms_uncertainty, set_loughran_positive, set_loughran_negative, set_sovereign = get_generalsets()
 
 
-#imports rdp
-'''
-from _rdp import _convert_symbols
-import eikon as ek
-import refinitiv.dataplatform as rdp
-#right click on import "SymbolTypes", "Go to Definition"
-from refinitiv.dataplatform.content.symbology.symbol_type import SymbolTypes
-appkey="7203cad580454a948f17be1b595ef4884be257be"
-ek.set_app_key(appkey)
-rdp.open_desktop_session(appkey)
-#'''
+
 
 
 #######################################################################################################
@@ -196,16 +186,6 @@ sort_id=["file_stem"]
 #_pd_concat(folders, items, left, right, axis, join, sort_id)
 
 
-#hassan covid measure (cross sectional split: covid risk vs business opportunity)
-
-
-'''
-rdp.close_session()
-print("_rdp - done")
-#'''
-
-
-#irs
 
 
 

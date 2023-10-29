@@ -83,11 +83,14 @@ def _stylerobject_to_tabletext(styler_object, caption, label, tablenotes):
         f"{label}"
         "}"             "\n"
 
-        "\\resizebox{\\textwidth}{!}{%" "\n"
+        #resizebox
+        #"\\resizebox{\\textwidth}{!}{%" "\n"
 
         #tabular
         f"{tabular}"    "\n"
-        "}"             "\n"
+
+        #resizebox
+        #"}"             "\n"
 
         #table notes
         "\\begin{tablenotes}"   "\n"
@@ -798,8 +801,8 @@ def _csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname):
     #plt.show()
 
 
-#df to latex
-def _df_to_latex(results, caption, label, filepath, tablenotes):
+#_csv_to_latex
+def _csv_to_latex(results, caption, label, filepath, tablenotes):
     
     #read
     df=pd.read_csv(
@@ -949,8 +952,8 @@ def _csdid_attgt(df, results, controlvars, control_group, est_method, alpha, clu
         #save
         #_csdid_save(att_gt, type_of_aggregation, alpha, filepath, save_fname)
 
-        #to_latex
-        _df_to_latex(results, caption_i, label_i, filepath, tablenotes)
+        #_csv_to_latex
+        _csv_to_latex(results, caption_i, label_i, filepath, tablenotes)
 
         #print
         print(f"{i} - {label_i}")

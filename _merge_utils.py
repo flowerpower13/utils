@@ -72,8 +72,8 @@ def _pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, v
     right=_dfpath_to_dfon(right_path, right_ons)
 
     #args
-    indicator=f"_merge_{result}"
     suffixes=('_left', '_right')
+    indicator=f"_merge_{result}"
 
     #merge
     df=pd.merge(

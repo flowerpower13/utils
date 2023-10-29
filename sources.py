@@ -1,5 +1,15 @@
 
 
+#DIME
+#https://data.stanford.edu/dime
+
+
+
+
+#Medicaid
+#https://data.medicaid.gov/
+#https://oig.hhs.gov/fraud/enforcement/
+
 
 #DOL
 #https://enforcedata.dol.gov/views/data_catalogs.php
@@ -8,6 +18,11 @@
 #OFCCP Compliance Evaluation and Complaint Investigation Data - 500
 #OSHA Enforcement Data - 210.000
 #WHD Wage and Hour Compliance Action Data - 80.000
+
+
+#BLS Injuries
+#https://www.bls.gov/iif/state-data/archive.htm
+
 
 
 #OSHA
@@ -31,6 +46,7 @@
 
 
 #fuzzy match
+#https://github.com/dell-research-harvard/linktransformer
 #https://github.com/bradhackinen/nama
 
 

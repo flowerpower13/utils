@@ -135,13 +135,11 @@ def _convert_IDs(df, IDs):
 
 
 #CONVERT SYMBOLS
-'''folders=["zhao/_convert_symbols0", "zhao/_convert_symbols1"]
-items=["filestem", "symbols"]
+folders=["zhao/_crspcompustat", "zhao/_crspcompustat"]
+items=["crspcompustat_2000_2023_screen", "crspcompustat_2000_2023_screen_convert"]
 IDs=[
-    ["isin", SymbolTypes.ISIN], 
     ["cusip", SymbolTypes.CUSIP],
     ]
-#'''
 #right click on import "SymbolTypes", "Go to Definition"
 def _convert_symbols(folders, items, IDs):
 
@@ -169,46 +167,6 @@ def _convert_symbols(folders, items, IDs):
 
     #for each column, create a csv
     _df_to_csvcols(df, results, result)
-
-
-#CREATE PORTFOLIOS FOR REFINITIV WORKSPACE'S APP "PAL"
-#folders=["_convert_symbols1", "_pal"]
-#items=["symbols", "symbols"]
-#_pal(folders, items)
-def _pal(folders, items):
-
-    #folders
-    resources=folders[0]
-    results=folders[1]
-
-    #items
-    resource=items[0]
-    result=items[1]
-
-    #read
-    filepath=f"{resources}/{resource}.csv"
-    df=pd.read_csv(filepath, dtype="string")
-
-    #symbols
-    col_name="RIC"
-    symbols_all=_dfcol_to_listcol(df, col_name)
-
-    #chunks
-    n_chunks=200
-    chunks_list=chunker(symbols_all, n_chunks)
-
-    #for
-    for i, symbols in enumerate(chunks_list): 
-
-        #create df
-        d={
-            "Symbol": symbols,
-            }
-        df=pd.DataFrame(data=d)
-
-        #save
-        filepath=f"{results}/{result}_pal_{i}.csv"
-        df.to_csv(filepath, index=False)
 
 
 #load items
@@ -515,10 +473,9 @@ def _get_data_loop(instruments, fields, parameters, results):
 
 
 #GET DATA
-'''folders=["zhao/_get_data0", "zhao/_get_data1"]
+folders=["zhao/_get_data0", "zhao/_get_data1"]
 items=["filestem_idx", "filestem_fields", "filestem_parameters"]
 symbol=["OAPermID", "MULTI"]
-#'''
 def _get_data(folders, items, symbol):
 
     #folders
@@ -553,25 +510,24 @@ def _get_data(folders, items, symbol):
 
 
 #extract year
-def _extract_year(e):
+def _extract_year(x):
 
-    #search
-    e=re.search(r"[0-9]{4}", e)
-    e=e.group()
+    #data_dict
+    data_dict=json.loads(x)
 
     #year
-    year=str(e)
+    year=data_dict["Period"]
 
+    #return
     return year
 
 
 #RDP DATA FROM EXCEL
-folders=["zhao/_get_data0", "zhao/_rdp_data1"]
-items=["filestem_idx", "filestem_fields", "filestem_parameters"]
-#symbol=["RIC", "RIC"]
+folders=["zhao/_crspcompustat", "zhao/_rdp_data1"]
+items=["crspcompustat_2000_2023_screen_convert", "filestem_fields", "filestem_parameters"]
+symbol=["RIC", "RIC"]
 #symbol=["IssueISIN", "ISIN"]
-symbol=["OAPermID", "MULTI"]
-#'''
+#symbol=["OAPermID", "MULTI"]
 def _rdp_data1(folders, items, symbol):
 
     #folders
@@ -602,7 +558,7 @@ def _rdp_data1(folders, items, symbol):
     #parameters
     item=items[2]
     parameters=_load_items(resources, item, col_symbol)
-    parameters=[_extract_year(e) for e in parameters]
+    parameters=[_extract_year(x) for x in parameters]
 
     #optional
     optional="CH=Fd RH=IN"
@@ -647,7 +603,7 @@ def _rdp_data1(folders, items, symbol):
                     ws.append(row)
 
             #rdp data
-            rdp_data=f'=@RDP.Data(instruments!B3:B100000,fields!B3:B100,"Period={param} {optional} {code}")'
+            rdp_data=f'=@RDP.Data(instruments!B3:B10000,fields!B3:B100,"Period={param} {optional} {code}")'
 
             #ws
             ws_data=wb.active
@@ -662,8 +618,11 @@ def _rdp_data1(folders, items, symbol):
             print(f"{param}_{k} - done")
 
 
+#_rdp_data1(folders, items, symbol)
+
+
 #CONCATATENATE EXCEL SHEETS FOR RDP DATA
-#folders=["_rdp_data1", "_rdp_data2"]
+folders=["zhao/_rdp_data1", "zhao/_rdp_data2"]
 def _rdp_data2(folders):
     resources=folders[0]
     results=folders[1]
@@ -677,7 +636,10 @@ def _rdp_data2(folders):
 
     for i, file in enumerate(files):
         filepath=f"{file}"
-        df=pd.read_excel(filepath)
+        df=pd.read_excel(
+            filepath,
+            #engine="openpyxl",
+            )
 
         #rename instruments
         first_col=df.columns[0]
@@ -692,9 +654,12 @@ def _rdp_data2(folders):
 
     df=pd.concat(frames)
 
-    filepath=f"{results}/{results}.csv"
+    filepath=f"{results}/summary.csv"
     df.to_csv(filepath, index=False)
     
+
+_rdp_data2(folders)
+
 
 #search loop
 def _search_loop(view, query, filter, select, top, i, tot):
@@ -931,11 +896,6 @@ def _search(folders, items, colname):
 
 
 
-#search violtrack ids
-folders=["zhao/_violtrack", "zhao/_violtrack"]
-items=["_violtrack_screen", "_violtrack_screen_search"]
-colname="current_parent_name"
-#_search(folders, items, colname)
 
 
 #copy to main.py
