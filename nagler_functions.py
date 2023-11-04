@@ -18,6 +18,7 @@ import pandas as pd
 
 
 #function
+from _pd_utils import _folder_to_filestems
 
 
 def _screengvkey():
@@ -104,7 +105,7 @@ def _screengvkey():
 
 
 #text_to_extractlist
-def text_to_extractlist(text, gram, n_chars=200):
+def text_to_extractlist(text, gram, n_chars=300):
 
     #init extract
     extract_list = []
@@ -161,6 +162,9 @@ def _find_examples():
 
     #resources
     resources="nagler/_pdfs_to_txts"
+
+    #_folder_to_filestems
+    files, file_stems = _folder_to_filestems(resources)
 
     #grams
     grams=[
