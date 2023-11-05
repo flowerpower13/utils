@@ -1,8 +1,9 @@
 
+
 #virtual env
 '''
 #create
-virtualenv ciani
+python -m venv ciani
 
 #activate
 .\ciani\Scripts\Activate.ps1
