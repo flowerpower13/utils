@@ -1,16 +1,18 @@
 
-
-#CREATE VIRTUAL ENVIRONMENT
-#create venv
-python -m venv venv
+#virtual env
+'''
+#create
+virtualenv ciani
 
 #activate
-venv\Scripts\activate
+.\ciani\Scripts\Activate.ps1
 
-#deactivate
+#close
 deactivate
 
+#export requirements
+pip freeze > requirements.txt
 
-
-
-
+#install requirements
+pip install -r requirements.txt
+'''
