@@ -1,3 +1,21 @@
 {
     "terminal.integrated.tabs.enabled": false,
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.editorAssociations": {
+        "*.pdf": "default"
+    },
+    "grammarly.files.include": [
+        "**/*.tex"
+    ],
+    "grammarly.config.documentDialect": "american",
+    "grammarly.config.documentDomain": "academic",
+    "grammarly.config.suggestionCategories.informalPronounsAcademic": "on",
+    "grammarly.config.suggestionCategories.conjugationAtStartOfSentence": "on",
+    "grammarly.config.suggestionCategories.oxfordComma": "on",
+    "grammarly.config.suggestionCategories.passiveVoice": "on",
+    "grammarly.config.suggestionCategories.unnecessaryEllipses": "on",
 }
+
