@@ -16,4 +16,6 @@ pip freeze > requirements.txt
 
 #install requirements
 pip install -r requirements.txt
+
+python ciani_functions.py
 '''
