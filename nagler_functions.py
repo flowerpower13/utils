@@ -3,13 +3,21 @@
 #virtual env
 '''
 #create
-virtualenv nagler
+python -m venv nagler
 
 #activate
 .\nagler\Scripts\Activate.ps1
 
 #close
 deactivate
+
+#export requirements
+pip freeze > "nagler/requirements.txt"
+
+#install requirements
+pip install -r "nagler/requirements.txt"
+
+python nagler_functions.py
 '''
 
 
@@ -28,6 +36,7 @@ def _screengvkey():
     usecols=[
         "file_stem",
         "gvkey",
+        "conm",
         "prisk",
         ]
     df=pd.read_csv(
@@ -161,7 +170,8 @@ def _find_examples():
     df=_screengvkey()
 
     #resources
-    resources="nagler/_pdfs_to_txts"
+    resources="nagler/_advev_raw"
+    #resources="nagler/_pdfs_to_txts"
 
     #_folder_to_filestems
     files, file_stems = _folder_to_filestems(resources)
@@ -192,24 +202,35 @@ def _find_examples():
         #filepath
         filepath=f"{resources}/{filestem}.txt"
 
-        #open
-        with open(
-            file=filepath, 
-            mode="r",
-            ) as file:
-            text=file.read()
+        #try
+        try:
+            
+            #open
+            with open(
+                file=filepath, 
+                mode="r",
+                encoding="utf-8",
+                #encoding='latin-1',
+                ) as file:
+                text=file.read()
 
-        #for
-        for j, gram in enumerate(grams):
+            #for
+            for j, gram in enumerate(grams):
 
-            #text_to_extractlist
-            extract_list=text_to_extractlist(text, gram)
+                #text_to_extractlist
+                extract_list=text_to_extractlist(text, gram)
 
-            #loc
-            df.loc[index, gram]=extract_list
+                #loc
+                df.loc[index, gram]=extract_list
 
-        #print
-        print(f"{index}/{tot} - {filestem} - done")
+            #print
+            print(f"{index}/{tot} - {filestem} - done")
+        
+        #except
+        except Exception as e:
+
+            #print
+            print(f"{index}/{tot} - {filestem} - except")
 
 
     #to_csv

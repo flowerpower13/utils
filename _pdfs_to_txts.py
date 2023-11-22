@@ -13,7 +13,7 @@ from _pd_utils import _pd_DataFrame, _folder_to_filestems
 
 
 #variables
-from _string_utils import error, marker, encoding, errors
+from _string_utils import ERROR, MARKER, ENCODING, ERRORS
 laparams=LAParams(line_overlap=0.5, char_margin=2.0, line_margin=0.5, word_margin=0.1, boxes_flow=0.5, detect_vertical=False, all_texts=True)
 
 
@@ -51,7 +51,7 @@ def _pdfminer(decrypted_file, raw_file):
     for i, page_layout in enumerate(pages):
 
         #marker page
-        marker_page=f"\n {marker}page_layout - {i}{marker} \n "
+        marker_page=f"\n {MARKER}page_layout - {i}{maMARKERrker} \n "
         text_list.append(marker_page)
         
         #for element
@@ -61,7 +61,7 @@ def _pdfminer(decrypted_file, raw_file):
             if isinstance(element, LTTextContainer):
 
                 #marker element
-                marker_element=f"\n {marker}element.get_text() - {j}{marker} \n "
+                marker_element=f"\n {MARKER}element.get_text() - {j}{MARKER} \n "
                 text_list.append(marker_element)
 
                 #try
@@ -72,7 +72,7 @@ def _pdfminer(decrypted_file, raw_file):
                 
                 except Exception as e:
                     print(e)
-                    text_list.append(error)
+                    text_list.append(ERROR)
 
     #text
     text=' '.join(text_list)       
@@ -81,8 +81,8 @@ def _pdfminer(decrypted_file, raw_file):
     with open(
         file=raw_file, 
         mode='w',
-        encoding=encoding, 
-        errors=errors,
+        encoding=ENCODING, 
+        errors=ERRORS,
         ) as file_object:
         file_object.write(text)
 
@@ -96,8 +96,8 @@ def _copy_txt(file, raw_file):
     with open(
         file, 
         mode='r', 
-        encoding=encoding, 
-        errors=errors,
+        encoding=ENCODING, 
+        errors=ERRORS,
         ) as file_object:
         raw_text=file_object.read()
 
@@ -106,8 +106,8 @@ def _copy_txt(file, raw_file):
     with open(
         raw_file, 
         mode='w', 
-        encoding=encoding, 
-        errors=errors,
+        encoding=ENCODING, 
+        errors=ERRORS,
         ) as file_object:
         file_object.write(raw_text)
     #'''
@@ -125,8 +125,8 @@ def _cleanwrite_txt(raw_text, output):
     with open(
         output, 
         mode='w', 
-        encoding=encoding, 
-        errors=errors,
+        encoding=ENCODING, 
+        errors=ERRORS,
         ) as file_object:
         file_object.write(text)
 

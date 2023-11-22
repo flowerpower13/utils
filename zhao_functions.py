@@ -1,5 +1,26 @@
 
 
+#virtual env
+'''
+#create
+python -m venv zhao
+
+#activate
+.\zhao\Scripts\Activate.ps1
+
+#close
+deactivate
+
+#export requirements
+pip freeze > "zhao/requirements.txt"
+
+#install requirements
+pip install -r "zhao/requirements.txt"
+
+python zhao_functions.py
+'''
+
+
 #imports
 import re
 import io
@@ -10,6 +31,7 @@ from datetime import datetime
 
 
 #functions
+from _merge_utils import _pd_merge, _pd_merge_asof
 from _industry_famafrench import _filepath_to_mapping
 from _pd_utils import _folder_to_filestems, \
     _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, _fillnacols_to_df, \
@@ -29,92 +51,16 @@ CURRENT_YEAR_2DIGIT=CURRENT_YEAR%100
 tot=13428119
 buffer_size=8192
 
-
-#vars refinitiv
-company_name="dtsubjectname"
-company_businessentity="businessentity"
-company_ric="ric"
-company_isin="issueisin"
-company_cusip="cusip"
-company_oapermid="oapermid"
-
-
 #vars donations
 #organization
-organization_name="a__org_name"
-organization_id="a__ein"
 pivot_columns={
-    "134220019": "amount_democratic",
-    "464501717": "amount_republican",
+    "134220019": "daga",
+    "464501717": "raga",
+    "521304889": "dga",
+    "113655877": "rga",
+    "521870839": "dlcc",
+    "050532524": "rslc",
     }
-#contributors
-contributor_id="cusip"
-contributor_name="a__contributor_name"
-contributor_employer="a__contributor_employer"
-contributor_employer_new="a__contributor_employer_new"
-contributor_donor_isfirm="a__donor_isfirm"
-contributor_company_involved="a__contributor_company_involved"
-#contribution
-contribution_date="a__contribution_date"
-contribution_year="a__contribution_year"
-contribution_amount_ytd="a__agg_contribution_ytd"
-
-
-#vars violation_tracker
-violtrack_parent_id="violtrack_parent_id"
-violtrack_initiation_year="violtrack_initiation_year"
-violtrack_penalty_year="pen_year"
-violtrack_initiation_lag="violtrack_initiation_lag"
-violtrack_penalty_amount="penalty"
-violtrack_docket_number="case_id"
-violtrack_pacer_link="pacer_link"
-
-#vars echo
-echo_parent_id="cusip"
-echo_initiation_year="echo_initiation_year"
-echo_penalty_year="settlement_fy"
-echo_initiation_lag="echo_initiation_lag"
-echo_penalty_amount="fed_penalty_assessed_amt"
-echo_activity_type_code="activity_type_code"
-
-
-#vars osha
-osha_parent_id="cusip"
-osha_initiation_year="open_date"
-osha_penalty_year="close_case_date"
-osha_initiation_lag="osha_initiation_lag"
-osha_penalty_amount="initial_penalty"
-
-
-#vars crspcompustat
-#https://wrds-www.wharton.upenn.edu/pages/get-data/center-research-security-prices-crsp/annual-update/crspcompustat-merged/fundamentals-annual/
-#panel
-crspcomp_cusip="cusip" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CUSIP/
-crspcomp_fyear="fyear" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_companydescriptor/FYEAR/
-#id
-crspcomp_cik="cik" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CIK/
-crspcomp_ein="ein" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/EIN/
-crspcomp_name="conm" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_identifyinginformation/CONM/
-crspcomp_state="state" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/STATE/
-crspcomp_incorp="incorp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/INCORP/
-#balance sheet
-crspcomp_assets="at" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/AT/
-crspcomp_liabilities="lt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/LT/
-crspcomp_bookequity="seq" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_balancesheetitems/SEQ/
-crspcomp_mktequity="mkvalt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_supplementaldataitems/MKVALT/
-crspcomp_sharesoutstanding="csho" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_miscellaneousitems/CSHO/
-crspcomp_dividends="dvt" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/DVT/
-#income statement
-crspcomp_revenues="revt" ##https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/REVT/
-crspcomp_cogs="cogs" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/COGS/
-crspcomp_oibdp="oibdp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/OIBDP/
-crspcomp_da="dp" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/DP/
-crspcomp_netincome="ni" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_incomestatementitems/NI/
-#industry
-crspcomp_sic="sic" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/SIC/
-crspcomp_naics="naics" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/NAICS/
-crspcomp_gics="gind" #https://wrds-www.wharton.upenn.edu/data-dictionary/form_metadata/crsp_a_ccm_ccmfunda_extra8_identifyinginformationcont/GIND/
-#size, lev, btm, roe, industry
 
 #irs code and columns
 def _irs_codecolumns(resources):
@@ -163,7 +109,7 @@ def _irs_codecolumns(resources):
     return dict_codecolumns
 
 
-#irs create empty txts
+#_irs_newtxts
 def _irs_newtxts(dict_codecolumns, results):
 
     #for code
@@ -189,7 +135,7 @@ def _irs_newtxts(dict_codecolumns, results):
             file_object.write(text)
 
 
-#irs from txt txt to dfs
+#_irs_txt_to_dfs
 folders=["zhao/data/irs", "zhao/_irs"]
 items=["FullDataFile"]
 def _irs_txt_to_dfs(folders, items):
@@ -197,7 +143,7 @@ def _irs_txt_to_dfs(folders, items):
     #Download form data file (entire database of Forms 8871 and Forms 8872)
     #https://forms.irs.gov/app/pod/dataDownload/dataDownload
     #https://forms.irs.gov/app/pod/dataDownload/fullData 
-    #downloaded on 2023/8/9
+    #downloaded on 2023/08/09
     #read PolOrgsFileLayout.doc 
 
     #folders
@@ -287,7 +233,7 @@ def _irs_txt_to_dfs(folders, items):
             #if i==100000: break
 
 
-#irs contributors screen
+#_irs_contributors_screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
 def _irs_contributors_screen(folders, items):
@@ -302,12 +248,12 @@ def _irs_contributors_screen(folders, items):
 
     #usecols
     usecols=[
-        organization_name,
-        organization_id,
-        contributor_name,
-        contributor_employer,
-        f"{contribution_date}\r", #???
-        contribution_amount_ytd,
+        "a__org_name",
+        "a__ein",
+        "a__contributor_name",
+        "a__contributor_employer",
+        f"{"a__contribution_date"}\r", #???
+        "a__agg_contribution_ytd",
         ]
     usecols=[x.capitalize() for x in usecols]
 
@@ -328,46 +274,46 @@ def _irs_contributors_screen(folders, items):
     df=_lowercase_colnames_values(df)
 
     #???
-    df=df.rename(columns={f"{contribution_date}\r": contribution_date})
+    df=df.rename(columns={f"a__contribution_date\r": "a__contribution_date"})
 
     #dropna
     dropna_cols=[
-        organization_id,
-        contribution_date, 
-        contribution_amount_ytd,
+        "a__ein",
+        "a__contribution_date", 
+        "a__agg_contribution_ytd",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        organization_id,
-        contribution_amount_ytd,
+        "a__ein",
+        "a__agg_contribution_ytd",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #to date
     todate_cols=[
-        contribution_date,
+        "a__contribution_date",
         ]
     errors="coerce"
     format="%Y%m%d"
     df=_todatecols_to_df(df, todate_cols, errors, format)
 
     #keep only attorneys general associations (resp. Dem and Rep)
-    s=df[organization_id]
+    s=df["a__ein"]
     df=df[
         (s==134220019) | (s==464501717)
         ]
 
     #initiation year
-    df[contribution_year]=pd.DatetimeIndex(df[contribution_date], ambiguous="NaT").year
+    df["a__contribution_year"]=pd.DatetimeIndex(df["a__contribution_date"], ambiguous="NaT").year
 
     #sortvalues
     sortvalues_cols=[
-        contributor_name,
-        organization_id,
-        contribution_year,
-        contribution_date,
+        "a__contributor_name",
+        "a__ein",
+        "a__contribution_year",
+        "a__contribution_date",
         ]
     ascending=[
         True,
@@ -382,15 +328,15 @@ def _irs_contributors_screen(folders, items):
 
     #groupby
     by=[
-        organization_id,
-        contributor_name,
-        contribution_year,
+        "a__ein",
+        "a__contributor_name",
+        "a__contribution_year",
         ]
     dict_agg_colfunctions={
-        organization_name: [_first_value],
-        contributor_employer: [_first_value],
-        contribution_date: [_first_value],
-        contribution_amount_ytd: [_first_value],
+        "a__org_name": [_first_value],
+        "a__contributor_employer": [_first_value],
+        "a__contribution_date": [_first_value],
+        "a__agg_contribution_ytd": [_first_value],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
@@ -417,11 +363,11 @@ def _irs_contributors_screen(folders, items):
         "teacher": NA_VALUE,
         "founder": NA_VALUE,
         }
-    df[contributor_employer_new]=df[contributor_employer].replace(dict_replace)
+    df["a__contributor_employer_new"]=df["a__contributor_employer"].replace(dict_replace)
 
     #init series
-    x0=df[contributor_name]
-    x1=df[contributor_employer_new]
+    x0=df["a__contributor_name"]
+    x1=df["a__contributor_employer_new"]
 
     condlist=[
         x1.isna(),
@@ -439,20 +385,20 @@ def _irs_contributors_screen(folders, items):
     y1=np.select(condlist, choicelist1, default="error")
 
     #outcome series
-    df[contributor_company_involved]=y0
-    df[contributor_donor_isfirm]=y1
+    df["a__contributor_company_involved"]=y0
+    df["a__donor_isfirm"]=y1
 
     ordered_cols=[
-        organization_name,
-        organization_id,
-        contributor_name,
-        contributor_employer,
-        contributor_employer_new,
-        contributor_donor_isfirm,
-        contributor_company_involved,
-        contribution_date,
-        contribution_year,
-        contribution_amount_ytd,
+        "a__org_name",
+        "a__ein",
+        "a__contributor_name",
+        "a__contributor_employer",
+        "a__contributor_employer_new",
+        "a__donor_isfirm",
+        "a__contributor_company_involved",
+        "a__contribution_date",
+        "a__contribution_year",
+        "a__agg_contribution_ytd",
         ]
     df=df[ordered_cols]
 
@@ -461,7 +407,7 @@ def _irs_contributors_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#echo facilities screen
+#_echo_facilities_screen
 folders=["zhao/data/epa", "zhao/_epa"]
 items=["CASE_FACILITIES", "CASE_FACILITIES_screen"]
 def _echo_facilities_screen(folders, items):
@@ -550,7 +496,7 @@ def _echo_facilities_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#initiation lag
+#_initiation_lag
 def _initiation_lag(row, col0, col1):
 
     #values
@@ -570,7 +516,7 @@ def _initiation_lag(row, col0, col1):
     return initiation_lag
 
 
-#echo enforcements screen
+#_echo_enforcements_screen
 folders=["zhao/data/epa", "zhao/_epa"]
 items=["CASE_ENFORCEMENT_CONCLUSIONS", "CASE_ENFORCEMENT_CONCLUSIONS_screen"]
 def _echo_enforcements_screen(folders, items):
@@ -695,7 +641,7 @@ def _echo_enforcements_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#echo enforcements screen
+#_echo_milestones_screen
 folders=["zhao/data/epa", "zhao/_epa"]
 items=["CASE_MILESTONES", "CASE_MILESTONES_screen"]
 def _echo_milestones_screen(folders, items):
@@ -787,14 +733,14 @@ def _echo_milestones_screen(folders, items):
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #initiation year
-    df[echo_initiation_year]=pd.DatetimeIndex(df["actual_date"], ambiguous="NaT").year
+    df["echo_initiation_year"]=pd.DatetimeIndex(df["actual_date"], ambiguous="NaT").year
 
     #ordered
     ordered_cols=[
         "case_number", 
         "activity_id",
         "actual_date",
-        echo_initiation_year,
+        "echo_initiation_year",
         ]
     df=df[ordered_cols]
 
@@ -803,7 +749,7 @@ def _echo_milestones_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#echo tri screen
+#_echo_tri_screen
 folders=["zhao/data/epa", "zhao/_epa"]
 items=["tri", "tri_screen"]
 def _echo_tri_screen(folders, items):
@@ -825,6 +771,7 @@ def _echo_tri_screen(folders, items):
         "epa_registry_id",
         "reporting_year",
         "facility_name",
+        "parent_co_db_num",
         "parent_co_name",
         ]
     usecols=[x.upper() for x in usecols]
@@ -894,10 +841,10 @@ def _violtrack_screen(folders, items):
     usecols=[
         "current_parent_name",
         "current_parent_ISIN",
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
+        "pen_year",
+        "penalty",
+        "case_id",
+        "pacer_link",
 
         #company
         "company",
@@ -928,44 +875,44 @@ def _violtrack_screen(folders, items):
 
     #to numeric
     tonumeric_cols=[
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
+        "pen_year",
+        "penalty",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #drop na
     dropna_cols=[
         "current_parent_name",
-        violtrack_penalty_year,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
+        "pen_year",
+        "penalty",
+        "case_id",
+        "pacer_link",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #initiation year
-    df[violtrack_initiation_year]=df[violtrack_docket_number].apply(_violtrack_initiation_year)
+    df["violtrack_initiation_year"]=df["case_id"].apply(_violtrack_initiation_year)
 
     #drop na
     dropna_cols=[
-        violtrack_initiation_year,
+        "violtrack_initiation_year",
         ]
     df=df.dropna(subset=dropna_cols)
  
     #initiation lag
-    col0=violtrack_penalty_year
-    col1=violtrack_initiation_year
-    df[violtrack_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+    col0="pen_year"
+    col1="violtrack_initiation_year"
+    df["violtrack_initiation_lag"]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
 
     ordered_cols=[
         "current_parent_name",
         "current_parent_isin",
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
+        "violtrack_initiation_year",
+        "pen_year",
+        "violtrack_initiation_lag",
+        "penalty",
+        "case_id",
+        "pacer_link",
 
         #company
         "company",
@@ -1153,7 +1100,7 @@ def _osha_violation_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#osha inspection screen
+#_osha_inspection_screen
 folders=["zhao/data/osha", "zhao/_osha"]
 items=["osha_inspection", "osha_inspection_screen"]
 def _osha_inspection_screen(folders, items):
@@ -1274,15 +1221,15 @@ def _osha_inspection_screen(folders, items):
     df=_todatecols_to_df(df, todate_cols, errors, format)
         
     #initiation year
-    df[osha_initiation_year]=pd.DatetimeIndex(df["open_date"], ambiguous="NaT").year
+    df["open_date"]=pd.DatetimeIndex(df["open_date"], ambiguous="NaT").year
 
     #penalty year
-    df[osha_penalty_year]=pd.DatetimeIndex(df["close_case_date"], ambiguous="NaT").year
+    df["close_case_date"]=pd.DatetimeIndex(df["close_case_date"], ambiguous="NaT").year
 
     #initiation lag
-    col0=osha_penalty_year
-    col1=osha_initiation_year
-    df[osha_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+    col0="close_case_date"
+    col1="open_date"
+    df["osha_initiation_lag"]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
 
     #sortvalues
     sortvalues_cols=[
@@ -1294,9 +1241,9 @@ def _osha_inspection_screen(folders, items):
     ordered_cols=[
         "activity_nr",
         "estab_name",
-        osha_initiation_year,
-        osha_penalty_year,
-        osha_initiation_lag,
+        "open_date",
+        "close_case_date",
+        "osha_initiation_lag",
         "nr_in_estab",
         ]
     df=df[ordered_cols]
@@ -1306,7 +1253,7 @@ def _osha_inspection_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#crspcompustat screen
+#_crspcompustat_screen
 folders=["zhao/data/crspcompustat", "zhao/_crspcompustat"]
 items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_screen"]
 def _crspcompustat_screen(folders, items):
@@ -1321,27 +1268,27 @@ def _crspcompustat_screen(folders, items):
 
     #usecols
     usecols=[
-        crspcomp_cusip,
-        crspcomp_fyear,
-        crspcomp_cik,
-        crspcomp_ein,
-        crspcomp_name,
-        crspcomp_state,
-        crspcomp_incorp,
-        crspcomp_assets,
-        crspcomp_liabilities,
-        crspcomp_bookequity,
-        crspcomp_mktequity,
-        crspcomp_sharesoutstanding,
-        crspcomp_dividends,
-        crspcomp_revenues,
-        crspcomp_cogs,
-        crspcomp_oibdp,
-        crspcomp_da,
-        crspcomp_netincome,
-        crspcomp_sic,
-        crspcomp_naics,
-        crspcomp_gics,
+        "cusip",
+        "fyear",
+        "cik",
+        "ein",
+        "conm",
+        "state",
+        "incorp",
+        "at",
+        "lt",
+        "seq",
+        "mkvalt",
+        "csho",
+        "dvt",
+        "revt",
+        "cogs",
+        "oibdp",
+        "dp",
+        "ni",
+        "sic",
+        "naics",
+        "gind",
         ]
 
     #read
@@ -1358,15 +1305,15 @@ def _crspcompustat_screen(folders, items):
 
     #dropna
     dropna_cols=[
-        crspcomp_cusip, 
-        crspcomp_fyear, 
+        "cusip", 
+        "fyear", 
         ]
     df=df.dropna(subset=dropna_cols)
 
     #drop duplicates
     dropdups_cols=[
-        crspcomp_cusip, 
-        crspcomp_fyear, 
+        "cusip", 
+        "fyear", 
         ]
     df=df.drop_duplicates(subset=dropdups_cols)
 
@@ -1379,7 +1326,7 @@ def _crspcompustat_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#irs donations aggregate
+#_irs_contributors_aggregate
 folders=["zhao/_irs", "zhao/_irs"]
 items=["donations_ids", "donations_ids_aggregate"]
 def _irs_contributors_aggregate(folders, items):
@@ -1394,23 +1341,23 @@ def _irs_contributors_aggregate(folders, items):
 
     #usecols
     usecols=[
-        organization_id,
-        contributor_id,
-        contributor_name,
-        contribution_year,
-        contribution_amount_ytd,
-        contributor_employer,
-        contributor_employer_new,
-        contributor_donor_isfirm,
-        contributor_company_involved,
+        "a__ein",
+        "cusip",
+        "a__contributor_name",
+        "a__contribution_year",
+        "a__agg_contribution_ytd",
+        "a__contributor_employer",
+        "a__contributor_employer_new",
+        "a__donor_isfirm",
+        "a__contributor_company_involved",
 
         #refinitiv
-        company_name,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        #"cusip",
+        "ric",
+        "oapermid",
         ]
 
     #read
@@ -1427,52 +1374,52 @@ def _irs_contributors_aggregate(folders, items):
 
     #drop na
     dropna_cols=[
-        organization_id,
-        contributor_id,
-        contribution_year,
-        contribution_amount_ytd,
+        "a__ein",
+        "cusip",
+        "a__contribution_year",
+        "a__agg_contribution_ytd",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        contribution_year,
-        contribution_amount_ytd,
+        "a__contribution_year",
+        "a__agg_contribution_ytd",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #aggregate over organization-contributor-year obs
     by=[
-        organization_id,
-        contributor_id,
-        contribution_year,
+        "a__ein",
+        "cusip",
+        "a__contribution_year",
         ]
     dict_agg_colfunctions={
-        contribution_amount_ytd: [np.sum],
-        contributor_name: [_firstvalue_join],
-        contributor_employer: [_firstvalue_join],
-        contributor_employer_new: [_firstvalue_join],
-        contributor_donor_isfirm: [_firstvalue_join],
-        contributor_company_involved: [_firstvalue_join],
-        company_name: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        company_isin: [_firstvalue_join],
-        #company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
+        "a__agg_contribution_ytd": [np.sum],
+        "a__contributor_name": [_firstvalue_join],
+        "a__contributor_employer": [_firstvalue_join],
+        "a__contributor_employer_new": [_firstvalue_join],
+        "a__donor_isfirm": [_firstvalue_join],
+        "a__contributor_company_involved": [_firstvalue_join],
+        "dtsubjectname": [_firstvalue_join],
+        "businessentity": [_firstvalue_join],
+        "issueisin": [_firstvalue_join],
+        #"cusip": [_firstvalue_join],
+        "ric": [_firstvalue_join],
+        "oapermid": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
    #pivot
     index=[
-        contributor_id,
-        contribution_year,
+        "cusip",
+        "a__contribution_year",
         ]
     df_pivot=pd.pivot_table(
         data=df,
-        values=contribution_amount_ytd,
+        values="a__agg_contribution_ytd",
         index=index,
-        columns=organization_id,  
+        columns="a__ein",  
         aggfunc=np.sum,
         fill_value=0,
         )      
@@ -1483,8 +1430,8 @@ def _irs_contributors_aggregate(folders, items):
     df_pivot=df_pivot.rename(columns=pivot_columns)
 
     #df without dups
-    df_withoutdups=df.drop_duplicates(subset=contributor_id)
-    df_withoutdups=df_withoutdups.drop([contribution_year], axis=1)
+    df_withoutdups=df.drop_duplicates(subset="cusip")
+    df_withoutdups=df_withoutdups.drop(["a__contribution_year"], axis=1)
 
     #args
     suffixes=('_left', '_right')
@@ -1494,7 +1441,7 @@ def _irs_contributors_aggregate(folders, items):
         left=df_pivot,
         right=df_withoutdups,
         how="left",
-        on=contributor_id,
+        on="cusip",
         suffixes=suffixes,
         indicator=indicator,
         validate="m:1",
@@ -1502,8 +1449,8 @@ def _irs_contributors_aggregate(folders, items):
     
     #full panel
     cols_id=[
-        contributor_id,
-        contribution_year,
+        "cusip",
+        "a__contribution_year",
         ]
     years=[
         2000,
@@ -1514,20 +1461,20 @@ def _irs_contributors_aggregate(folders, items):
 
     #ordered
     ordered_cols= [
-        contributor_name,
-        contributor_id,
-        contribution_year
+        "a__contributor_name",
+        "cusip",
+        "a__contribution_year"
         ] + list_pivot_columns + [
-        contributor_employer,
-        contributor_employer_new,
-        contributor_donor_isfirm,
-        contributor_company_involved,
-        company_name,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid, 
+        "a__contributor_employer",
+        "a__contributor_employer_new",
+        "a__donor_isfirm",
+        "a__contributor_company_involved",
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        #"cusip",
+        "ric",
+        "oapermid", 
         ]
     df=df[ordered_cols]
 
@@ -1536,7 +1483,7 @@ def _irs_contributors_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#echo aggregate
+#echo aggregate_echo_aggregate
 folders=["zhao/_epa", "zhao/_epa"]
 items=["echo_ids", "echo_ids_aggregate"]
 def _echo_aggregate(folders, items):
@@ -1553,20 +1500,20 @@ def _echo_aggregate(folders, items):
     usecols=[
         "case_number",
         "activity_id",
-        echo_parent_id,
-        echo_initiation_year,
-        echo_penalty_year,
-        echo_penalty_amount,
-        echo_activity_type_code,
+        "cusip",
+        "echo_initiation_year",
+        "settlement_fy",
+        "fed_penalty_assessed_amt",
+        "activity_type_code",
         "parent_co_name",
 
         #refinitiv
-        company_name,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        #"cusip",
+        "ric",
+        "oapermid",
         ]
 
     #read
@@ -1583,114 +1530,114 @@ def _echo_aggregate(folders, items):
 
     #drop na
     dropna_cols=[
-        echo_parent_id,
-        echo_initiation_year,
-        echo_penalty_year,
-        echo_penalty_amount,
+        "cusip",
+        "echo_initiation_year",
+        "settlement_fy",
+        "fed_penalty_assessed_amt",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        echo_initiation_year,
-        echo_penalty_year,
-        echo_penalty_amount,
+        "echo_initiation_year",
+        "settlement_fy",
+        "fed_penalty_assessed_amt",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #initiation lag
-    col0=echo_penalty_year
-    col1=echo_initiation_year
-    df[echo_initiation_lag]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
+    col0="settlement_fy"
+    col1="echo_initiation_year"
+    df["echo_initiation_lag"]=df.apply(_initiation_lag, axis=1, args=(col0, col1))
 
     #aggregate over case-company-init year obs
     by=[
         "case_number",
         "activity_id",
-        echo_parent_id,
-        echo_initiation_year,
+        "cusip",
+        "echo_initiation_year",
         ]
     dict_agg_colfunctions={
-        echo_penalty_amount: [_firstvalue_join],
+        "fed_penalty_assessed_amt": [_firstvalue_join],
         #"case_number": [_firstvalue_join],
-        echo_penalty_year: [_firstvalue_join],
-        echo_initiation_lag: [_firstvalue_join],
-        echo_activity_type_code: [_firstvalue_join],
+        "settlement_fy": [_firstvalue_join],
+        "echo_initiation_lag": [_firstvalue_join],
+        "activity_type_code": [_firstvalue_join],
         "parent_co_name": [_firstvalue_join],
 
         #refinitiv
-        company_name: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        company_isin: [_firstvalue_join],
-        #company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
+        "dtsubjectname": [_firstvalue_join],
+        "businessentity": [_firstvalue_join],
+        "issueisin": [_firstvalue_join],
+        #"cusip": [_firstvalue_join],
+        "ric": [_firstvalue_join],
+        "oapermid": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #aggregate over company-init year obs
     by=[
-        echo_parent_id,
-        echo_initiation_year,
+        "cusip",
+        "echo_initiation_year",
         ]
     dict_agg_colfunctions={
-        echo_penalty_amount: [np.sum],
+        "fed_penalty_assessed_amt": [np.sum],
         "case_number": [_firstvalue_join],
-        echo_penalty_year: [_firstvalue_join],
-        echo_initiation_lag: [_firstvalue_join],
-        echo_activity_type_code: [_firstvalue_join],
+        "settlement_fy": [_firstvalue_join],
+        "echo_initiation_lag": [_firstvalue_join],
+        "activity_type_code": [_firstvalue_join],
         "parent_co_name": [_firstvalue_join],
 
         #refinitiv
-        company_name: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        company_isin: [_firstvalue_join],
-        #company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
+        "dtsubjectname": [_firstvalue_join],
+        "businessentity": [_firstvalue_join],
+        "issueisin": [_firstvalue_join],
+        #"cusip": [_firstvalue_join],
+        "ric": [_firstvalue_join],
+        "oapermid": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #sortvalues
     sortvalues_cols=[
         "case_number",
-        echo_parent_id,
-        echo_initiation_year,
+        "cusip",
+        "echo_initiation_year",
         ]
     df=df.sort_values(by=sortvalues_cols)
 
     #full panel
     cols_id=[
-        echo_parent_id,
-        echo_initiation_year,
+        "cusip",
+        "echo_initiation_year",
         ]
     years=[
         2000,
         2023,
         ]
     fillna_cols=[
-        echo_penalty_amount,
+        "fed_penalty_assessed_amt",
         ]
     df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     #ordered
     ordered_cols=[
         "case_number",
-        echo_parent_id,
-        echo_initiation_year,
-        echo_penalty_year,
-        echo_initiation_lag,
-        echo_penalty_amount,
-        echo_activity_type_code,
+        "cusip",
+        "echo_initiation_year",
+        "settlement_fy",
+        "echo_initiation_lag",
+        "fed_penalty_assessed_amt",
+        "activity_type_code",
         "parent_co_name",
 
         #refinitiv
-        company_name,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        #"cusip",
+        "ric",
+        "oapermid",
         ]
     df=df[ordered_cols]
 
@@ -1699,7 +1646,7 @@ def _echo_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#viol initiation year
+#_violtrack_initiation_year
 def _violtrack_initiation_year(value):
 
     #char
@@ -1781,7 +1728,7 @@ def _violtrack_initiation_year(value):
     return year
 
 
-#keep internal isin, if not present keep external
+#_violtrack_keepisin
 def _violtrack_keepisin(row, col0, col1):
 
     #values
@@ -1813,7 +1760,7 @@ def _violtrack_keepisin(row, col0, col1):
     return value
 
 
-#violtrack aggregate
+#_violtrack_aggregate
 folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
 items=["ViolationTracker_basic_28jul23", "_violtrack_ids_aggregate"]
 def _violtrack_aggregate(folders, items):
@@ -1828,12 +1775,12 @@ def _violtrack_aggregate(folders, items):
 
     #usecols
     usecols=[
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
+        "violtrack_initiation_year",
+        "pen_year",
+        "violtrack_initiation_lag",
+        "penalty",
+        "case_id",
+        "pacer_link",
 
         #company
         "company",
@@ -1852,12 +1799,12 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution", #settlement or verdict
 
         #refinitiv        
-        company_name,
-        company_businessentity,
-        company_isin,
-        company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        "cusip",
+        "ric",
+        "oapermid",
         ]
 
     #read
@@ -1874,39 +1821,39 @@ def _violtrack_aggregate(folders, items):
 
     #to numeric
     tonumeric_cols=[
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
+        "violtrack_initiation_year",
+        "pen_year",
+        "violtrack_initiation_lag",
+        "penalty",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #keep internal isin, if not present keep external
     col0="current_parent_isin"
-    col1=company_isin
-    df[violtrack_parent_id]=df.apply(_violtrack_keepisin, axis=1, args=(col0, col1))
+    col1="issueisin"
+    df["violtrack_parent_id"]=df.apply(_violtrack_keepisin, axis=1, args=(col0, col1))
 
     #drop na
     dropna_cols=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
+        "violtrack_parent_id",
+        "violtrack_initiation_year",
+        "pen_year",
+        "violtrack_initiation_lag",
+        "penalty",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #aggregate over company-year obs
     by=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
+        "violtrack_parent_id",
+        "violtrack_initiation_year",
         ]
     dict_agg_colfunctions={
-        violtrack_penalty_amount: [np.sum],
-        violtrack_penalty_year: [_firstvalue_join],
-        violtrack_initiation_lag: [_firstvalue_join],
-        violtrack_docket_number: [_firstvalue_join],
-        violtrack_pacer_link: [_firstvalue_join],
+        "penalty": [np.sum],
+        "pen_year": [_firstvalue_join],
+        "violtrack_initiation_lag": [_firstvalue_join],
+        "case_id": [_firstvalue_join],
+        "pacer_link": [_firstvalue_join],
 
         #company
         "company": [_firstvalue_join],
@@ -1925,36 +1872,36 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution": [_firstvalue_join],
 
         #refinitiv
-        company_name: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        company_isin: [_firstvalue_join],
-        company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
+        "dtsubjectname": [_firstvalue_join],
+        "businessentity": [_firstvalue_join],
+        "issueisin": [_firstvalue_join],
+        "cusip": [_firstvalue_join],
+        "ric": [_firstvalue_join],
+        "oapermid": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     cols_id=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
+        "violtrack_parent_id",
+        "violtrack_initiation_year",
         ]
     years=[
         2000,
         2023,
         ]
     fillna_cols=[
-        violtrack_penalty_amount,
+        "penalty",
         ]
     df=_df_to_fullpanel(df, cols_id, years, fillna_cols)
 
     ordered_cols=[
-        violtrack_parent_id,
-        violtrack_initiation_year,
-        violtrack_penalty_year,
-        violtrack_initiation_lag,
-        violtrack_penalty_amount,
-        violtrack_docket_number,
-        violtrack_pacer_link,
+        "violtrack_parent_id",
+        "violtrack_initiation_year",
+        "pen_year",
+        "violtrack_initiation_lag",
+        "penalty",
+        "case_id",
+        "pacer_link",
 
         #company
         "company",
@@ -1973,12 +1920,12 @@ def _violtrack_aggregate(folders, items):
         "lawsuit_resolution", #settlement or verdict
 
         #refinitiv
-        company_name,
-        company_businessentity,
-        #company_isin,
-        company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        #"issueisin",
+        "cusip",
+        "ric",
+        "oapermid",
         ]
     df=df[ordered_cols]
 
@@ -1987,7 +1934,7 @@ def _violtrack_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#osha aggregate
+#_osha_aggregate
 folders=["zhao/_osha", "zhao/_osha"]
 items=["osha_ids", "osha_ids_aggregate"]
 def _osha_aggregate(folders, items):
@@ -2002,11 +1949,11 @@ def _osha_aggregate(folders, items):
 
     #usecols
     usecols=[
-        osha_parent_id,
-        osha_initiation_year,
-        osha_penalty_year,
-        osha_initiation_lag,
-        osha_penalty_amount,
+        "cusip",
+        "open_date",
+        "close_case_date",
+        "osha_initiation_lag",
+        "initial_penalty",
         "fta_issuance_year",
         "fta_penalty",
         "gravity",
@@ -2014,12 +1961,12 @@ def _osha_aggregate(folders, items):
         "nr_in_estab",
 
         #refinitiv
-        company_name,
-        company_businessentity,
-        company_isin,
-        #company_cusip,
-        company_ric,
-        company_oapermid,
+        "dtsubjectname",
+        "businessentity",
+        "issueisin",
+        #"cusip",
+        "ric",
+        "oapermid",
         ]
 
     #read
@@ -2036,16 +1983,16 @@ def _osha_aggregate(folders, items):
 
     #drop na
     dropna_cols=[
-        osha_parent_id,
-        osha_initiation_year,
-        osha_penalty_year,
-        osha_penalty_amount,
+        "cusip",
+        "open_date",
+        "close_case_date",
+        "initial_penalty",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
-        osha_penalty_amount,
+        "initial_penalty",
         "gravity",
         "nr_exposure",
         "nr_in_estab",
@@ -2054,40 +2001,40 @@ def _osha_aggregate(folders, items):
 
     #aggregate over company-init year obs
     by=[
-        osha_parent_id,
-        osha_initiation_year,
+        "cusip",
+        "open_date",
         ]
     dict_agg_colfunctions={
-        osha_penalty_amount: [np.sum],
+        "initial_penalty": [np.sum],
         "fta_penalty": [np.sum],
         "gravity": [np.sum],
         "nr_exposure": [np.sum],
         "nr_in_estab": [np.sum],
-        osha_penalty_year: [_firstvalue_join],
-        osha_initiation_lag: [_firstvalue_join],
+        "close_case_date": [_firstvalue_join],
+        "osha_initiation_lag": [_firstvalue_join],
         "fta_issuance_year": [_firstvalue_join],
 
         #refinitiv
-        company_name: [_firstvalue_join],
-        company_businessentity: [_firstvalue_join],
-        company_isin: [_firstvalue_join],
-        #company_cusip: [_firstvalue_join],
-        company_ric: [_firstvalue_join],
-        company_oapermid: [_firstvalue_join],
+        "dtsubjectname": [_firstvalue_join],
+        "businessentity": [_firstvalue_join],
+        "issueisin": [_firstvalue_join],
+        #"cusip": [_firstvalue_join],
+        "ric": [_firstvalue_join],
+        "oapermid": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #full panel
     cols_id=[
-        osha_parent_id,
-        osha_initiation_year,
+        "cusip",
+        "open_date",
         ]
     years=[
         2000,
         2023,
         ]
     fillna_cols=[
-        osha_penalty_amount,
+        "initial_penalty",
         "fta_penalty",
         "gravity",
         "nr_exposure",
@@ -2104,7 +2051,7 @@ def _osha_aggregate(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#ln vars
+#_ln_vars
 def _ln_vars(df, oldvars):
 
     #to numeric
@@ -2130,7 +2077,7 @@ def _ln_vars(df, oldvars):
     return df, newvars
 
 
-#lagged vars
+#_lag_vars
 def _lag_vars(df, oldvars):
 
     #periods
@@ -2159,7 +2106,7 @@ def _lag_vars(df, oldvars):
     return df, newvars
 
 
-#change vars
+#_change_vars
 def _change_vars(df, oldvars):
 
     #periods
@@ -2188,7 +2135,7 @@ def _change_vars(df, oldvars):
     return df, newvars
 
 
-#gen dummy if positive
+#_dummyifpositive_vars
 def _dummyifpositive_vars(df, oldvars):
 
     #to numeric
@@ -2236,12 +2183,12 @@ def _dummyifpositive_vars(df, oldvars):
     return df, newvars
 
 
-#post year dummies
+#_post_year_dummies
 def _post_year_dummies(df, start_year, stop_year):
 
     #to numeric
     tonumeric_cols=[
-        crspcomp_fyear,
+        "fyear",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
@@ -2258,7 +2205,7 @@ def _post_year_dummies(df, start_year, stop_year):
         post_year_dummy=f"post{year}"
 
         #gen var
-        df[post_year_dummy]=np.where(df[crspcomp_fyear] >= year, 1, 0)
+        df[post_year_dummy]=np.where(df["fyear"] >= year, 1, 0)
 
         #update var
         post_year_dummies[j]=post_year_dummy
@@ -2267,16 +2214,16 @@ def _post_year_dummies(df, start_year, stop_year):
     return df, post_year_dummies
 
 
-#donations newvars
+#_donations_newvars
 def _donations_newvars(df):
 
     #amount_both
-    df["amount_both"]=df["amount_democratic"] + df["amount_republican"]
+    df["amount_both"]=df["daga"] + df["raga"]
 
     #oldvars
     oldvars=[
-        "amount_democratic",
-        "amount_republican",
+        "daga",
+        "raga",
         "amount_both",
         ]
     df, newvars = _dummyifpositive_vars(df, oldvars)
@@ -2285,8 +2232,8 @@ def _donations_newvars(df):
     #ln
     oldvars=[
         #amount
-        "amount_democratic",
-        "amount_republican",
+        "daga",
+        "raga",
         "amount_both",
         ]
     df, ln_vars = _ln_vars(df, oldvars)
@@ -2294,13 +2241,13 @@ def _donations_newvars(df):
     #lagged
     oldvars=[
         #amount
-        "amount_democratic",
-        "amount_republican",
+        "daga",
+        "raga",
         "amount_both",
 
         #ln amount
-        "ln_amount_democratic",
-        "ln_amount_republican",
+        "ln_daga",
+        "ln_raga",
         "ln_amount_both",
 
         #dummy
@@ -2313,13 +2260,13 @@ def _donations_newvars(df):
     #change
     oldvars=[
         #amount
-        "amount_democratic",
-        "amount_republican",
+        "daga",
+        "raga",
         "amount_both",
 
         #ln amount
-        "ln_amount_democratic",
-        "ln_amount_republican",
+        "ln_daga",
+        "ln_raga",
         "ln_amount_both",
         ]
     df, change_vars = _change_vars(df, oldvars)
@@ -2327,8 +2274,8 @@ def _donations_newvars(df):
     #donation vars
     donation_vars=[
         #amount
-        "amount_democratic",
-        "amount_republican",
+        "daga",
+        "raga",
         "amount_both",
 
         #dummy
@@ -2347,7 +2294,7 @@ def _donations_newvars(df):
     return df, donation_vars, post_year_dummies
 
 
-#stagdid
+#_stagdid
 def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
 
     #init
@@ -2443,38 +2390,32 @@ def _stagdid(df, unit_var, time_var, treatment_switch_dummies):
     return df, newvars
 
 
-#echo newvars
+#_echo_newvars
 def _echo_newvars(df):
-
-    #rename
-    df=df.rename(columns={
-        echo_penalty_amount: "echo_penalty_amount",
-        echo_penalty_year: "echo_penalty_year",
-        })
     
     #dummy enforcement action
-    df["echo_enforcement_dummy"]=np.where(df["echo_penalty_year"].notna(), 1, 0)
+    df["echo_enforcement_dummy"]=np.where(df["settlement_fy"].notna(), 1, 0)
 
     #dummy vars
-    oldvars=["echo_penalty_amount",]
+    oldvars=["fed_penalty_assessed_amt",]
     df, newvars = _dummyifpositive_vars(df, oldvars)
 
     #ln
-    oldvars=["echo_penalty_amount"]
+    oldvars=["fed_penalty_assessed_amt"]
     df, newvars = _ln_vars(df, oldvars)
 
     #lag
     oldvars=[
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
-        "echo_penalty_amount",
+        "fed_penalty_assessed_amt",
         "ln_echo_penalty_amount",
         ]
     df, newvars = _lag_vars(df, oldvars)
 
     #stagdid 
-    unit_var=crspcomp_cusip
-    time_var=crspcomp_fyear
+    unit_var="cusip"
+    time_var="fyear"
     treatment_switch_dummies=[
         "echo_enforcement_dummy",
         "echo_penalty_dummy",
@@ -2488,7 +2429,7 @@ def _echo_newvars(df):
         "echo_penalty_dummy",
 
         #amount
-        "echo_penalty_amount",
+        "fed_penalty_assessed_amt",
         "ln_echo_penalty_amount",
 
         #lag
@@ -2499,7 +2440,7 @@ def _echo_newvars(df):
 
         #years
         "echo_initiation_year",
-        "echo_penalty_year",
+        "settlement_fy",
         "echo_initiation_lag",
         "case_number",
         ] + stagdid_vars
@@ -2508,7 +2449,7 @@ def _echo_newvars(df):
     return df, echo_vars
 
 
-#divide vars
+#_divide_vars
 def _divide_vars(df, newvar, numerator, denominator):
 
     #to numeric
@@ -2543,29 +2484,29 @@ def _divide_vars(df, newvar, numerator, denominator):
     return df
 
 
-#crspcompustat newvars
+#_crspcompustat_newvars
 def _crspcompustat_newvars(df):
 
     #to numeric
     tonumeric_cols=[
-        crspcomp_assets,
+        "at",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #firm size
-    df["firm_size"]=np.log1p(df[crspcomp_assets])
+    df["firm_size"]=np.log1p(df["at"])
 
     #leverage_ratio
-    df=_divide_vars(df, "leverage_ratio", crspcomp_liabilities, crspcomp_assets)
+    df=_divide_vars(df, "leverage_ratio", "lt", "at")
 
     #roa
-    df=_divide_vars(df, "roa", crspcomp_netincome, crspcomp_assets)
+    df=_divide_vars(df, "roa", "ni", "at")
 
     #roe
-    df=_divide_vars(df, "roe", crspcomp_netincome, crspcomp_bookequity)
+    df=_divide_vars(df, "roe", "ni", "seq")
 
     #mtb
-    df=_divide_vars(df, "mtb", crspcomp_mktequity, crspcomp_bookequity)
+    df=_divide_vars(df, "mtb", "mkvalt", "seq")
 
     #crspcompustat vars
     crspcompustat_vars=[
@@ -2574,15 +2515,15 @@ def _crspcompustat_newvars(df):
         "roa",
         "roe",
         "mtb",
-        crspcomp_state,
-        crspcomp_incorp,
+        "state",
+        "incorp",
         ]
 
     #return
     return df, crspcompustat_vars
 
 
-#industry famafrench
+#_sic_to_famafrench
 def _sic_to_famafrench(value, mapping):
 
     #default value, e.g., 49 "other"
@@ -2615,7 +2556,7 @@ def _sic_to_famafrench(value, mapping):
     return newval
 
 
-#industry print stats
+#_industry_print_stats
 def _industry_print_stats(df, unit_var, drop_basedon, industry_col):
     
     #n_unique_industries
@@ -2653,7 +2594,7 @@ def _industry_print_stats(df, unit_var, drop_basedon, industry_col):
     print("fraction_dummies:", fraction_dummies)
 
 
-#drop industry based on dummy
+#_industry_drop
 def _industry_drop(df, unit_var, drop_basedon, industry_col):
 
     #print
@@ -2682,7 +2623,7 @@ def _industry_drop(df, unit_var, drop_basedon, industry_col):
     return df
 
 
-#drop industry
+#_industry_newvars
 def _industry_newvars(df, filepath):
 
     #mapping
@@ -2694,22 +2635,22 @@ def _industry_newvars(df, filepath):
 
     #to numeric
     tonumeric_cols=[
-        crspcomp_sic,
+        "sic",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #gen var
-    oldvalues=df[crspcomp_sic].values
+    oldvalues=df["sic"].values
     df[industry_col]=np.array([_sic_to_famafrench(x, mapping) for x in oldvalues])
 
     #drop industries
-    unit_var=crspcomp_cusip
+    unit_var="cusip"
     drop_basedon="echo_enforcement_dummy"
     df=_industry_drop(df, unit_var, drop_basedon, industry_col)
 
     #newvars
     newvars=[
-        crspcomp_sic,
+        "sic",
         industry_col,
         ] 
 
@@ -2717,7 +2658,7 @@ def _industry_newvars(df, filepath):
     return df, newvars
 
 
-#donations_echo_crspcompustat screen
+#_crspcompustat_donations_echo_screen
 folders=["zhao/_merge", "zhao/_merge"]
 items=["crspcompustat_donations_echo", "crspcompustat_donations_echo_screen"]
 def _crspcompustat_donations_echo_screen(folders, items):
@@ -2730,41 +2671,41 @@ def _crspcompustat_donations_echo_screen(folders, items):
     resource=items[0]
     result=items[1]
 
-    contributor_id
+    "cusip"
     #usecols
     usecols=[
         #irs
-        contributor_name,
+        "a__contributor_name",
         "dtsubjectname_left",
         "dtsubjectname_right",
-        crspcomp_name,
-        crspcomp_state,
-        crspcomp_incorp,
-        crspcomp_cusip,
-        crspcomp_fyear,
-        "amount_democratic",
-        "amount_republican",
+        "conm",
+        "state",
+        "incorp",
+        "cusip",
+        "fyear",
+        "daga",
+        "raga",
 
         #echo
-        echo_initiation_year,
-        echo_penalty_year,
-        echo_initiation_lag,
-        echo_penalty_amount,
+        "echo_initiation_year",
+        "settlement_fy",
+        "echo_initiation_lag",
+        "fed_penalty_assessed_amt",
         "case_number",
 
         #refinitiv
-        crspcomp_assets,
-        crspcomp_liabilities,
-        crspcomp_bookequity,
-        crspcomp_mktequity,
-        crspcomp_sharesoutstanding,
-        crspcomp_dividends,
-        crspcomp_revenues,
-        crspcomp_cogs,
-        crspcomp_oibdp,
-        crspcomp_da,
-        crspcomp_netincome,
-        crspcomp_sic,
+        "at",
+        "lt",
+        "seq",
+        "mkvalt",
+        "csho",
+        "dvt",
+        "revt",
+        "cogs",
+        "oibdp",
+        "dp",
+        "ni",
+        "sic",
         ]
     
     #read
@@ -2781,16 +2722,16 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
     #fillna
     fillna_cols=[
-        "amount_democratic",
-        "amount_republican",
-        echo_penalty_amount,
+        "daga",
+        "raga",
+        "fed_penalty_assessed_amt",
         ]
     df=_fillnacols_to_df(df, fillna_cols)
 
     #sortvalues
     sortvalues_cols=[
-        crspcomp_cusip, 
-        crspcomp_fyear, 
+        "cusip", 
+        "fyear", 
         ]
     df=df.sort_values(by=sortvalues_cols)
 
@@ -2809,12 +2750,12 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
     #ordered
     ordered_cols=[
-        contributor_name,
+        "a__contributor_name",
         "dtsubjectname_left",
         "dtsubjectname_right",
-        crspcomp_name,
-        crspcomp_cusip,
-        crspcomp_fyear,
+        "conm",
+        "cusip",
+        "fyear",
         ]  +\
         donation_vars + post_year_dummies +\
         echo_vars + crspcompustat_vars + industry_vars
@@ -2831,74 +2772,307 @@ def _crspcompustat_donations_echo_screen(folders, items):
         )
 
 
+
+
+
+
+
+
+
+
+
+
+
+#irs from txt txt to dfs
+folders=["zhao/data/irs", "zhao/_irs"]
+items=["FullDataFile"]
+#_irs_txt_to_dfs(folders, items)
+
+
+#irs contributors screen
+folders=["zhao/_irs", "zhao/_irs"]
+items=["A", "A_screen"]
+#_irs_contributors_screen(folders, items)
+
+
+#echo facilities screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["CASE_FACILITIES", "CASE_FACILITIES_screen"]
+#_echo_facilities_screen(folders, items)
+
+
+#echo enforcements screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["CASE_ENFORCEMENT_CONCLUSIONS", "CASE_ENFORCEMENT_CONCLUSIONS_screen"]
+#_echo_enforcements_screen(folders, items)
+
+
+#echo milestones screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["CASE_MILESTONES", "CASE_MILESTONES_screen"]
+#_echo_milestones_screen(folders, items)
+
+
+#echo tri screen
+folders=["zhao/data/epa", "zhao/_epa"]
+items=["TRI", "TRI_screen"]
+#_echo_tri_screen(folders, items)
+
+
+#merge echo facilities with echo enforcements
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"]
+left_path="zhao/_epa/CASE_FACILITIES_screen"
+left_ons=["case_number", "activity_id",]
+right_path="zhao/_epa/CASE_ENFORCEMENT_CONCLUSIONS_screen"
+right_ons=["case_number", "activity_id"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge echo facilities_enforcements with echo milestones
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen"]
+left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen"
+left_ons=["case_number", "activity_id",]
+right_path="zhao/_epa/CASE_MILESTONES_screen"
+right_ons=["case_number", "activity_id"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge echo facilities_enforcements_milestones with echo tri, by nearest years
+folders=["zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen"]
+left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen"
+left_bys=["registry_id"]
+left_on="echo_initiation_year"
+right_path="zhao/_epa/TRI_screen"
+right_bys=["epa_registry_id"]
+right_on="reporting_year"
+#_pd_merge_asof(folders, items, left_path, left_bys, left_on, right_path, right_bys, right_on)
+
+
+#violtrack screen
+folders=["zhao/data/violation_tracker", "zhao/_violtrack"]
+items=["ViolationTracker_basic_28jul23", "_violtrack_screen"]
+#_violtrack_screen(folders, items)
+
+
+#crspcompustat screen
+folders=["zhao/data/crspcompustat", "zhao/_crspcompustat"]
+items=["crspcompustat_2000_2023", "crspcompustat_2000_2023_screen"]
+#_crspcompustat_screen(folders, items)
+
+
+#search irs donations ids
+folders=["zhao/_irs", "zhao/_irs"]
+items=["A_screen", "A_screen_search"]
+colname="a__contributor_company_involved"
+#_search(folders, items, colname)
+
+
+#search echo facilities_enforcements_milestones_tri ids
+folders=["zhao/_epa", "zhao/_epa"]
+items=["CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen", "CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen_search"]
+colname="parent_co_name"
+#_search(folders, items, colname)
+
+
+#search violtrack ids
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["violtrack_screen", "violtrack_screen_search"]
+colname="current_parent_name"
+#_search(folders, items, colname)
+
+
+#merge irs donations with ids
+folders=["zhao/_irs"]
+items=["donations_ids"]
+left_path="zhao/_irs/A_screen"
+left_ons=["a__contributor_company_involved"]
+right_path="zhao/_irs/A_screen_search_a__contributor_company_involved"
+right_ons=["query"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge echo facilities_enforcements_tri with ids
+folders=["zhao/_epa"]
+items=["echo_ids"]
+left_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen"
+left_ons=["parent_co_name"]
+right_path="zhao/_epa/CASE_FACILITIES_screen_CASE_ENFORCEMENT_CONCLUSIONS_screen_CASE_MILESTONES_screen_TRI_screen_search_parent_co_name"
+right_ons=["query"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge violtrack with ids
+folders=["zhao/_violtrack"]
+items=["violtrack_ids"]
+left_path="zhao/_violtrack/violtrack_screen"
+left_ons=["current_parent_name"]
+right_path="zhao/_violtrack/violtrack_screen_search_current_parent_name"
+right_ons=["query"]
+how="left"
+validate="m:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#irs donations aggregate
+folders=["zhao/_irs", "zhao/_irs"]
+items=["donations_ids", "donations_ids_aggregate"]
+#_irs_contributors_aggregate(folders, items)
+
+
+#echo aggregate
+folders=["zhao/_epa", "zhao/_epa"]
+items=["echo_ids", "echo_ids_aggregate"]
+#_echo_aggregate(folders, items)
+
+
+#violtrack aggregate
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["violtrack_ids", "violtrack_ids_aggregate"]
+#_violtrack_aggregate(folders, items)
+
+
+#merge irs donations_ids_aggregate with echo_ids_aggregate
+folders=["zhao/_merge"]
+items=["donations_echo"]
+left_path="zhao/_irs/donations_ids_aggregate"
+left_ons=["cusip", "a__contribution_year"]
+right_path="zhao/_epa/echo_ids_aggregate"
+right_ons=["cusip", "echo_initiation_year"]
+how="outer"
+validate="1:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge irs donations_ids_aggregate with violtrack_ids_aggregate
+
+
+
+
+#merge crspcompustat with donations_echo 
+folders=["zhao/_merge"]
+items=["crspcompustat_donations_echo"]
+left_path="zhao/_crspcompustat/crspcompustat_2000_2023_screen"
+left_ons=["cusip", "fyear"]
+right_path="zhao/_merge/donations_echo"
+right_ons=["cusip", "a__contribution_year"]
+how="left"
+validate="1:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#merge crspcompustat with donations_violtrack 
+
+
+
+
+
+#crspcompustat_donations_echo screen
+folders=["zhao/_merge", "zhao/_merge"]
+items=["crspcompustat_donations_echo", "crspcompustat_donations_echo_screen"]
 #_crspcompustat_donations_echo_screen(folders, items)
+
+
+#_crspcompustat_donations_violtrack screen
+
+
+
+
+
+#print
 print("done")
 
 
+
+
+
+
+
+
+
 '''
-policy unceratinty: reg returns on Baker and Bloom
+#to do
+des stats, trends? 
+first analysis
+nolette data
+violation tracker
+health care? 
 
-FDA
-https://open.fda.gov/
-https://datadashboard.fda.gov/ora/index.htm
+abstract
 
-state level lobbying data
+#oig
+https://oig.hhs.gov/exclusions/exclusions_list.asp
+
+#brennan center
+https://www.brennancenter.org/experts/?q=campaign%20finance&langcode=en&
+
+#state impact center
+https://stateimpactcenter.org/
+https://stateimpactcenter.org/insights/
+
+#sabin center
+https://climatecasechart.com/us-climate-change-litigation/
+https://climate.law.columbia.edu/content/state-attorneys-general-environmental-actions
+
+#state level campaign finance law
+#state-level lobbying
+
+#governors elections
+https://www.nga.org/governors/elections/
+https://www.nga.org/former-governors/oregon/
+
+#past AGs
+https://www.naag.org/attorneys-general/past-attorneys-general/
+https://www.naag.org/attorneys-general/past-attorneys-general/oregon-former-attorneys-general/
+
+gitft laws (shocks)
+https://www.naag.org/state-gift-laws/
+
+#cross section
+https://www.naag.org/news-resources/research-data/attorney-general-office-characteristics/
+firms in red state more like to donate
+
+#RDD
+https://www.clemence.tricaud.com/research
+https://www.vincentpons.org/research
+http://dx.doi.org/10.18235/0004458
 
 
-Who votes for AG? What is the electoral system? Need to check
-Exploit “close” elections (won by a small margin)? Think about it
-How many times can be re-elected? Need to check
-Should be “regulatory risk” rather than cost? Just a definition, we could change
-Julien: do we know that all the money to these originations go to ags? Do they also go to congressmen? Usually no, but check again
-How important is election/re-election in your story? Think about it
-Exploit “career concerns”, i.e. AGs who later became politicians/governors? Think about it
-
+#analysis suggested
+aggregate at 6th cusip, and merge
+Should be "regulatory risk" rather than cost? Just a definition, we could change
+Expenditures also go to congressmen
+career concerns
 winning reelection or election to governor is definitely the incentive for AG. so helping firm can benefit from getting the money but may be perceived as bad politician/lawyer. challenging federal law could be perceived as beneficial to local firms and economy. so that's the tension.
 
-
-
+#newspapers
+https://www.nytimes.com/interactive/2014/10/28/us/politics/money-going-to-state-attorneys-general.html
+https://www.cbsnews.com/news/state-attorney-general-lobbyists-donation-one-on-one-access-raga-daga/
+https://www.wsj.com/articles/the-280-million-attorneys-general-fund-national-association-of-attorneys-general-republicans-daniel-cameron-11661550349
 https://www.fec.gov/legal-resources/court-cases/speechnoworg-v-fec/#:~:text=On%20March%2026%2C%202010%2C%20the,them%2C%20violate%20the%20First%20Amendment.
 court found that such "nominally independent" organizations are "uniquely positioned to serve as conduits for corruption both in terms of the sale of access and the circumvention of the soft money ban."
 
+#voting laws
 https://www.brennancenter.org/issues/ensure-every-american-can-vote/voting-reform/state-voting-laws
-https://ballotpedia.org/Main_Page
 https://ballotpedia.org/Voting_laws_in_the_United_States#State_election_laws
-https://heinonline.org/HOL/Welcome
-state attorneys general
-state statutes historical archives
-national survey of state laws
-voter laws
-
-osha state plan staggered adoption
-cross sectional: firms in red state more like to donate
-
-#literature
-yu2011
-study OSHA, state plans
-AGs pacs
-
-#data
-governors and rslc assn
-aggregate at 6th cusip, and merge
-private firms too, total assets, industry of the firm, revenues, income, debt
-AGs pacs
-
-#analysis
-after legal/natural shock (alekseev2022), enforc ratio (choy2023)  -> higher donation
-aga vs AGs pacs
-
+https://www.followthemoney.org/resources/state-disclosure-agencies
+https://heinonline.org/HOL/Welcome -> national survey of state laws, voter laws
 
 #Martens
 will violation info be on 8-k?
-
 #Zhao
 epa firms, how many public firms receive enforcement actions, look at literature
-facility level analylsis, Violation Tracker or linktransformer
-
 #Pope
 Countercyclical lobbying? lobby more rep when switch
 Big 4 and ESG disclosure
-
-#Ciani
-opiods sold by local pharmacies - walmart, some place expected a fine, but did not receive it, gravity of the violation
 #'''
