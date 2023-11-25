@@ -572,6 +572,23 @@ write the email for the estimate
 
 report types
 
+
+
+
+
+phrases that distinguish pages with a table of contents
+particular section
+table of contents in multiple pages
+check whether under 20 pages is report
+first line of of TOC
+
+
+
+
+
+
+
+
 https://github.com/drelhaj/CFIE-FRSE
 https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2803275
 '''

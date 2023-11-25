@@ -41,8 +41,9 @@ from _pd_utils import _folder_to_filestems, \
 
 #vars
 from _string_utils import ENCODING
-SEP="|"  
-LINETERMINATOR="\n"
+OLD_SEP="|"  
+OLD_LINETERMINATOR="\r\n"
+NEW_LINETERMINATOR="\n"
 NEW_SEP=","
 QUOTECHAR='"'
 NA_VALUE=None
@@ -50,6 +51,7 @@ CURRENT_YEAR=datetime.now().year
 CURRENT_YEAR_2DIGIT=CURRENT_YEAR%100
 tot=13428119
 buffer_size=8192
+
 
 #vars donations
 #organization
@@ -126,7 +128,7 @@ def _irs_newtxts(dict_codecolumns, results):
 
             #text
             quoted_text=[f'{QUOTECHAR}{x}{QUOTECHAR}' for x in columns]
-            text=NEW_SEP.join(quoted_text) + LINETERMINATOR
+            text=NEW_SEP.join(quoted_text) + NEW_LINETERMINATOR
 
             #remove carriage 
             text=text.replace("\r" ,"")
@@ -155,7 +157,7 @@ def _irs_txt_to_dfs(folders, items):
     result=items[1]
 
     #variables
-    len_sep=len(SEP)
+    len_sep=len(OLD_SEP)
 
     #dict code and columnns
     dict_codecolumns=_irs_codecolumns(resources)
@@ -176,24 +178,23 @@ def _irs_txt_to_dfs(folders, items):
         for i, line in enumerate(file_object):
 
             #remove characters
-            line=line.replace(LINETERMINATOR, "")\
-                .replace("\r", "")\
+            line=line.replace(OLD_LINETERMINATOR, "")\
                 .replace(QUOTECHAR, "")
             
             #if line ends with sep
-            if line.endswith(SEP):
+            if line.endswith(OLD_SEP):
 
                 #remove sep
                 line=line[:-len_sep]
 
             #values
-            values=line.split(SEP)
+            values=line.split(OLD_SEP)
             len_values=len(values)
             val0=values[0]
 
             #new line for csv
             quoted_values=[f'{QUOTECHAR}{x}{QUOTECHAR}' for x in values]
-            new_line = NEW_SEP.join(quoted_values) + LINETERMINATOR 
+            new_line = NEW_SEP.join(quoted_values) + NEW_LINETERMINATOR 
 
             #for code
             for j, (code, columns) in enumerate(dict_codecolumns.items()):
@@ -248,12 +249,23 @@ def _irs_contributors_screen(folders, items):
 
     #usecols
     usecols=[
+        #"a__record_type",
+        #"a__form_id_number",
+        #"a__sched_a_id",
         "a__org_name",
         "a__ein",
         "a__contributor_name",
+        "a__contributor_address_1",
+        #"a__contributor_address_2",
+        "a__contributor_address_city",
+        "a__contributor_address_state",
+        "a__contributor_address_zip_code",
+        #"a__contributor_address_zip_ext",
         "a__contributor_employer",
-        f"{"a__contribution_date"}\r", #???
-        "a__agg_contribution_ytd",
+        "a__contribution_amount",
+        #"a__contributor_occupation",
+        #"a__agg_contribution_ytd",
+        "a__contribution_date\r", #???
         ]
     usecols=[x.capitalize() for x in usecols]
 
@@ -264,8 +276,8 @@ def _irs_contributors_screen(folders, items):
         sep=NEW_SEP,
         usecols=usecols,
         dtype="string",
-        #nrows=1000,
-        lineterminator=LINETERMINATOR,
+        #nrows=100000,
+        lineterminator=NEW_LINETERMINATOR,
         quotechar=QUOTECHAR,
         #on_bad_lines='skip',
         )
@@ -279,17 +291,21 @@ def _irs_contributors_screen(folders, items):
     #dropna
     dropna_cols=[
         "a__ein",
+        "a__contributor_name",
+        "a__contribution_amount",
         "a__contribution_date", 
-        "a__agg_contribution_ytd",
         ]
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
     tonumeric_cols=[
         "a__ein",
-        "a__agg_contribution_ytd",
+        "a__contribution_amount",
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #select rows
+    df=df[df["a__ein"].isin([int(key) for key in pivot_columns.keys()])]
 
     #to date
     todate_cols=[
@@ -299,27 +315,20 @@ def _irs_contributors_screen(folders, items):
     format="%Y%m%d"
     df=_todatecols_to_df(df, todate_cols, errors, format)
 
-    #keep only attorneys general associations (resp. Dem and Rep)
-    s=df["a__ein"]
-    df=df[
-        (s==134220019) | (s==464501717)
-        ]
-
-    #initiation year
+    #dates
     df["a__contribution_year"]=pd.DatetimeIndex(df["a__contribution_date"], ambiguous="NaT").year
+    df["a__contribution_quarter"]=pd.DatetimeIndex(df["a__contribution_date"], ambiguous="NaT").quarter
 
     #sortvalues
     sortvalues_cols=[
         "a__contributor_name",
         "a__ein",
-        "a__contribution_year",
         "a__contribution_date",
         ]
     ascending=[
         True,
         True,
         True,
-        False,
         ]
     df=df.sort_values(
         by=sortvalues_cols,
@@ -331,74 +340,49 @@ def _irs_contributors_screen(folders, items):
         "a__ein",
         "a__contributor_name",
         "a__contribution_year",
+        #"a__contribution_quarter",
         ]
     dict_agg_colfunctions={
         "a__org_name": [_first_value],
+        "a__contributor_address_1": [_first_value],
+        "a__contributor_address_city": [_first_value],
+        "a__contributor_address_state": [_first_value],
+        "a__contributor_address_zip_code": [_first_value],
         "a__contributor_employer": [_first_value],
-        "a__contribution_date": [_first_value],
-        "a__agg_contribution_ytd": [_first_value],
+        "a__contribution_amount": ["sum"],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
     #substitute employer with nan
     dict_replace={
         "n/a": NA_VALUE,
-        "d/a": NA_VALUE,
         "na": NA_VALUE,
-        "not available": NA_VALUE,
-        "not applicable": NA_VALUE,
-        "same": NA_VALUE,
-        "none": NA_VALUE,
-        "not employed": NA_VALUE,
-        "not a contribution": NA_VALUE,
-        "in-kind": NA_VALUE,
-        "self": NA_VALUE,
-        "self-employed": NA_VALUE,
-        "self - employed": NA_VALUE,
-        "self-employed-employed": NA_VALUE,
-        "self employed": NA_VALUE,
-        "retired": NA_VALUE,
-        "attorney": NA_VALUE,
-        "vice president": NA_VALUE,
-        "teacher": NA_VALUE,
-        "founder": NA_VALUE,
+        "d/a": NA_VALUE,
+        "da": NA_VALUE,
         }
-    df["a__contributor_employer_new"]=df["a__contributor_employer"].replace(dict_replace)
+    df["a__contributor_employer"]=df["a__contributor_employer"].replace(dict_replace)
 
-    #init series
-    x0=df["a__contributor_name"]
-    x1=df["a__contributor_employer_new"]
+    #isfirm
+    df["a__donor_isfirm"]=np.where(df["a__contributor_employer"].isna(), 1, 0)
 
-    condlist=[
-        x1.isna(),
-        x1.notna(),
-        ]   
-    choicelist0=[
-        x0, 
-        x1,
-        ]
-    choicelist1=[
-        1, 
-        0,
-        ]
-    y0=np.select(condlist, choicelist0, default="error")
-    y1=np.select(condlist, choicelist1, default="error")
+    #firm
+    df["a__contributor_firm"]=np.where(df["a__donor_isfirm"]==1, df["a__contributor_name"], df["a__contributor_employer"])
 
-    #outcome series
-    df["a__contributor_company_involved"]=y0
-    df["a__donor_isfirm"]=y1
-
+    #ordered_cols
     ordered_cols=[
         "a__org_name",
         "a__ein",
         "a__contributor_name",
         "a__contributor_employer",
-        "a__contributor_employer_new",
         "a__donor_isfirm",
-        "a__contributor_company_involved",
-        "a__contribution_date",
+        "a__contributor_firm",
+        "a__contribution_amount",
         "a__contribution_year",
-        "a__agg_contribution_ytd",
+        #"a__contribution_quarter",
+        "a__contributor_address_1",
+        "a__contributor_address_city",
+        "a__contributor_address_state",
+        "a__contributor_address_zip_code",
         ]
     df=df[ordered_cols]
 
@@ -2783,16 +2767,16 @@ def _crspcompustat_donations_echo_screen(folders, items):
 
 
 
-#irs from txt txt to dfs
+#_irs_txt_to_dfs
 folders=["zhao/data/irs", "zhao/_irs"]
 items=["FullDataFile"]
 #_irs_txt_to_dfs(folders, items)
 
 
-#irs contributors screen
+#_irs_contributors_screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
-#_irs_contributors_screen(folders, items)
+_irs_contributors_screen(folders, items)
 
 
 #echo facilities screen
@@ -3004,11 +2988,19 @@ print("done")
 #to do
 des stats, trends? 
 first analysis
+
 nolette data
+state impact center data
 violation tracker
 health care? 
 
-abstract
+#Ads
+publicly-searchable database of advertising data, facebook, instagram, snap, google youtube, tik tok
+https://foundation.mozilla.org/en/campaigns/tiktok-political-ads/
+https://snap.com/en-US/political-ads
+https://adstransparency.google.com/political?region=US&topic=political
+https://www.facebook.com/ads/library
+support enemies
 
 #oig
 https://oig.hhs.gov/exclusions/exclusions_list.asp
@@ -3018,6 +3010,7 @@ https://www.brennancenter.org/experts/?q=campaign%20finance&langcode=en&
 
 #state impact center
 https://stateimpactcenter.org/
+https://stateimpactcenter.org/biden-tracker
 https://stateimpactcenter.org/insights/
 
 #sabin center

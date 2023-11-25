@@ -207,6 +207,9 @@ free trial? source/methodology, which variables?
 3. n of firm-level clinical trials in US, and in EU, in each year,
 4. n of patents issue by each pharma firm.
 
+Life cycle
+installments - staggered payments - staged payments - split payments - annuities - payments over time - performance-linked payments
+
 
 budish, clinical trials in AER, clinical trials other websites, eu trials, 
 trial registry cochrane, marketing pfizer, drug patent about to expire (or from FDA approval to patent expiration)
