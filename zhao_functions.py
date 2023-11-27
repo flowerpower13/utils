@@ -234,10 +234,10 @@ def _irs_txt_to_dfs(folders, items):
             #if i==100000: break
 
 
-#_irs_contributors_screen
+#_irs_A_screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
-def _irs_contributors_screen(folders, items):
+def _irs_A_screen(folders, items):
 
     #folders
     resources=folders[0]
@@ -319,22 +319,6 @@ def _irs_contributors_screen(folders, items):
     df["a__contribution_year"]=pd.DatetimeIndex(df["a__contribution_date"], ambiguous="NaT").year
     df["a__contribution_quarter"]=pd.DatetimeIndex(df["a__contribution_date"], ambiguous="NaT").quarter
 
-    #sortvalues
-    sortvalues_cols=[
-        "a__contributor_name",
-        "a__ein",
-        "a__contribution_date",
-        ]
-    ascending=[
-        True,
-        True,
-        True,
-        ]
-    df=df.sort_values(
-        by=sortvalues_cols,
-        ascending=ascending,
-        )
-
     #groupby
     by=[
         "a__ein",
@@ -363,26 +347,207 @@ def _irs_contributors_screen(folders, items):
     df["a__contributor_employer"]=df["a__contributor_employer"].replace(dict_replace)
 
     #isfirm
-    df["a__donor_isfirm"]=np.where(df["a__contributor_employer"].isna(), 1, 0)
+    df["a__contributor_isfirm"]=np.where(df["a__contributor_employer"].isna(), 1, 0)
 
     #firm
-    df["a__contributor_firm"]=np.where(df["a__donor_isfirm"]==1, df["a__contributor_name"], df["a__contributor_employer"])
+    df["a__contributor_firm"]=np.where(df["a__contributor_isfirm"]==1, df["a__contributor_name"], df["a__contributor_employer"])
+
+    #keep firms
+    df=df[df['a__contributor_isfirm']==1]
+
+    #sortvalues
+    sortvalues_cols=[
+        "a__contributor_firm",
+        "a__contribution_year",
+        #"a__contribution_quarter",
+        "a__ein",
+        ]
+    ascending=[
+        True,
+        True,
+        True,
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        ascending=ascending,
+        )
 
     #ordered_cols
     ordered_cols=[
+        "a__contributor_firm",
         "a__org_name",
         "a__ein",
-        "a__contributor_name",
-        "a__contributor_employer",
-        "a__donor_isfirm",
-        "a__contributor_firm",
         "a__contribution_amount",
         "a__contribution_year",
         #"a__contribution_quarter",
+        "a__contributor_name",
+        "a__contributor_isfirm",
+        "a__contributor_employer",
         "a__contributor_address_1",
         "a__contributor_address_city",
         "a__contributor_address_state",
         "a__contributor_address_zip_code",
+        ]
+    df=df[ordered_cols]
+
+    #save
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+
+#_irs_B_screen
+folders=["zhao/_irs", "zhao/_irs"]
+items=["B", "B_screen"]
+def _irs_B_screen(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        #"b__record_type",
+        #"b__form_id_number",
+        #"b__sched_b_id",
+        "b__org_name",
+        "b__ein",
+        "b__reciepient_name",
+        "b__reciepient_address_1",
+        #"b__reciepient_address_2",
+        "b__reciepient_address_city",
+        "b__reciepient_address_st",
+        "b__reciepient_address_zip_code",
+        #"b__reciepient_address_zip_ext",
+        "b__reciepient_employer",
+        "b__expenditure_amount",
+        #"b__recipient_occupation",
+        "b__expenditure_date",
+        "b__expenditure_purpose\r", #???
+        ]
+    usecols=[x.capitalize() for x in usecols]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        sep=NEW_SEP,
+        usecols=usecols,
+        dtype="string",
+        #nrows=100000,
+        lineterminator=NEW_LINETERMINATOR,
+        quotechar=QUOTECHAR,
+        #on_bad_lines='skip',
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #???
+    df=df.rename(columns={f"b__expenditure_purpose\r": "b__expenditure_purpose"})
+
+    #dropna
+    dropna_cols=[
+        "b__ein",
+        "b__reciepient_name",
+        "b__expenditure_amount",
+        "b__expenditure_date", 
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #to numeric
+    tonumeric_cols=[
+        "b__ein",
+        "b__expenditure_amount",
+        ]
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #select rows
+    df=df[df["b__ein"].isin([int(key) for key in pivot_columns.keys()])]
+
+    #to date
+    todate_cols=[
+        "b__expenditure_date",
+        ]
+    errors="coerce"
+    format="%Y%m%d"
+    df=_todatecols_to_df(df, todate_cols, errors, format)
+
+    #dates
+    df["b__expenditure_year"]=pd.DatetimeIndex(df["b__expenditure_date"], ambiguous="NaT").year
+    df["b__expenditure_quarter"]=pd.DatetimeIndex(df["b__expenditure_date"], ambiguous="NaT").quarter
+
+    #groupby
+    by=[
+        "b__ein",
+        "b__reciepient_name",
+        "b__expenditure_year",
+        #"b__expenditure_quarter",
+        ]
+    dict_agg_colfunctions={
+        "b__org_name": [_first_value],
+        "b__reciepient_address_1": [_first_value],
+        "b__reciepient_address_city": [_first_value],
+        "b__reciepient_address_st": [_first_value],
+        "b__reciepient_address_zip_code": [_first_value],
+        "b__reciepient_employer": [_first_value],
+        "b__expenditure_amount": ["sum"],
+        }
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    #substitute employer with nan
+    dict_replace={
+        "n/a": NA_VALUE,
+        "na": NA_VALUE,
+        "d/a": NA_VALUE,
+        "da": NA_VALUE,
+        }
+    df["b__reciepient_employer"]=df["b__reciepient_employer"].replace(dict_replace)
+
+    #isfirm
+    df["b__reciepient_isfirm"]=np.where(df["b__reciepient_employer"].isna(), 1, 0)
+
+    #firm
+    df["b__reciepient_firm"]=np.where(df["b__reciepient_isfirm"]==1, df["b__reciepient_name"], df["b__reciepient_employer"])
+
+    #keep firms
+    #df=df[df['b__reciepient_isfirm']==1]
+
+    #sortvalues
+    sortvalues_cols=[
+        "b__reciepient_firm",
+        "b__expenditure_year",
+        #"b__expenditure_quarter",
+        "b__ein",
+        ]
+    ascending=[
+        True,
+        True,
+        True,
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        ascending=ascending,
+        )
+
+    #ordered_cols
+    ordered_cols=[
+        "b__reciepient_firm",
+        "b__org_name",
+        "b__ein",
+        "b__expenditure_amount",
+        "b__expenditure_year",
+        #"b__expenditure_quarter",
+        "b__reciepient_name",
+        "b__reciepient_isfirm",
+        "b__reciepient_employer",
+        "b__reciepient_address_1",
+        "b__reciepient_address_city",
+        "b__reciepient_address_st",
+        "b__reciepient_address_zip_code",
         ]
     df=df[ordered_cols]
 
@@ -1310,10 +1475,10 @@ def _crspcompustat_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
-#_irs_contributors_aggregate
+#_irs_A_aggregate
 folders=["zhao/_irs", "zhao/_irs"]
 items=["donations_ids", "donations_ids_aggregate"]
-def _irs_contributors_aggregate(folders, items):
+def _irs_A_aggregate(folders, items):
 
     #folders
     resources=folders[0]
@@ -1332,7 +1497,7 @@ def _irs_contributors_aggregate(folders, items):
         "a__agg_contribution_ytd",
         "a__contributor_employer",
         "a__contributor_employer_new",
-        "a__donor_isfirm",
+        "a__contributor_isfirm",
         "a__contributor_company_involved",
 
         #refinitiv
@@ -1383,7 +1548,7 @@ def _irs_contributors_aggregate(folders, items):
         "a__contributor_name": [_firstvalue_join],
         "a__contributor_employer": [_firstvalue_join],
         "a__contributor_employer_new": [_firstvalue_join],
-        "a__donor_isfirm": [_firstvalue_join],
+        "a__contributor_isfirm": [_firstvalue_join],
         "a__contributor_company_involved": [_firstvalue_join],
         "dtsubjectname": [_firstvalue_join],
         "businessentity": [_firstvalue_join],
@@ -1451,7 +1616,7 @@ def _irs_contributors_aggregate(folders, items):
         ] + list_pivot_columns + [
         "a__contributor_employer",
         "a__contributor_employer_new",
-        "a__donor_isfirm",
+        "a__contributor_isfirm",
         "a__contributor_company_involved",
         "dtsubjectname",
         "businessentity",
@@ -2773,10 +2938,16 @@ items=["FullDataFile"]
 #_irs_txt_to_dfs(folders, items)
 
 
-#_irs_contributors_screen
+#_irs_A_screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
-_irs_contributors_screen(folders, items)
+#_irs_A_screen(folders, items)
+
+
+#_irs_B_screen
+folders=["zhao/_irs", "zhao/_irs"]
+items=["B", "B_screen"]
+_irs_B_screen(folders, items)
 
 
 #echo facilities screen
@@ -2908,10 +3079,10 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#irs donations aggregate
+#_irs_A_aggregate
 folders=["zhao/_irs", "zhao/_irs"]
 items=["donations_ids", "donations_ids_aggregate"]
-#_irs_contributors_aggregate(folders, items)
+#_irs_A_aggregate(folders, items)
 
 
 #echo aggregate
@@ -2986,39 +3157,56 @@ print("done")
 
 '''
 #to do
-des stats, trends? 
-first analysis
-
-nolette data
-state impact center data
 violation tracker
-health care? 
+reg don on violation likelihood (posi). shock to violations (state enforcement intensity, policy uncertainty)
+reg viol likelihood/amount on don (neg)
+reg amicus briefs on don
 
-#Ads
-publicly-searchable database of advertising data, facebook, instagram, snap, google youtube, tik tok
-https://foundation.mozilla.org/en/campaigns/tiktok-political-ads/
-https://snap.com/en-US/political-ads
-https://adstransparency.google.com/political?region=US&topic=political
-https://www.facebook.com/ads/library
-support enemies
 
-#oig
-https://oig.hhs.gov/exclusions/exclusions_list.asp
+
+https://www.cozen.com/practices/government-regulatory/state-attorneys-general, smart amicus briefs
+
+HP1: Through their interaction with A.G.s, these individuals will become the face of the 
+company to A.G.s, who are less likely to demagogue companies they know and respect
+
+HP2:  The conference participants also would like to hear how these relationships can help 
+to efficiently address A.G.s’ questions or concerns before they escalate into major problems 
+(like multistate investigations or litigation), as well as how they can carry over when 
+A.G.s are elected to higher offices.
+
+linktransformer
+#https://linktransformer.github.io/
+
+second rq
+effect on actions (amicus briefs/sue)
+
+third RQ
+effect on county-level pollution
+
+#RDD
+https://www.clemence.tricaud.com/research
+https://www.vincentpons.org/research
+http://dx.doi.org/10.18235/0004458
+
+
+
+
+
 
 #brennan center
+https://www.brennancenter.org/library/?langcode=en&issue=23&
 https://www.brennancenter.org/experts/?q=campaign%20finance&langcode=en&
 
-#state impact center
-https://stateimpactcenter.org/
-https://stateimpactcenter.org/biden-tracker
-https://stateimpactcenter.org/insights/
+#ncsl
+https://www.ncsl.org/elections-and-campaigns/campaign-finance
+https://www.ncsl.org/elections-and-campaigns/campaign-finance-legislation-2015-onward
+https://www.ncsl.org/elections-and-campaigns/state-campaign-finance-disclosure-requirements
 
-#sabin center
-https://climatecasechart.com/us-climate-change-litigation/
-https://climate.law.columbia.edu/content/state-attorneys-general-environmental-actions
+#crs
+https://crsreports.congress.gov/
+https://crsreports.congress.gov/search/#/?termsToSearch=campaign%20finance&orderBy=Relevance
+https://crsreports.congress.gov/search/#/?termsToSearch=lobbying&orderBy=Relevance    
 
-#state level campaign finance law
-#state-level lobbying
 
 #governors elections
 https://www.nga.org/governors/elections/
@@ -3035,10 +3223,8 @@ https://www.naag.org/state-gift-laws/
 https://www.naag.org/news-resources/research-data/attorney-general-office-characteristics/
 firms in red state more like to donate
 
-#RDD
-https://www.clemence.tricaud.com/research
-https://www.vincentpons.org/research
-http://dx.doi.org/10.18235/0004458
+
+
 
 
 #analysis suggested
@@ -3051,15 +3237,9 @@ winning reelection or election to governor is definitely the incentive for AG. s
 #newspapers
 https://www.nytimes.com/interactive/2014/10/28/us/politics/money-going-to-state-attorneys-general.html
 https://www.cbsnews.com/news/state-attorney-general-lobbyists-donation-one-on-one-access-raga-daga/
-https://www.wsj.com/articles/the-280-million-attorneys-general-fund-national-association-of-attorneys-general-republicans-daniel-cameron-11661550349
 https://www.fec.gov/legal-resources/court-cases/speechnoworg-v-fec/#:~:text=On%20March%2026%2C%202010%2C%20the,them%2C%20violate%20the%20First%20Amendment.
 court found that such "nominally independent" organizations are "uniquely positioned to serve as conduits for corruption both in terms of the sale of access and the circumvention of the soft money ban."
 
-#voting laws
-https://www.brennancenter.org/issues/ensure-every-american-can-vote/voting-reform/state-voting-laws
-https://ballotpedia.org/Voting_laws_in_the_United_States#State_election_laws
-https://www.followthemoney.org/resources/state-disclosure-agencies
-https://heinonline.org/HOL/Welcome -> national survey of state laws, voter laws
 
 #Martens
 will violation info be on 8-k?
@@ -3067,5 +3247,4 @@ will violation info be on 8-k?
 epa firms, how many public firms receive enforcement actions, look at literature
 #Pope
 Countercyclical lobbying? lobby more rep when switch
-Big 4 and ESG disclosure
 #'''
