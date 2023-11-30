@@ -1,0 +1,34 @@
+#docker
+'''
+#first time
+https://hub.docker.com/
+search "pytorch" -> https://hub.docker.com/r/pytorch/pytorch/tags ->select penultimate -> 
+copy after "pull", e.g. pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
+open powershell as admin
+#open
+docker run --name zhao -it -v C:\Directory\d_python:/d_python pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
+open Docker Desktop -> Containers -> Actions, Start button
+open powershell as admin
+docker exec -it zhao bash
+#install packages
+apt update
+apt install build-essential
+pip install linktransformer
+#create new image
+open powershell as admin
+docker ps
+copy "CONTAINER ID", come up with name for  new image (e.g., "pytorch_linktransformer")
+docker commit 53467559ff27 pytorch_linktransformer
+come up with name for new container (e.g, "zhao2")
+docker run --name zhao2 -it -v C:\Directory\d_python:/d_python pytorch_linktransformer
+
+#use
+open Docker Desktop -> Containers -> Actions, Start button
+open powershell as admin
+docker exec -it zhao2 bash
+cd "/d_python"
+python zhao_functions.py
+
+#close
+open Docker Desktop -> Containers -> Actions, stop button
+'''
