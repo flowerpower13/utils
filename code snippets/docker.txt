@@ -6,26 +6,33 @@ search "pytorch" -> https://hub.docker.com/r/pytorch/pytorch/tags ->select penul
 copy after "pull", e.g. pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
 open powershell as admin
 #open
-docker run --name zhao -it -v C:\Directory\d_python:/d_python pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
-open Docker Desktop -> Containers -> Actions, Start button
+docker run --name temporary_container -it -v C:\Directory\d_python:/d_python pytorch/pytorch:2.1.1-cuda12.1-cudnn8-runtime
+open Docker Desktop -> Containers -> Actions, select container, Start button
 open powershell as admin
-docker exec -it zhao bash
+docker exec -it temporary_container bash
 #install packages
 apt update
 apt install build-essential
 pip install linktransformer
+pip install nltk
+
+#nltk
+python
+import nltk
+nltk.download("all")
+
 #create new image
 open powershell as admin
 docker ps
-copy "CONTAINER ID", come up with name for  new image (e.g., "pytorch_linktransformer")
-docker commit 53467559ff27 pytorch_linktransformer
-come up with name for new container (e.g, "zhao2")
-docker run --name zhao2 -it -v C:\Directory\d_python:/d_python pytorch_linktransformer
+copy "CONTAINER ID", come up with name for  new image (e.g., "zhao_image")
+docker commit 53467559ff27 zhao_image
+come up with name for new container (e.g, "zhao_container")
+docker run --name zhao_container -it -v C:\Directory\d_python:/d_python zhao_image
 
 #use
-open Docker Desktop -> Containers -> Actions, Start button
+open Docker Desktop -> Containers -> Actions, select container, Start button
 open powershell as admin
-docker exec -it zhao2 bash
+docker exec -it zhao_container bash
 cd "/d_python"
 python zhao_functions.py
 
