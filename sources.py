@@ -2,13 +2,24 @@
 
 '''
 questions
-con a contractor donate to a 527 group? 
-why PACs vs 527?
-do state AGs set the standard for strict/lax enforcement within state?
+what does it take to be opaque, for a state. which disclosure is key?
+Do state AGs set the standard for strict/lax enforcement within that state? 
+
+
+
+
+#regdata
+https://www.reghub.ai/data/bulk
+
+
+#MIT elections
+https://github.com/MEDSL/2022-elections-official
 
 
 idea
 publicly-searchable database of advertising data, facebook, instagram, snap, google youtube, tik tok
+https://www.ncsl.org/elections-and-campaigns/digital-political-ads
+https://aboutpoliticalads.org/
 https://foundation.mozilla.org/en/campaigns/tiktok-political-ads/
 https://snap.com/en-US/political-ads
 https://adstransparency.google.com/political?region=US&topic=political
@@ -16,11 +27,28 @@ https://www.facebook.com/ads/library
 support enemies
 527 and 501 among largest PAC donors
 shock IRS 2018 https://www.irs.gov/pub/irs-drop/rp-18-38.pdf
-model campaign finance, processing cost of interpreting regulation
 district attorneys received campaign money from polluters
+%model campaign finance, processing cost of interpreting regulation
 
-cfi campaign finance disclosure
+
+
+#RDD
+https://www.clemence.tricaud.com/research
+https://www.vincentpons.org/research
+http://dx.doi.org/10.18235/0004458
+
+
+#cozen o' connor
+https://www.cozen.com/practices/government-regulatory/state-attorneys-general
+
+
+#swamp
+https://swamp.coalitionforintegrity.org/
+
+
+campaign finance institute
 https://cfinst.github.io/
+http://cfinst.org/MoneyandPolitics_Bibliography.aspx
 
 EPA
 epa.gov
@@ -28,9 +56,24 @@ epa.gov
 stanford law
 https://guides.law.stanford.edu/c.php?g=685018&p=4863034
 
+#brennan center
+https://www.brennancenter.org/library/?langcode=en&issue=23&
+https://www.brennancenter.org/experts/?q=campaign%20finance&langcode=en&
+
+#ncsl
+https://www.ncsl.org/elections-and-campaigns/campaign-finance
+
+#crs
+https://crsreports.congress.gov/
+https://crsreports.congress.gov/search/#/?termsToSearch=campaign%20finance&orderBy=Relevance
+https://crsreports.congress.gov/search/#/?termsToSearch=lobbying&orderBy=Relevance    
+
 
 law library of congress
 https://www.loc.gov/research-centers/law-library-of-congress/researcher-resources/guide-to-law-online/states-and-territories/
+
+Legal Information Institute - Cornell
+https://www.law.cornell.edu/
 
 
 #books

@@ -3153,96 +3153,82 @@ print("done")
 
 
 
-
-
 '''
+
+
+
 #to do
-violation tracker
-reg don on violation likelihood (posi). shock to violations (state enforcement intensity, policy uncertainty)
-reg viol likelihood/amount on don (neg)
-reg amicus briefs on don
-
-
-
-https://www.cozen.com/practices/government-regulatory/state-attorneys-general, smart amicus briefs
-
-HP1: Through their interaction with A.G.s, these individuals will become the face of the 
-company to A.G.s, who are less likely to demagogue companies they know and respect
-
-HP2:  The conference participants also would like to hear how these relationships can help 
-to efficiently address A.G.s’ questions or concerns before they escalate into major problems 
-(like multistate investigations or litigation), as well as how they can carry over when 
-A.G.s are elected to higher offices.
-
-linktransformer
-#https://linktransformer.github.io/
-
-second rq
-effect on actions (amicus briefs/sue)
-
-third RQ
-effect on county-level pollution
-
-#RDD
-https://www.clemence.tricaud.com/research
-https://www.vincentpons.org/research
-http://dx.doi.org/10.18235/0004458
+econ, finance, law, hoover, polsci, health econ
+Rebecca Lester
+Jinhwan Kim
+Mohsen Bayati
+Colleen Honigsberg
 
 
 
 
+motivation e.g., headlines huge settlements, companies care
+table opaque states bigger
+less slides, less words
+wood: separating, cirmuvent 
+data and sample slide
+activism, not donation
+What is California, or state-level LOBBYING disclosure?
+before 2018, check form 990 schedule B
+
+year=1990
+https://www.followthemoney.org/show-me?dt=1&y={y},{y+1},{y+2},{y+3}&c-exi=1&c-r-oc=Z10#[{1|gro=f-s,f-eid,c-t-id,d-id,d-par,d-empl,d-occupation
 
 
-#brennan center
-https://www.brennancenter.org/library/?langcode=en&issue=23&
-https://www.brennancenter.org/experts/?q=campaign%20finance&langcode=en&
 
-#ncsl
-https://www.ncsl.org/elections-and-campaigns/campaign-finance
-https://www.ncsl.org/elections-and-campaigns/campaign-finance-legislation-2015-onward
-https://www.ncsl.org/elections-and-campaigns/state-campaign-finance-disclosure-requirements
-
-#crs
-https://crsreports.congress.gov/
-https://crsreports.congress.gov/search/#/?termsToSearch=campaign%20finance&orderBy=Relevance
-https://crsreports.congress.gov/search/#/?termsToSearch=lobbying&orderBy=Relevance    
-
-
-#governors elections
-https://www.nga.org/governors/elections/
-https://www.nga.org/former-governors/oregon/
-
-#past AGs
-https://www.naag.org/attorneys-general/past-attorneys-general/
-https://www.naag.org/attorneys-general/past-attorneys-general/oregon-former-attorneys-general/
-
-gitft laws (shocks)
-https://www.naag.org/state-gift-laws/
-
-#cross section
-https://www.naag.org/news-resources/research-data/attorney-general-office-characteristics/
-firms in red state more like to donate
+donations to ag dont matter for chemical firms, epa violations
+state AGs departures as exogenous shock to connection
+employ state level PACs, for a subsample
+cross-section state-level corruption, DOJ, cases
+can firms move hq on putpose? forum shopping
+political exposure when industry is not regulated, e.g., bitcoin
+timing, quarter -4 wrt election date
+donation_t-1
+reg neg ext on PACs
 
 
 
 
 
-#analysis suggested
-aggregate at 6th cusip, and merge
-Should be "regulatory risk" rather than cost? Just a definition, we could change
-Expenditures also go to congressmen
-career concerns
-winning reelection or election to governor is definitely the incentive for AG. so helping firm can benefit from getting the money but may be perceived as bad politician/lawyer. challenging federal law could be perceived as beneficial to local firms and economy. so that's the tension.
 
-#newspapers
-https://www.nytimes.com/interactive/2014/10/28/us/politics/money-going-to-state-attorneys-general.html
+
+#negative/positive consequences
+fatalities: https://www.osha.gov/fatalities, https://www.osha.gov/fatalities/reports/archive
+injury: https://www.osha.gov/Establishment-Specific-Injury-and-Illness-Data, https://www.osha.gov/severeinjury
+releases (EPA)
+odi: https://www.osha.gov/ords/odi/establishment_search.html
+chemical: https://www.osha.gov/opengov/health-samples, https://www.osha.gov/chemicaldata/
+
+
+
+
+
+
+
+
+
+
+#nyt
+https://www.nytimes.com/interactive/2015/us/politics/attorneys-general.html?action=click&module=RelatedCoverage&pgtype=Article&region=Footer
+https://www.nytimes.com/2014/10/29/us/lobbyists-bearing-gifts-pursue-attorneys-general.html
+https://www.nytimes.com/2014/12/07/us/politics/energy-firms-in-secretive-alliance-with-attorneys-general.html
+https://www.nytimes.com/2014/12/19/us/politics/lawyers-create-big-paydays-by-coaxing-attorneys-general-to-sue-.html
+
+newspapers
 https://www.cbsnews.com/news/state-attorney-general-lobbyists-donation-one-on-one-access-raga-daga/
+https://www.politico.com/story/2016/08/george-soros-criminal-justice-reform-227519
 https://www.fec.gov/legal-resources/court-cases/speechnoworg-v-fec/#:~:text=On%20March%2026%2C%202010%2C%20the,them%2C%20violate%20the%20First%20Amendment.
 court found that such "nominally independent" organizations are "uniquely positioned to serve as conduits for corruption both in terms of the sale of access and the circumvention of the soft money ban."
 
 
 #Martens
 will violation info be on 8-k?
+career concerns?
 #Zhao
 epa firms, how many public firms receive enforcement actions, look at literature
 #Pope
