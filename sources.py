@@ -1,11 +1,16 @@
 
 
 '''
-questions
-what does it take to be opaque, for a state. which disclosure is key?
-Do state AGs set the standard for strict/lax enforcement within that state? 
 
-
+#nyt
+https://www.nytimes.com/interactive/2015/us/politics/attorneys-general.html?action=click&module=RelatedCoverage&pgtype=Article&region=Footer
+https://www.nytimes.com/2014/10/29/us/lobbyists-bearing-gifts-pursue-attorneys-general.html
+https://www.nytimes.com/2014/12/07/us/politics/energy-firms-in-secretive-alliance-with-attorneys-general.html
+https://www.nytimes.com/2014/12/19/us/politics/lawyers-create-big-paydays-by-coaxing-attorneys-general-to-sue-.html
+https://www.cbsnews.com/news/state-attorney-general-lobbyists-donation-one-on-one-access-raga-daga/
+https://www.politico.com/story/2016/08/george-soros-criminal-justice-reform-227519
+https://www.fec.gov/legal-resources/court-cases/speechnoworg-v-fec/#:~:text=On%20March%2026%2C%202010%2C%20the,them%2C%20violate%20the%20First%20Amendment.
+court found that such "nominally independent" organizations are "uniquely positioned to serve as conduits for corruption both in terms of the sale of access and the circumvention of the soft money ban."
 
 
 #regdata
@@ -28,8 +33,8 @@ support enemies
 527 and 501 among largest PAC donors
 shock IRS 2018 https://www.irs.gov/pub/irs-drop/rp-18-38.pdf
 district attorneys received campaign money from polluters
-%model campaign finance, processing cost of interpreting regulation
-
+%model 1) separating eq dark money vs PAC, 2) more disclosure to PAC, more money to IE
+%model: double agent economy, short-termism
 
 
 #RDD

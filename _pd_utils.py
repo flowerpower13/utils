@@ -372,7 +372,7 @@ def _firstvalue_join(series, sep="||"):
 def _lowercase_colnames_values(df):
 
     #lowercase col names
-    df.columns=df.columns.str.lower()
+    #df.columns=df.columns.str.lower()
 
     #lowercase col values
     for i, col in enumerate(df.columns):

@@ -658,9 +658,6 @@ def _rdp_data2(folders):
     df.to_csv(filepath, index=False)
     
 
-_rdp_data2(folders)
-
-
 #search loop
 def _search_loop(view, query, filter, select, top, i, tot):
 
@@ -892,8 +889,6 @@ def _search(folders, items, colname):
     #save
     filepath=f"{results}/{result}_{colname}.csv"
     df.to_csv(filepath, index=False)
-
-
 
 
 
