@@ -1246,13 +1246,15 @@ def _rdp_aggregate(folders, items):
     #violtrack_list_pivot_columns
     filepath=f"zhao/_violtrack/violtrack_list_pivot_columns.csv"
     df=pd.read_csv(filepath, dtype="string")
-    violtrack_list_pivot_columns=df["violtrack_list_pivot_columns"]
+    violtrack_list_pivot_columns=df["violtrack_list_pivot_columns"].tolist()
 
     #usecols
     usecols=[
         #A
         "OAPermID",
         "CommonName",
+        "year",
+        "quarter",
         "A__contributor_firm",
         "A__contribution_year",
         "A__contribution_quarter",
@@ -1264,7 +1266,6 @@ def _rdp_aggregate(folders, items):
         "A__contributor_address_city",
         "A__contributor_address_state",
         "A__contributor_address_zip_code",
-
         #violtrack
         "OAPermID",
         "CommonName",
@@ -1277,6 +1278,20 @@ def _rdp_aggregate(folders, items):
         "current_parent_HQ_state",
         "current_parent_specific_industry",
         "current_parent_major_industry",
+        #refinitiv
+        "Gics",
+        "PrimaryRIC",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        "UltimateParentCompanyOAPermID",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        "RCSCountryHeadquartersLeaf",
         ]
 
     #read
@@ -1285,7 +1300,7 @@ def _rdp_aggregate(folders, items):
         filepath, 
         usecols=usecols,
         dtype="string",
-        #nrows=1000,
+        nrows=1000,
         )
 
     #lowercase col names and values
@@ -1303,54 +1318,15 @@ def _rdp_aggregate(folders, items):
     tonumeric_cols=[
         "OAPermID",
         "year",
-        "quarter"
+        "quarter",
         ] + A_list_pivot_columns + violtrack_list_pivot_columns
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
     #list_pivot_columns
     list_pivot_columns = A_list_pivot_columns + violtrack_list_pivot_columns
 
-    #df_pivot
-    df_pivot=[list_pivot_columns]
-
-    #_df_to_fullpanel
-    companyid="OAPermID"
-    timevars={
-        "year": (2000, 2023+1),
-        "quarter": (1, 4+1),
-        }
     fillna_cols=list_pivot_columns
-    df_fullpanel=_df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols)
-
-    #df_withoutdups
-    df_withoutdups=df.drop_duplicates(subset="OAPermID")
-    df_withoutdups=df_withoutdups.drop(
-        [
-            "A__contribution_year",
-            "A__contribution_quarter",
-            "penalty_year",
-            "penalty_quarter",
-            ],
-        axis=1,
-        )
-
-    #merge df_fullpanel and df_withoutdups
-    left=df_fullpanel
-    right=df_withoutdups
-    how="left"
-    on="OAPermID"
-    suffixes=('_left', '_right')
-    indicator=f"_merge_dups"
-    validate="m:1"
-    df=pd.merge(
-        left=left,
-        right=right,
-        how=how,
-        on=on,
-        suffixes=suffixes,
-        indicator=indicator,
-        validate=validate,
-        )  
+    df=_fillnacols_to_df(df, fillna_cols, value=0)
 
     #agencies_sum
     df["agencies_sum"]=df[violtrack_list_pivot_columns].sum(axis=1)
@@ -1361,11 +1337,7 @@ def _rdp_aggregate(folders, items):
     #non_AG_sum
     df["non_AG_sum"] = df["agencies_sum"] - df["AG_sum"]
 
-    #add regdata
-
-    
-    #disclosure shocks
-
+    #disclosure shocks, regdata
 
     list_newvars=[
         "agencies_sum",
@@ -1385,7 +1357,6 @@ def _rdp_aggregate(folders, items):
 
     #ordered_cols
     ordered_cols=[
-        #A
         "OAPermID",
         "CommonName",
         "A__contributor_firm",
@@ -1393,6 +1364,7 @@ def _rdp_aggregate(folders, items):
         "year",
         "quarter",
         ] + A_list_pivot_columns + list_newvars + violtrack_list_pivot_columns + [
+        #A
         "A__contributor_name",
         "A__contributor_isfirm",
         "A__contributor_employer",
@@ -1400,11 +1372,26 @@ def _rdp_aggregate(folders, items):
         "A__contributor_address_city",
         "A__contributor_address_state",
         "A__contributor_address_zip_code",
+        #violtrack
         "current_parent_ISIN",
         "current_parent_HQ_country",
         "current_parent_HQ_state",
         "current_parent_specific_industry",
         "current_parent_major_industry",
+        #refinitiv
+        "Gics",
+        "PrimaryRIC",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        "UltimateParentCompanyOAPermID",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        "RCSCountryHeadquartersLeaf",
         ]
     df=df[ordered_cols]
 
@@ -1524,7 +1511,7 @@ validate="1:1"
 #_rdp_aggregate
 folders=["zhao/_merge", "zhao/_merge"]
 items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate"]
-#_rdp_aggregate(folders, items)
+_rdp_aggregate(folders, items)
 
 
 #compustat?
