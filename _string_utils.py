@@ -1,8 +1,9 @@
 
 
 #preliminary
+#pip install nltk
 #import nltk
-#nltk.download()
+#nltk.download('all')
 #nltk.download('stopwords')
 #nltk.download('punkt')
 #nltk.download('words')

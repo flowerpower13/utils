@@ -618,9 +618,6 @@ def _rdp_data1(folders, items, symbol):
             print(f"{param}_{k} - done")
 
 
-#_rdp_data1(folders, items, symbol)
-
-
 #CONCATATENATE EXCEL SHEETS FOR RDP DATA
 folders=["zhao/_rdp_data1", "zhao/_rdp_data2"]
 def _rdp_data2(folders):
@@ -695,10 +692,9 @@ def _search_loop(view, query, filter, select, top, i, tot):
 
 
 #SEARCH
-folders=["zhao/_contributors_screen", "zhao/_search"]
-items=["A_screen", "A_search"]
-colname="a__company_involved"
-#'''
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["violtrack_screen", "violtrack_screen_search"]
+colname="current_parent_name"
 def _search(folders, items, colname):
 
     #https://developers.refinitiv.com/en/article-catalog/article/building-search-into-your-application-workflow
@@ -706,7 +702,7 @@ def _search(folders, items, colname):
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Query.ipynb
     #https://github.com/Refinitiv-API-Samples/Article.DataLibrary.Python.Search/blob/main/Search%20-%20Filter.ipynb
 
-    #use SRCH to choose "filter" parameters
+    #Refinitiv Workspace, ORGSRCH, export query, choose "filter" parameters
 
     #folders
     resources=folders[0]
@@ -734,7 +730,7 @@ def _search(folders, items, colname):
     list_values=sorted(series)
 
     #trial
-    #list_values=list_values[:10]
+    #list_values=list_values[:5]
 
     #n obs
     n_obs=len(list_values)
@@ -743,41 +739,43 @@ def _search(folders, items, colname):
     
     #select list
     select_list=[
-        #name
-        "DTSubjectName",
         "CommonName",
-
-        #identifier
-        "CUSIP",
-        "IssueISIN",
-        "RIC",
+        "Gics",
+        #"RCSOriginalAccountsCurrencyLeaf",
         "PrimaryRIC",
-        "IssuerOAPermID",
-        "PermID",
+        #"Orgid",
+        #"BondsCount",
+        #"CdsCount",
+        #"EquitiesCount",
+        #"FundsCount",
+        #"FuturesCount",
+        #"LoanCount",
+        #"MortgagesCount",
+        #"OptionsCount",
+        #"WarrantsCount",
         "OAPermID",
-        "Orgid",
-        "TickerSymbol",
-
-        #asset
-        "AssetState", #active ('DC' if true)
-        "BusinessEntity", #organization type
-        "RCSOrganisationSubTypeLeaf",
-        "OrganisationStatus", #listed
-        "RCSAssetCategoryLeaf", #asset type (e.g., 'Ordinary Shares')
-
-        #exchange
-        "ExchangeName",
-        "ExchangeCode",
-
-        #ultimate parent
-        "UltimateParentOrganisationName",
-        "UltimateParentOrganisationOrgid",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        #"RCSTRBC2012Leaf",
+        #"UltimateParentOrganisationOrgid",
         "UltimateParentCompanyOAPermID",
-
-        #country
-        "RCSIssuerCountryLeaf", #country of issuer
-        "RCSExchangeCountryLeaf", #country of exchange
-        "RCSFilingCountryLeaf", #country of incorporation
+        #"RatingX1XRatingRank",
+        #"BusinessEntity",
+        #"PI",
+        #"SearchAllCategoryv3",
+        #"SearchAllCategoryv2",
+        #"SearchAllCategory",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        #"BusinessDescription",
+        #"LEI",
+        #"IsFirm",
+        "RCSCountryHeadquartersLeaf",
         ]
 
     #select   
@@ -787,50 +785,35 @@ def _search(folders, items, colname):
     top=1
 
     #for names
-    for i, query in enumerate(list_values):
+    for i, value in enumerate(list_values):
 
-        #clean query
-        stardardized_query=_standardize_query(query)
+        #stardardized_query
+        stardardized_query=_standardize_query(value)
+
+        #name_query
+        name_query=f"Name({stardardized_query})"
 
         #try
         try:
 
-            #EQUITY_QUOTES
-            view=search.Views.EQUITY_QUOTES
+            #ORGANISATIONS
+            view=search.Views.ORGANISATIONS
 
-            #filter - Type of Equity: Ordinary Shares
-            filter="IsPrimaryIssueRIC eq true and \
-                    \
-                    RCSAssetCategoryGenealogy eq 'A:1L' and \
-                    RCSIssuerCountryGenealogy eq 'M:DQ\\G:AM\\G:6J' and \
-                    RCSExchangeCountryLeaf eq 'United States' \
-                    " 
-            df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
+            #filter
+            filter="( SearchAllCategoryv2 eq 'Companies/Issuers' and (RCSFilingCountry xeq 'G:6J'))"
+            df, converted = _search_loop(view, name_query, filter, select, top, i, tot)
 
             #empty
             if df.empty:
 
-                #ORGANISATIONS
-                view=search.Views.ORGANISATIONS
+                #df
+                df=pd.DataFrame()
 
-                #filter - Organisation Type: Public Company
-                filter="SearchAllCategoryv2 eq 'Companies/Issuers' and \
-                        \
-                        RCSFilingCountry xeq 'G:6J' \
-                        " 
-                df, converted = _search_loop(view, stardardized_query, filter, select, top, i, tot)
+                #converted
+                converted=False
 
-                #empty
-                if df.empty:
-
-                    #df
-                    df=pd.DataFrame()
-
-                    #converted
-                    converted=False
-
-                    #print
-                    print(f"{i}/{tot} - {stardardized_query} - empty")
+                #print
+                print(f"{i}/{tot} - {stardardized_query} - empty")
         
         #except
         except Exception as e:
@@ -842,12 +825,12 @@ def _search(folders, items, colname):
             converted=False
 
             #print
-            print(f"{i}/{tot} - {query} - exception")
+            print(f"{i}/{tot} - {stardardized_query} - exception")
             print(e)
 
         #create df0
         d={
-            "query": [query],
+            "query": [value],
             "stardardized_query": [stardardized_query],
             "converted": [converted],
             }
@@ -891,6 +874,8 @@ def _search(folders, items, colname):
     df.to_csv(filepath, index=False)
 
 
+
+_search(folders, items, colname)
 
 
 #copy to main.py

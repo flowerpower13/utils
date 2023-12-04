@@ -16,7 +16,7 @@ def _readcsv_lowercase(df_path):
         )
     
     #lowercase cols
-    df.columns=df.columns.str.lower()
+    #df.columns=df.columns.str.lower()
 
     #lowercase col values
     for i, col in enumerate(df.columns):
@@ -27,6 +27,8 @@ def _readcsv_lowercase(df_path):
 
 
 #from dfpath to dfon
+#left=_dfpath_to_dfon(left_path, left_ons)
+#right=_dfpath_to_dfon(right_path, right_ons)
 def _dfpath_to_dfon(df_path, df_ons):
 
     #read
@@ -38,7 +40,7 @@ def _dfpath_to_dfon(df_path, df_ons):
         )
     
     #lowercase cols
-    df.columns=df.columns.str.lower()
+    #df.columns=df.columns.str.lower()
 
     #lowercase col values
     for i, col in enumerate(df.columns):
@@ -181,7 +183,7 @@ def _pd_concat(folders, items, left_path, right_path, axis, join, sort_id):
     #frames
     frames=[left, right]
 
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html
+    #https://pandas.pydata.org/docs/reference/api/pandas.concat.html
     df=pd.concat(
         objs=frames,
         axis=axis,
@@ -189,7 +191,7 @@ def _pd_concat(folders, items, left_path, right_path, axis, join, sort_id):
         )
 
     #drop duplicates
-    df=df.drop_duplicates(subset=sort_id,)
+    df=df.drop_duplicates(subset=sort_id)
     
     #sortvalues
     df=df.sort_values(by=sort_id)
@@ -256,7 +258,7 @@ def _fuzzy_readcsv(df_stem, df_on):
         )
     
     #lowercase
-    df.columns=df.columns.str.lower()
+    #df.columns=df.columns.str.lower()
 
     #lowercase col values
     cols=df.columns.values

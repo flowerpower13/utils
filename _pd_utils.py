@@ -440,68 +440,71 @@ def _fillnacols_to_df(df, fillna_cols, value=0):
 
 #full panel
 '''
-cols_id=[
-    violtrack_parent_id,
-    violtrack_initiation_year,
-    ]
-years=[
-    2000,
-    2023,
-    ]
-fillna_cols=[
-    violtrack_penalty_amount,
-    ]
+companyid="OAPermID"
+timevars={
+    "A__contribution_year": (2000, 2023+1),
+    "A__contribution_quarter": (1, 4+1),
+    }
+fillna_cols=list_pivot_columns
 #'''
-def _df_to_fullpanel(df, cols_id, years, fillna_cols):
+def _df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols):
 
-    #ids
-    company_id=cols_id[0]
-    fiscal_year=cols_id[1]
-
-    #years
-    start_year=years[0]
-    stop_year=years[1]
-
-    #unique company id
-    span_company_ids=df[company_id].unique()
+    #unique
+    span_companyids=df_pivot[companyid].unique()
 
     #sort
-    span_company_ids=np.sort(span_company_ids)
+    span_companyids=np.sort(span_companyids)
 
-    #span years
-    span_years=[y for y in range(start_year, (stop_year+1))]
+    #int
+    span_companyids=[int(x) for x in span_companyids]
+
+    #timevars
+    timevar0, timevar1 = timevars.keys()
+    tuple_timevar0, tuple_timevar1 = timevars.values()
+
+    #span
+    span_timevar0=list(range(*tuple_timevar0))
+    span_timevar1=list(range(*tuple_timevar1))
 
     #data list
     data_list=[
         {
-            company_id: x,
-            fiscal_year: y,
+            companyid: x,
+            timevar0: y0,
+            timevar1: y1,
             }
-            for x in span_company_ids
-            for y in span_years
+            for x in span_companyids
+            for y0 in span_timevar0
+            for y1 in span_timevar1
             ]
 
     #empty
     df_empty=pd.DataFrame(data=data_list)
 
-    #args
-    indicator=f"_merge_fullpanel"
-    suffixes=('_left', '_right')
+    #panelids
+    panelids=[companyid]+list(timevars.keys())
 
     #to numeric
-    tonumeric_cols=[fiscal_year]
+    tonumeric_cols=panelids
     errors="raise"
-    df=_tonumericcols_to_df(df, tonumeric_cols, errors)
+    df_pivot=_tonumericcols_to_df(df_pivot, tonumeric_cols, errors)
 
     #merge
+    left=df_empty
+    right=df_pivot
+    how="left"
+    on=panelids
+    indicator=f"_merge_fullpanel"
+    suffixes=('_left', '_right')
+    validate="1:1"
     df=pd.merge(
-        left=df_empty,
-        right=df,
-        how="left",
-        on=cols_id,
+        left=left,
+        right=right,
+        how=how,
+        on=on,
         suffixes=suffixes,
         indicator=indicator,
-        validate="1:1",
+        validate=validate,
         )
 
     #if

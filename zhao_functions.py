@@ -6,13 +6,12 @@ import io
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import linktransformer as lt
+#import linktransformer as lt
 from datetime import datetime
 
 
 #functions
-from _merge_utils import _pd_merge, _pd_merge_asof
-from _industry_famafrench import _filepath_to_mapping
+from _merge_utils import _pd_merge, _dfpath_to_dfon
 from _pd_utils import _folder_to_filestems, \
     _lowercase_colnames_values, _todatecols_to_df, _tonumericcols_to_df, _fillnacols_to_df, \
     _groupby, _df_to_fullpanel, \
@@ -32,17 +31,6 @@ CURRENT_YEAR_2DIGIT=CURRENT_YEAR%100
 tot=13428119
 buffer_size=8192
 
-
-#vars donations
-#organization
-pivot_columns={
-    "134220019": "daga",
-    "464501717": "raga",
-    "521304889": "dga",
-    "113655877": "rga",
-    "521870839": "dlcc",
-    "050532524": "rslc",
-    }
 
 #irs code and columns
 def _irs_codecolumns(resources):
@@ -284,8 +272,18 @@ def _irs_A_screen(folders, items):
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
+    #dict_pivot_columns
+    dict_pivot_columns={
+        134220019: "daga",
+        464501717: "raga",
+        #521304889: "dga",
+        #113655877: "rga",
+        #521870839: "dlcc",
+        #050532524: "rslc",
+        }
+
     #select rows
-    df=df[df["A__ein"].isin([int(key) for key in pivot_columns.keys()])]
+    df=df[df["A__ein"].isin([key for key in dict_pivot_columns.keys()])]
 
     #todate
     todate_cols=[
@@ -299,12 +297,12 @@ def _irs_A_screen(folders, items):
     df["A__contribution_year"]=pd.DatetimeIndex(df["A__contribution_date"], ambiguous="NaT").year
     df["A__contribution_quarter"]=pd.DatetimeIndex(df["A__contribution_date"], ambiguous="NaT").quarter
 
-    #groupby
+    #_groupby contributor-organization-year-quarter
     by=[
         "A__ein",
         "A__contributor_name",
         "A__contribution_year",
-        #"A__contribution_quarter",
+        "A__contribution_quarter",
         ]
     dict_agg_colfunctions={
         "A__org_name": [_first_value],
@@ -314,6 +312,7 @@ def _irs_A_screen(folders, items):
         "A__contributor_address_zip_code": [_first_value],
         "A__contributor_employer": [_first_value],
         "A__contribution_amount": ["sum"],
+        "A__contribution_date": [_first_value],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
@@ -339,17 +338,11 @@ def _irs_A_screen(folders, items):
     sortvalues_cols=[
         "A__contributor_firm",
         "A__contribution_year",
-        #"A__contribution_quarter",
+        "A__contribution_quarter",
         "A__ein",
-        ]
-    ascending=[
-        True,
-        True,
-        True,
         ]
     df=df.sort_values(
         by=sortvalues_cols,
-        ascending=ascending,
         )
 
     #ordered_cols
@@ -359,7 +352,8 @@ def _irs_A_screen(folders, items):
         "A__ein",
         "A__contribution_amount",
         "A__contribution_year",
-        #"A__contribution_quarter",
+        "A__contribution_quarter",
+        "A__contribution_date",
         "A__contributor_name",
         "A__contributor_isfirm",
         "A__contributor_employer",
@@ -445,8 +439,18 @@ def _irs_B_screen(folders, items):
         ]
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
+    #dict_pivot_columns
+    dict_pivot_columns={
+        134220019: "daga",
+        464501717: "raga",
+        #521304889: "dga",
+        #113655877: "rga",
+        #521870839: "dlcc",
+        #050532524: "rslc",
+        }
+
     #select rows
-    df=df[df["B__ein"].isin([int(key) for key in pivot_columns.keys()])]
+    df=df[df["B__ein"].isin([int(key) for key in dict_pivot_columns.keys()])]
 
     #to date
     todate_cols=[
@@ -460,12 +464,12 @@ def _irs_B_screen(folders, items):
     df["B__expenditure_year"]=pd.DatetimeIndex(df["B__expenditure_date"], ambiguous="NaT").year
     df["B__expenditure_quarter"]=pd.DatetimeIndex(df["B__expenditure_date"], ambiguous="NaT").quarter
 
-    #groupby
+    #_groupby recipient-organization-year-quarter
     by=[
         "B__ein",
         "B__reciepient_name",
         "B__expenditure_year",
-        #"B__expenditure_quarter",
+        "B__expenditure_quarter",
         ]
     dict_agg_colfunctions={
         "B__org_name": [_first_value],
@@ -475,6 +479,7 @@ def _irs_B_screen(folders, items):
         "B__reciepient_address_zip_code": [_first_value],
         "B__reciepient_employer": [_first_value],
         "B__expenditure_amount": ["sum"],
+        "B__expenditure_date": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
@@ -500,17 +505,11 @@ def _irs_B_screen(folders, items):
     sortvalues_cols=[
         "B__reciepient_firm",
         "B__expenditure_year",
-        #"B__expenditure_quarter",
+        "B__expenditure_quarter",
         "B__ein",
-        ]
-    ascending=[
-        True,
-        True,
-        True,
         ]
     df=df.sort_values(
         by=sortvalues_cols,
-        ascending=ascending,
         )
 
     #ordered_cols
@@ -520,7 +519,8 @@ def _irs_B_screen(folders, items):
         "B__ein",
         "B__expenditure_amount",
         "B__expenditure_year",
-        #"B__expenditure_quarter",
+        "B__expenditure_quarter",
+        "B__expenditure_date",
         "B__reciepient_name",
         "B__reciepient_isfirm",
         "B__reciepient_employer",
@@ -564,7 +564,7 @@ def _violtrack_screen(folders, items):
         #"naics",
         #"info_source",
         #"notes",
-        #"unique_id",
+        "unique_id",
         "current_parent_name",
         #"current_parent_ownership_structure",
         #"current_parent_stock_ticker",
@@ -622,8 +622,6 @@ def _violtrack_screen(folders, items):
     #dropna
     dropna_cols=[
         "current_parent_name",
-        "current_parent_HQ_country",
-        "current_parent_HQ_state",
         "penalty",
         "penalty_date",
         ]
@@ -641,15 +639,16 @@ def _violtrack_screen(folders, items):
     df["penalty_year"]=pd.DatetimeIndex(df["penalty_date"], ambiguous="NaT").year
     df["penalty_quarter"]=pd.DatetimeIndex(df["penalty_date"], ambiguous="NaT").quarter
 
-    #groupby
+    #_groupby company-agency-year-quarter
     by=[
+        "agency_code",
         "current_parent_name",
         "penalty_year",
-        #"penalty_quarter",
+        "penalty_quarter",
         ]
     dict_agg_colfunctions={
         "agency": [_firstvalue_join],
-        "agency_code": [_firstvalue_join],
+        "unique_id": [_firstvalue_join],
         "current_parent_ISIN": [_firstvalue_join],
         "current_parent_HQ_country": [_firstvalue_join],
         "current_parent_HQ_state": [_firstvalue_join],
@@ -665,33 +664,29 @@ def _violtrack_screen(folders, items):
     sortvalues_cols=[
         "current_parent_name",
         "penalty_year",
-        #"penalty_quarter",
+        "penalty_quarter",
+        "agency_code",
         ]
-    ascending=[
-        True,
-        True,
-        ]
-    
     df=df.sort_values(
         by=sortvalues_cols,
-        ascending=ascending,
         )
 
     #ordered_cols
     ordered_cols=[
+        "current_parent_name",
         "agency",
         "agency_code",
-        "current_parent_name",
+        "offense_group",
+        "penalty",
+        "penalty_year",
+        "penalty_quarter",
+        "penalty_date",
         "current_parent_ISIN",
         "current_parent_HQ_country",
         "current_parent_HQ_state",
         "current_parent_specific_industry",
         "current_parent_major_industry",
-        "penalty",
-        "offense_group",
-        "penalty_date",
-        "penalty_year",
-        #"penalty_quarter",
+        "unique_id",
         ]
     df=df[ordered_cols]
 
@@ -700,7 +695,723 @@ def _violtrack_screen(folders, items):
     df.to_csv(filepath, index=False)
 
 
+#_rdp_ids
+folders=["zhao/_merge"]
+items=["A_violtrack_ids"]
+left_path="zhao/_irs/A_ids"
+right_path="zhao/_violtrack/violtrack_ids"
+def _rdp_ids(folders, items, left_path, right_path):
 
+    #folders items
+    results=folders[0]
+    result=items[0]
+
+    #read_csv
+    left_ons=right_ons=["OAPermID"]
+    left=_dfpath_to_dfon(left_path, left_ons)
+    right=_dfpath_to_dfon(right_path, right_ons)
+
+    #concat
+    objs=[left, right]
+    axis="index"
+    join="outer"
+    df=pd.concat(
+        objs=objs,
+        axis=axis,
+        join=join,
+        )
+
+    #drop_duplicates
+    df=df.drop_duplicates(subset="OAPermID")
+
+    #create timevars
+    df["year"]=np.nan
+    df["quarter"]=np.nan
+
+    #tonumeric
+    tonumeric_cols=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ]
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #list_pivot_columns
+    list_pivot_columns=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ]
+
+    #df_pivot
+    df_pivot=df[list_pivot_columns]
+    
+    #_df_to_fullpanel
+    companyid="OAPermID"
+    timevars={
+        "year": (2000, 2023+1),
+        "quarter": (1, 4+1),
+        }
+    fillna_cols=[]
+    df_fullpanel=_df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols)
+
+    #df_withoutdups
+    df_withoutdups=df.drop_duplicates(subset="OAPermID")
+    df_withoutdups=df_withoutdups.drop(
+        [
+            "year",
+            "quarter",
+            ],
+        axis=1,
+        )
+
+    #merge df_fullpanel and df_withoutdups
+    left=df_fullpanel
+    right=df_withoutdups
+    how="left"
+    on="OAPermID"
+    suffixes=('_left', '_right')
+    indicator=f"_merge_dups"
+    validate="m:1"
+    df=pd.merge(
+        left=left,
+        right=right,
+        how=how,
+        on=on,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate=validate,
+        )
+    
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+    #sortvalues
+    sortvalues_cols=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        )
+
+    #ordered_cols
+    ordered_cols=[
+        "OAPermID",
+        "CommonName",
+        "year",
+        "quarter",
+        "Gics",
+        "PrimaryRIC",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        "UltimateParentCompanyOAPermID",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        "RCSCountryHeadquartersLeaf",
+        ]
+    df=df[ordered_cols]
+    
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+    #'''
+
+
+#_irs_A_aggregate
+folders=["zhao/_irs", "zhao/_irs"]
+items=["A_ids", "A_aggregate"]
+def _irs_A_aggregate(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        #irs
+        "A__contributor_firm",
+        "A__org_name",
+        "A__ein",
+        "A__contribution_amount",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        "A__contribution_date",
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+        #refinitiv
+        "CommonName",
+        "OAPermID",
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #dropna
+    dropna_cols=[
+        "A__ein",
+        "OAPermID",
+        "A__contribution_amount",
+        "A__contribution_year",
+        "A__contribution_quarter"
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #tonumeric
+    tonumeric_cols=[
+        "A__ein",
+        "OAPermID",
+        "A__contribution_amount",
+        ]
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #_groupby contributor-organization-year-quarter
+    by=[
+        "A__ein",
+        "OAPermID",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ]
+    dict_agg_colfunctions={
+        "A__contributor_firm": [_firstvalue_join],
+        "A__org_name": [_firstvalue_join],
+        "A__contribution_amount": ["sum"],
+        "A__contribution_date": [_firstvalue_join],
+        "A__contributor_name": [_firstvalue_join],
+        "A__contributor_isfirm": [_firstvalue_join],
+        "A__contributor_employer": [_firstvalue_join],
+        "A__contributor_address_1": [_firstvalue_join],
+        "A__contributor_address_city": [_firstvalue_join],
+        "A__contributor_address_state": [_firstvalue_join],
+        "A__contributor_address_zip_code": [_firstvalue_join],
+        #refinitiv
+        "CommonName": [_firstvalue_join],
+        }
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    #dict_pivot_columns
+    dict_pivot_columns={
+        134220019: "daga",
+        464501717: "raga",
+        #521304889: "dga",
+        #113655877: "rga",
+        #521870839: "dlcc",
+        #050532524: "rslc",
+        }
+    
+    #df_pivot
+    index=[
+        "OAPermID",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ]
+    values="A__contribution_amount"
+    columns="A__ein"
+    aggfunc="sum"
+    fill_value=0
+    df_pivot=pd.pivot_table(
+        data=df,
+        values=values,
+        index=index,
+        columns=columns,  
+        aggfunc=aggfunc,
+        fill_value=fill_value,
+        )      
+    #reset index
+    df_pivot=df_pivot.reset_index()   
+    #rename
+    df_pivot=df_pivot.rename(columns=dict_pivot_columns)
+    
+    #list_pivot_columns
+    list_pivot_columns=list(dict_pivot_columns.values())
+
+    #_df_to_fullpanel
+    companyid="OAPermID"
+    timevars={
+        "A__contribution_year": (2000, 2023+1),
+        "A__contribution_quarter": (1, 4+1),
+        }
+    fillna_cols=list_pivot_columns
+    df_fullpanel=_df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols)
+
+    #df_withoutdups
+    df_withoutdups=df.drop_duplicates(subset="OAPermID")
+    df_withoutdups=df_withoutdups.drop(
+        [
+            "A__ein",
+            "A__org_name",
+            "A__contribution_amount",
+            "A__contribution_year",
+            "A__contribution_quarter",
+            "A__contribution_date"
+            ],
+        axis=1,
+        )
+
+    #merge df_fullpanel and df_withoutdups
+    left=df_fullpanel
+    right=df_withoutdups
+    how="left"
+    on="OAPermID"
+    suffixes=('_left', '_right')
+    indicator=f"_merge_dups"
+    validate="m:1"
+    df=pd.merge(
+        left=left,
+        right=right,
+        how=how,
+        on=on,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate=validate,
+        )
+
+    #sortvalues
+    sortvalues_cols=[
+        "OAPermID",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        )
+
+    #ordered_cols
+    ordered_cols= [
+        "OAPermID",
+        "CommonName",
+        "A__contributor_firm",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ] + list_pivot_columns + [
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+        ]
+    df=df[ordered_cols]
+
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+    #'''
+
+
+#_violtrack_aggregate
+folders=["zhao/_violtrack", "zhao/_violtrack"]
+items=["violtrack_ids", "violtrack_aggregate"]
+def _violtrack_aggregate(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #usecols
+    usecols=[
+        #violtrack
+        "current_parent_name",
+        "agency",
+        "agency_code",
+        "offense_group",
+        "penalty",
+        "penalty_year",
+        "penalty_quarter",
+        "penalty_date",
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        "unique_id",
+        #refinitiv
+        "CommonName",
+        "OAPermID",
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #dropna
+    dropna_cols=[
+        "OAPermID",
+        "penalty",
+        "penalty_year",
+        "penalty_quarter"
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #tonumeric
+    tonumeric_cols=[
+        "OAPermID",
+        "penalty",
+        "penalty_year",
+        "penalty_quarter"
+        ]
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #_groupby company-agency-year-quarter
+    by=[
+        "agency_code",
+        "OAPermID",
+        "penalty_year",
+        "penalty_quarter",
+        ]
+    dict_agg_colfunctions={
+        "agency": [_firstvalue_join],
+        "unique_id": [_firstvalue_join],
+        "current_parent_name": [_firstvalue_join],
+        "current_parent_ISIN": [_firstvalue_join],
+        "current_parent_HQ_country": [_firstvalue_join],
+        "current_parent_HQ_state": [_firstvalue_join],
+        "current_parent_specific_industry": [_firstvalue_join],
+        "current_parent_major_industry": [_firstvalue_join],
+        "penalty": ["sum"],
+        "offense_group": [_firstvalue_join],
+        "penalty_date": [_firstvalue_join],
+        #refinitiv
+        "CommonName": [_firstvalue_join],
+        }
+    df=_groupby(df, by, dict_agg_colfunctions)
+    
+    #pivot
+    index=[
+        "OAPermID",
+        "penalty_year",
+        "penalty_quarter",
+        ]
+    values="penalty"
+    columns="agency_code"
+    aggfunc="sum"
+    fill_value=0
+    df_pivot=pd.pivot_table(
+        data=df,
+        values=values,
+        index=index,
+        columns=columns,  
+        aggfunc=aggfunc,
+        fill_value=fill_value,
+        )      
+    #reset index
+    df_pivot=df_pivot.reset_index()   
+    
+    #list_pivot_columns
+    list_pivot_columns=df["agency_code"].unique()
+    list_pivot_columns=list(np.sort(list_pivot_columns))
+
+    #_df_to_fullpanel
+    companyid="OAPermID"
+    timevars={
+        "penalty_year": (2000, 2023+1),
+        "penalty_quarter": (1, 4+1),
+        }
+    fillna_cols=list_pivot_columns
+    df_fullpanel=_df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols)
+
+    #df_withoutdups
+    df_withoutdups=df.drop_duplicates(subset="OAPermID")
+    df_withoutdups=df_withoutdups.drop(
+        [
+            "penalty",
+            "penalty_year",
+            "penalty_quarter",
+            "penalty_date",
+            "agency",
+            "unique_id",
+            "offense_group",
+            ],
+        axis=1,
+        )
+
+    #merge df_fullpanel and df_withoutdups
+    left=df_fullpanel
+    right=df_withoutdups
+    how="left"
+    on="OAPermID"
+    suffixes=('_left', '_right')
+    indicator=f"_merge_dups"
+    validate="m:1"
+    df=pd.merge(
+        left=left,
+        right=right,
+        how=how,
+        on=on,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate=validate,
+        )    
+
+    #sortvalues
+    sortvalues_cols=[
+        "OAPermID",
+        "penalty_year",
+        "penalty_quarter",
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        )
+
+    #ordered_cols
+    ordered_cols= [
+        "OAPermID",
+        "CommonName",
+        "current_parent_name",
+        "penalty_year",
+        "penalty_quarter",
+        ] + list_pivot_columns + [
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        ]
+    df=df[ordered_cols]
+
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
+    #df_list_pivot_columns
+    df_list_pivot_columns=pd.DataFrame()
+    df_list_pivot_columns["violtrack_list_pivot_columns"]=list_pivot_columns
+    filepath=f"zhao/_violtrack/violtrack_list_pivot_columns.csv"
+    df_list_pivot_columns.to_csv(filepath, index=False)
+    #'''
+
+
+#_rdp_aggregate
+folders=["zhao/_merge", "zhao/_merge"]
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate"]
+def _rdp_aggregate(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #A_list_pivot_columns
+    A_dict_pivot_columns={
+        134220019: "daga",
+        464501717: "raga",
+        #521304889: "dga",
+        #113655877: "rga",
+        #521870839: "dlcc",
+        #050532524: "rslc",
+        }
+    A_list_pivot_columns=list(A_dict_pivot_columns.values())
+
+    #violtrack_list_pivot_columns
+    filepath=f"zhao/_violtrack/violtrack_list_pivot_columns.csv"
+    df=pd.read_csv(filepath, dtype="string")
+    violtrack_list_pivot_columns=df["violtrack_list_pivot_columns"]
+
+    #usecols
+    usecols=[
+        #A
+        "OAPermID",
+        "CommonName",
+        "A__contributor_firm",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ] + A_list_pivot_columns + [
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+
+        #violtrack
+        "OAPermID",
+        "CommonName",
+        "current_parent_name",
+        "penalty_year",
+        "penalty_quarter",
+        ] + violtrack_list_pivot_columns + [
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #dropna
+    dropna_cols=[
+        "OAPermID",
+        "year",
+        "quarter"
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #tonumeric
+    tonumeric_cols=[
+        "OAPermID",
+        "year",
+        "quarter"
+        ] + A_list_pivot_columns + violtrack_list_pivot_columns
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #list_pivot_columns
+    list_pivot_columns = A_list_pivot_columns + violtrack_list_pivot_columns
+
+    #df_pivot
+    df_pivot=[list_pivot_columns]
+
+    #_df_to_fullpanel
+    companyid="OAPermID"
+    timevars={
+        "year": (2000, 2023+1),
+        "quarter": (1, 4+1),
+        }
+    fillna_cols=list_pivot_columns
+    df_fullpanel=_df_to_fullpanel(df_pivot, companyid, timevars, fillna_cols)
+
+    #df_withoutdups
+    df_withoutdups=df.drop_duplicates(subset="OAPermID")
+    df_withoutdups=df_withoutdups.drop(
+        [
+            "A__contribution_year",
+            "A__contribution_quarter",
+            "penalty_year",
+            "penalty_quarter",
+            ],
+        axis=1,
+        )
+
+    #merge df_fullpanel and df_withoutdups
+    left=df_fullpanel
+    right=df_withoutdups
+    how="left"
+    on="OAPermID"
+    suffixes=('_left', '_right')
+    indicator=f"_merge_dups"
+    validate="m:1"
+    df=pd.merge(
+        left=left,
+        right=right,
+        how=how,
+        on=on,
+        suffixes=suffixes,
+        indicator=indicator,
+        validate=validate,
+        )  
+
+    #agencies_sum
+    df["agencies_sum"]=df[violtrack_list_pivot_columns].sum(axis=1)
+
+    #AG_sum
+    df["AG_sum"]=df[violtrack_list_pivot_columns].filter(like='-ag').sum(axis=1)
+
+    #non_AG_sum
+    df["non_AG_sum"] = df["agencies_sum"] - df["AG_sum"]
+
+    #add regdata
+
+    
+    #disclosure shocks
+
+
+    list_newvars=[
+        "agencies_sum",
+        "AG_sum",
+        "non_AG_sum",
+        ]
+    
+    #sortvalues
+    sortvalues_cols=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        )
+
+    #ordered_cols
+    ordered_cols=[
+        #A
+        "OAPermID",
+        "CommonName",
+        "A__contributor_firm",
+        "current_parent_name",
+        "year",
+        "quarter",
+        ] + A_list_pivot_columns + list_newvars + violtrack_list_pivot_columns + [
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        ]
+    df=df[ordered_cols]
+
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+    #'''
 
 
 
@@ -713,7 +1424,7 @@ items=["FullDataFile"]
 #_irs_A_screen
 folders=["zhao/_irs", "zhao/_irs"]
 items=["A", "A_screen"]
-_irs_A_screen(folders, items)
+#_irs_A_screen(folders, items)
 
 
 #_irs_B_screen
@@ -742,9 +1453,9 @@ colname="current_parent_name"
 #_search(folders, items, colname)
 
 
-#merge _irs_A_screen with A_screen_search
+#merge A_screen with A_screen_search_A__contributor_firm
 folders=["zhao/_irs"]
-items=["donations_ids"]
+items=["A_ids"]
 left_path="zhao/_irs/A_screen"
 left_ons=["A__contributor_firm"]
 right_path="zhao/_irs/A_screen_search_A__contributor_firm"
@@ -754,7 +1465,7 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#merge violtrack_screen with violtrack_screen_search
+#merge violtrack_screen with violtrack_screen_search_current_parent_name
 folders=["zhao/_violtrack"]
 items=["violtrack_ids"]
 left_path="zhao/_violtrack/violtrack_screen"
@@ -766,28 +1477,63 @@ validate="m:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
+#_rdp_ids
+folders=["zhao/_merge"]
+items=["rdp_ids"]
+left_path="zhao/_irs/A_ids"
+right_path="zhao/_violtrack/violtrack_ids"
+#_rdp_ids(folders, items, left_path, right_path)
+
+
 #_irs_A_aggregate
 folders=["zhao/_irs", "zhao/_irs"]
-items=["_irs_A_ids", "_irs_A_aggregate"]
+items=["A_ids", "A_aggregate"]
 #_irs_A_aggregate(folders, items)
 
 
-#violtrack aggregate
+#_violtrack_aggregate
 folders=["zhao/_violtrack", "zhao/_violtrack"]
-items=["violtrack_ids", "_violtrack_aggregate"]
+items=["violtrack_ids", "violtrack_aggregate"]
 #_violtrack_aggregate(folders, items)
 
 
-#merge irs _irs_A_aggregate with _violtrack_aggregate
+#merge rdp_ids and A_aggregate
+folders=["zhao/_merge"]
+items=["rdp_ids_A_aggregate"]
+left_path="zhao/_merge/rdp_ids"
+left_ons=["OAPermID", "CommonName", "year", "quarter"]
+right_path="zhao/_irs/A_aggregate"
+right_ons=["OAPermID", "CommonName", "A__contribution_year", "A__contribution_quarter"]
+how="outer"
+validate="1:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#add regdata and disclosure data
+#merge rdp_ids_A_aggregate and violtrack_aggregate
+folders=["zhao/_merge"]
+items=["rdp_ids_A_aggregate_violtrack_aggregate"]
+left_path="zhao/_merge/rdp_ids_A_aggregate"
+left_ons=["OAPermID", "CommonName", "year", "quarter"]
+right_path="zhao/_violtrack/violtrack_aggregate"
+right_ons=["OAPermID", "CommonName", "penalty_year", "penalty_quarter"]
+how="outer"
+validate="1:1"
+#_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
+
+
+#_rdp_aggregate
+folders=["zhao/_merge", "zhao/_merge"]
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate"]
+#_rdp_aggregate(folders, items)
+
+
+#compustat?
+
 
 
 
 #print
 print("done")
-
 
 
 
