@@ -382,7 +382,7 @@ def _lowercase_colnames_values(df):
     return df
 
 
-#to date cols to df
+#todate
 def _todatecols_to_df(df, todate_cols, errors, format, new_format="%Y-%m-%d"):
 
     #for
@@ -405,7 +405,7 @@ def _todatecols_to_df(df, todate_cols, errors, format, new_format="%Y-%m-%d"):
     return df
 
 
-#to numeric cols to df
+#tonumeric
 def _tonumericcols_to_df(df, tonumeric_cols, errors="raise"):
     
     #for
@@ -421,7 +421,7 @@ def _tonumericcols_to_df(df, tonumeric_cols, errors="raise"):
     return df
 
 
-#to fillna cols to df
+#fillna
 def _fillnacols_to_df(df, fillna_cols, value=0):
 
     tonumeric_cols=fillna_cols
@@ -438,7 +438,7 @@ def _fillnacols_to_df(df, fillna_cols, value=0):
     return df
 
 
-#full panel
+#fullpanel
 '''
 companyid="OAPermID"
 timevars={

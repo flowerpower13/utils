@@ -11,6 +11,12 @@ https://www.cbsnews.com/news/state-attorney-general-lobbyists-donation-one-on-on
 https://www.politico.com/story/2016/08/george-soros-criminal-justice-reform-227519
 https://www.fec.gov/legal-resources/court-cases/speechnoworg-v-fec/#:~:text=On%20March%2026%2C%202010%2C%20the,them%2C%20violate%20the%20First%20Amendment.
 court found that such "nominally independent" organizations are "uniquely positioned to serve as conduits for corruption both in terms of the sale of access and the circumvention of the soft money ban."
+https://publicintegrity.org/politics/state-politics/why-state-attorneys-general-races-are-the-next-frontier-for-out-of-state-influence/
+https://www.nytimes.com/2015/08/04/us/obama-unveils-plan-to-sharply-limit-greenhouse-gas-emissions.html
+https://www.jdsupra.com/legalnews/political-activity-disclosures-a-hidden-3132494/
+https://www.sec.gov/news/speech/lee-climate-change
+https://www.sec.gov/files/rules/petitions/2011/petn4-637.pdf
+https://www.sec.gov/files/rules/petitions/2014/petn4-637-2.pdf
 
 
 #regdata

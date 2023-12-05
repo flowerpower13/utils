@@ -8,6 +8,8 @@ import pandas as pd
 from pathlib import Path
 #import linktransformer as lt
 from datetime import datetime
+import scipy 
+from scipy import stats 
 
 
 #functions
@@ -244,7 +246,7 @@ def _irs_A_screen(folders, items):
         sep=NEW_SEP,
         usecols=usecols,
         dtype="string",
-        #nrows=100000,
+        #nrows=10000,
         lineterminator=NEW_LINETERMINATOR,
         quotechar=QUOTECHAR,
         #on_bad_lines='skip',
@@ -305,14 +307,14 @@ def _irs_A_screen(folders, items):
         "A__contribution_quarter",
         ]
     dict_agg_colfunctions={
-        "A__org_name": [_first_value],
-        "A__contributor_address_1": [_first_value],
-        "A__contributor_address_city": [_first_value],
-        "A__contributor_address_state": [_first_value],
-        "A__contributor_address_zip_code": [_first_value],
-        "A__contributor_employer": [_first_value],
+        "A__org_name": [_firstvalue_join],
+        "A__contributor_address_1": [_firstvalue_join],
+        "A__contributor_address_city": [_firstvalue_join],
+        "A__contributor_address_state": [_firstvalue_join],
+        "A__contributor_address_zip_code": [_firstvalue_join],
+        "A__contributor_employer": [_firstvalue_join],
         "A__contribution_amount": ["sum"],
-        "A__contribution_date": [_first_value],
+        "A__contribution_date": [_firstvalue_join],
         }
     df=_groupby(df, by, dict_agg_colfunctions)
 
@@ -411,7 +413,7 @@ def _irs_B_screen(folders, items):
         sep=NEW_SEP,
         usecols=usecols,
         dtype="string",
-        #nrows=100000,
+        #nrows=10000,
         lineterminator=NEW_LINETERMINATOR,
         quotechar=QUOTECHAR,
         #on_bad_lines='skip',
@@ -472,12 +474,12 @@ def _irs_B_screen(folders, items):
         "B__expenditure_quarter",
         ]
     dict_agg_colfunctions={
-        "B__org_name": [_first_value],
-        "B__reciepient_address_1": [_first_value],
-        "B__reciepient_address_city": [_first_value],
-        "B__reciepient_address_st": [_first_value],
-        "B__reciepient_address_zip_code": [_first_value],
-        "B__reciepient_employer": [_first_value],
+        "B__org_name": [_firstvalue_join],
+        "B__reciepient_address_1": [_firstvalue_join],
+        "B__reciepient_address_city": [_firstvalue_join],
+        "B__reciepient_address_st": [_firstvalue_join],
+        "B__reciepient_address_zip_code": [_firstvalue_join],
+        "B__reciepient_employer": [_firstvalue_join],
         "B__expenditure_amount": ["sum"],
         "B__expenditure_date": [_firstvalue_join],
         }
@@ -607,7 +609,7 @@ def _violtrack_screen(folders, items):
         filepath, 
         usecols=usecols,
         dtype="string",
-        #nrows=1000,
+        #nrows=10000,
         )
 
     #lowercase col names and values
@@ -866,7 +868,7 @@ def _irs_A_aggregate(folders, items):
         filepath, 
         usecols=usecols,
         dtype="string",
-        #nrows=1000,
+        #nrows=10000,
         )
 
     #lowercase col names and values
@@ -1066,7 +1068,7 @@ def _violtrack_aggregate(folders, items):
         filepath, 
         usecols=usecols,
         dtype="string",
-        #nrows=1000,
+        #nrows=10000,
         )
 
     #lowercase col names and values
@@ -1219,10 +1221,174 @@ def _violtrack_aggregate(folders, items):
     #'''
 
 
-#_rdp_aggregate
+#_dummy_vars
+def _dummy_vars(df, oldvars):
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, oldvar in enumerate(oldvars):
+
+        #x
+        x=df[oldvar]
+
+        #y
+        y=np.where(x>0, 1, 0)
+
+        #newvar
+        newvar=f"{oldvar}_dummy"
+
+        #gen
+        df[newvar]=y
+
+        #update
+        newvars[i]=newvar
+
+    #return
+    return df, newvars
+
+
+#_ln_vars
+def _ln_vars(df, oldvars):
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, oldvar in enumerate(oldvars):
+
+        #x
+        x=df[oldvar]
+
+        #y
+        y=np.log1p(x)
+
+        #newvar
+        newvar=f"{oldvar}_ln"
+
+        #gen
+        df[newvar]=y
+
+        #update
+        newvars[i]=newvar
+
+    #return
+    return df, newvars
+
+
+#_lag_vars
+def _lag_vars(df, oldvars, tuple_periods):
+
+    #init
+    newvars=[None]*len(oldvars)*(tuple_periods[1]-1)
+
+    #for
+    i=0
+    for j, oldvar in enumerate(oldvars):
+
+        #x
+        x=df[oldvar]
+
+        #for
+        for periods in range(*tuple_periods):
+
+            #y
+            y=x.shift(periods=periods, fill_value=0)
+
+            #newvar
+            newvar=f"{oldvar}_lag_{periods}"
+
+            #gen
+            df[newvar]=y
+
+            #update
+            newvars[i]=newvar
+
+            #update i
+            i+=1
+
+    #return
+    return df, newvars
+
+
+#_delta_vars
+def _delta_vars(df, oldvars, tuple_periods):
+
+    #init
+    newvars=[None]*len(oldvars)*(tuple_periods[1]-1)
+
+    #for
+    i=0
+    for j, oldvar in enumerate(oldvars):
+
+        #x
+        x=df[oldvar]
+
+        #for
+        for periods in range(*tuple_periods):
+
+            #y
+            y = x - x.shift(periods=periods, fill_value=0)
+
+            #newvar
+            newvar=f"{oldvar}_delta_{periods}"
+
+            #gen
+            df[newvar]=y
+
+            #update
+            newvars[i]=newvar
+
+            #update i
+            i+=1
+
+    #return
+    return df, newvars
+
+
+#_std_vars
+def _std_vars(df, oldvars):
+
+    #init
+    newvars=[None]*len(oldvars)
+
+    #for
+    for i, oldvar in enumerate(oldvars):
+
+        #x
+        x=df[oldvar]
+
+        #if
+        if x.nunique()>1:
+
+            #y
+            y=(x - np.mean(x)) / np.std(x)
+
+        #elif
+        elif x.nunique()==1:
+
+            #y
+            y=x
+
+        #newvar
+        newvar=f"{oldvar}_zscore"
+
+        #gen
+        df[newvar]=y
+
+        #update
+        newvars[i]=newvar
+
+
+    #return
+    return df, newvars
+
+
+#_rdp_aggregate_quarterly
 folders=["zhao/_merge", "zhao/_merge"]
-items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate"]
-def _rdp_aggregate(folders, items):
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate_quarterly"]
+def _rdp_aggregate_quarterly(folders, items):
 
     #folders
     resources=folders[0]
@@ -1300,7 +1466,7 @@ def _rdp_aggregate(folders, items):
         filepath, 
         usecols=usecols,
         dtype="string",
-        nrows=1000,
+        #nrows=10000,
         )
 
     #lowercase col names and values
@@ -1322,11 +1488,61 @@ def _rdp_aggregate(folders, items):
         ] + A_list_pivot_columns + violtrack_list_pivot_columns
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
-    #list_pivot_columns
-    list_pivot_columns = A_list_pivot_columns + violtrack_list_pivot_columns
-
-    fillna_cols=list_pivot_columns
+    #fillna_cols
+    fillna_cols = A_list_pivot_columns + violtrack_list_pivot_columns
     df=_fillnacols_to_df(df, fillna_cols, value=0)
+
+    #drop before 2014
+    df=df[df["year"]>=2014]
+
+    #_groupby company-year-quarter
+    by=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ]
+    dict_agg_colfunctions={
+        #A
+        "A__contributor_firm": [_firstvalue_join],
+        "A__contribution_year": [_firstvalue_join],
+        "A__contribution_quarter": [_firstvalue_join],
+        "A__contributor_name": [_firstvalue_join],
+        "A__contributor_isfirm": [_firstvalue_join],
+        "A__contributor_employer": [_firstvalue_join],
+        "A__contributor_address_1": [_firstvalue_join],
+        "A__contributor_address_city": [_firstvalue_join],
+        "A__contributor_address_state": [_firstvalue_join],
+        "A__contributor_address_zip_code": [_firstvalue_join],
+        #violtrack
+        "current_parent_name": [_firstvalue_join],
+        "current_parent_ISIN": [_firstvalue_join],
+        "current_parent_HQ_country": [_firstvalue_join],
+        "current_parent_HQ_state": [_firstvalue_join],
+        "current_parent_specific_industry": [_firstvalue_join],
+        "current_parent_major_industry": [_firstvalue_join],
+        #refinitiv
+        "CommonName": [_firstvalue_join],
+        "Gics": [_firstvalue_join],
+        "PrimaryRIC": [_firstvalue_join],
+        "OwnershipExists": [_firstvalue_join],
+        "OrganisationStatus": [_firstvalue_join],
+        "MktCapCompanyUsd": [_firstvalue_join],
+        "RCSFilingCountryLeaf": [_firstvalue_join],
+        "UltimateParentCompanyOAPermID": [_firstvalue_join],
+        "DTSubjectName": [_firstvalue_join],
+        "UltimateParentOrganisationName": [_firstvalue_join],
+        "DTSimpleType": [_firstvalue_join],
+        "RCSOrganisationSubTypeLeaf": [_firstvalue_join],
+        "PEBackedStatus": [_firstvalue_join],
+        "RCSCountryHeadquartersLeaf": [_firstvalue_join],
+        }
+    list_agg_sum = A_list_pivot_columns + violtrack_list_pivot_columns
+    dict_agg_sum={x: ["sum"] for x in list_agg_sum}
+    dict_agg_colfunctions=dict_agg_colfunctions|dict_agg_sum
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    #daga_raga
+    df["daga_raga"] = df["daga"] + df["raga"]
 
     #agencies_sum
     df["agencies_sum"]=df[violtrack_list_pivot_columns].sum(axis=1)
@@ -1337,14 +1553,210 @@ def _rdp_aggregate(folders, items):
     #non_AG_sum
     df["non_AG_sum"] = df["agencies_sum"] - df["AG_sum"]
 
-    #disclosure shocks, regdata
-
-    list_newvars=[
+    #ag_vars
+    ag_vars=[
         "agencies_sum",
         "AG_sum",
         "non_AG_sum",
         ]
     
+    #oldvars
+    oldvars = A_list_pivot_columns + ["daga_raga"] + ag_vars
+
+    #_dummy_vars
+    df, dummy_vars = _dummy_vars(df, oldvars)
+
+    #_ln_vars
+    df, ln_vars = _ln_vars(df, oldvars)
+
+    #_lag_vars
+    tuple_periods=(1, 2+1)
+    df, lag_vars = _lag_vars(df, oldvars, tuple_periods)
+
+    #_delta_vars
+    tuple_periods=(1, 2+1)
+    df, delta_vars = _delta_vars(df, oldvars, tuple_periods)
+
+    #_std_vars
+    df, std_vars = _std_vars(df, oldvars)
+
+    #post2018
+    df["post2018"]=np.where(df["year"] >= 2018, 1, 0)
+
+    #state
+    df["state"]=np.where(df["A__contributor_address_state"].notna(), df["A__contributor_address_state"], df["current_parent_HQ_state"])
+
+    #state
+    dict_statename_to_code={
+        'alabama': 'al',
+        'alaska': 'ak',
+        'arizona': 'az',
+        'arkansas': 'ar',
+        'california': 'ca',
+        'colorado': 'co',
+        'connecticut': 'ct',
+        'delaware': 'de',
+        'florida': 'fl',
+        'georgia': 'ga',
+        'hawaii': 'hi',
+        'idaho': 'id',
+        'illinois': 'il',
+        'indiana': 'in',
+        'iowa': 'ia',
+        'kansas': 'ks',
+        'kentucky': 'ky',
+        'louisiana': 'la',
+        'maine': 'me',
+        'maryland': 'md',
+        'massachusetts': 'ma',
+        'michigan': 'mi',
+        'minnesota': 'mn',
+        'mississippi': 'ms',
+        'missouri': 'mo',
+        'montana': 'mt',
+        'nebraska': 'ne',
+        'nevada': 'nv',
+        'new hampshire': 'nh',
+        'new jersey': 'nj',
+        'new mexico': 'nm',
+        'new york': 'ny',
+        'north carolina': 'nc',
+        'north dakota': 'nd',
+        'ohio': 'oh',
+        'oklahoma': 'ok',
+        'oregon': 'or',
+        'pennsylvania': 'pa',
+        'rhode island': 'ri',
+        'south carolina': 'sc',
+        'south dakota': 'sd',
+        'tennessee': 'tn',
+        'texas': 'tx',
+        'utah': 'ut',
+        'vermont': 'vt',
+        'virginia': 'va',
+        'washington': 'wa',
+        'west virginia': 'wv',
+        'wisconsin': 'wi',
+        'wyoming': 'wy',
+        'washington dc': 'dc',
+        }
+    df["state"]=df["state"].replace(dict_statename_to_code)
+
+    #opaque_state_ie
+    dict_statecode_to_opaquedummy={
+        'al': 1, #alabama
+        'ak': 0,
+        'az': 0,
+        'ar': 0,
+        'ca': 0,
+        'co': 0,
+        'ct': 0,
+        'de': 0,
+        'fl': 0,
+        'ga': 0,
+        'hi': 0,
+        'id': 0,
+        'il': 0,
+        'in': 1, #indiana
+        'ia': 0,
+        'ks': 0,
+        'ky': 0,
+        'la': 0,
+        'me': 0,
+        'md': 1, #maryland
+        'ma': 0,
+        'mi': 0,
+        'mn': 0,
+        'ms': 0,
+        'mo': 0,
+        'mt': 0,
+        'ne': 0,
+        'nv': 0,
+        'nh': 0,
+        'nj': 0,
+        'nm': 1, #new mexico
+        'ny': 0,
+        'nc': 0,
+        'nd': 0,
+        'oh': 0,
+        'ok': 0,
+        'or': 0,
+        'pa': 0,
+        'ri': 0,
+        'sc': 1, #south carolina
+        'sd': 0,
+        'tn': 0,
+        'tx': 0,
+        'ut': 0,
+        'vt': 0,
+        'va': 0,
+        'wa': 0,
+        'wv': 0,
+        'wi': 0,
+        'wy': 0,
+        'dc': 0,
+        }
+    #https://cfinst.github.io/#disclosure?question=IE_Report_Exemption_Amount&year=2018
+    #https://cfinst.github.io/#disclosure?question=IE_Target&year=2018
+    df["opaque_state_ie"]=df["state"].replace(dict_statecode_to_opaquedummy)
+
+    #opaque_state_ad
+    dict_statecode_to_opaquedummy={
+        'al': 0, 
+        'ak': 0,
+        'az': 0,
+        'ar': 0,
+        'ca': 0,
+        'co': 0,
+        'ct': 0,
+        'de': 0,
+        'fl': 0,
+        'ga': 0,
+        'hi': 0,
+        'id': 1, #idaho
+        'il': 0,
+        'in': 0, 
+        'ia': 0,
+        'ks': 0,
+        'ky': 0,
+        'la': 0,
+        'me': 0,
+        'md': 0, 
+        'ma': 1, #massachusetts
+        'mi': 0,
+        'mn': 1, #minnesota
+        'ms': 1, #mississippi
+        'mo': 0,
+        'mt': 0,
+        'ne': 0,
+        'nv': 0,
+        'nh': 0,
+        'nj': 0,
+        'nm': 0, 
+        'ny': 1, #new york
+        'nc': 0,
+        'nd': 0,
+        'oh': 0,
+        'ok': 0,
+        'or': 1, #oregon
+        'pa': 0,
+        'ri': 1, #rhode island
+        'sc': 0, 
+        'sd': 0,
+        'tn': 0,
+        'tx': 0,
+        'ut': 0,
+        'vt': 0,
+        'va': 0,
+        'wa': 0,
+        'wv': 0,
+        'wi': 0,
+        'wy': 0,
+        'dc': 0,
+        }
+    #https://cfinst.github.io/#disclosure?question=SponsorID&year=2018
+    df["opaque_state_ad"]=df["state"].replace(dict_statecode_to_opaquedummy)
+
     #sortvalues
     sortvalues_cols=[
         "OAPermID",
@@ -1362,8 +1774,9 @@ def _rdp_aggregate(folders, items):
         "A__contributor_firm",
         "current_parent_name",
         "year",
-        "quarter",
-        ] + A_list_pivot_columns + list_newvars + violtrack_list_pivot_columns + [
+        "quarter", 
+        ] + A_list_pivot_columns + ["daga_raga"] + ag_vars + dummy_vars + ln_vars + lag_vars + delta_vars + std_vars + \
+         ["post2018", "state", "opaque_state_ie", "opaque_state_ad", ] + [ 
         #A
         "A__contributor_name",
         "A__contributor_isfirm",
@@ -1398,7 +1811,435 @@ def _rdp_aggregate(folders, items):
     #to_csv
     filepath=f"{results}/{result}.csv"
     df.to_csv(filepath, index=False)
-    #'''
+
+
+#_rdp_aggregate_yearly
+folders=["zhao/_merge", "zhao/_merge"]
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate_yearly"]
+def _rdp_aggregate_yearly(folders, items):
+
+    #folders
+    resources=folders[0]
+    results=folders[1]
+
+    #items
+    resource=items[0]
+    result=items[1]
+
+    #A_list_pivot_columns
+    A_dict_pivot_columns={
+        134220019: "daga",
+        464501717: "raga",
+        #521304889: "dga",
+        #113655877: "rga",
+        #521870839: "dlcc",
+        #050532524: "rslc",
+        }
+    A_list_pivot_columns=list(A_dict_pivot_columns.values())
+
+    #violtrack_list_pivot_columns
+    filepath=f"zhao/_violtrack/violtrack_list_pivot_columns.csv"
+    df=pd.read_csv(filepath, dtype="string")
+    violtrack_list_pivot_columns=df["violtrack_list_pivot_columns"].tolist()
+
+    #usecols
+    usecols=[
+        #A
+        "OAPermID",
+        "CommonName",
+        "year",
+        "quarter",
+        "A__contributor_firm",
+        "A__contribution_year",
+        "A__contribution_quarter",
+        ] + A_list_pivot_columns + [
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+        #violtrack
+        "OAPermID",
+        "CommonName",
+        "current_parent_name",
+        "penalty_year",
+        "penalty_quarter",
+        ] + violtrack_list_pivot_columns + [
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        #refinitiv
+        "Gics",
+        "PrimaryRIC",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        "UltimateParentCompanyOAPermID",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        "RCSCountryHeadquartersLeaf",
+        ]
+
+    #read
+    filepath=f"{resources}/{resource}.csv"
+    df=pd.read_csv(
+        filepath, 
+        usecols=usecols,
+        dtype="string",
+        #nrows=10000,
+        )
+
+    #lowercase col names and values
+    df=_lowercase_colnames_values(df)
+
+    #dropna
+    dropna_cols=[
+        "OAPermID",
+        "year",
+        "quarter"
+        ]
+    df=df.dropna(subset=dropna_cols)
+
+    #tonumeric
+    tonumeric_cols=[
+        "OAPermID",
+        "year",
+        "quarter",
+        ] + A_list_pivot_columns + violtrack_list_pivot_columns
+    df=_tonumericcols_to_df(df, tonumeric_cols)
+
+    #fillna_cols
+    fillna_cols = A_list_pivot_columns + violtrack_list_pivot_columns
+    df=_fillnacols_to_df(df, fillna_cols, value=0)
+
+    #drop before 2014
+    df=df[df["year"]>=2014]
+
+    #_groupby company-year-quarter
+    by=[
+        "OAPermID",
+        "year",
+        #"quarter",
+        ]
+    dict_agg_colfunctions={
+        #A
+        "A__contributor_firm": [_firstvalue_join],
+        "A__contribution_year": [_firstvalue_join],
+        "A__contribution_quarter": [_firstvalue_join],
+        "A__contributor_name": [_firstvalue_join],
+        "A__contributor_isfirm": [_firstvalue_join],
+        "A__contributor_employer": [_firstvalue_join],
+        "A__contributor_address_1": [_firstvalue_join],
+        "A__contributor_address_city": [_firstvalue_join],
+        "A__contributor_address_state": [_firstvalue_join],
+        "A__contributor_address_zip_code": [_firstvalue_join],
+        #violtrack
+        "current_parent_name": [_firstvalue_join],
+        "current_parent_ISIN": [_firstvalue_join],
+        "current_parent_HQ_country": [_firstvalue_join],
+        "current_parent_HQ_state": [_firstvalue_join],
+        "current_parent_specific_industry": [_firstvalue_join],
+        "current_parent_major_industry": [_firstvalue_join],
+        #refinitiv
+        "CommonName": [_firstvalue_join],
+        "Gics": [_firstvalue_join],
+        "PrimaryRIC": [_firstvalue_join],
+        "OwnershipExists": [_firstvalue_join],
+        "OrganisationStatus": [_firstvalue_join],
+        "MktCapCompanyUsd": [_firstvalue_join],
+        "RCSFilingCountryLeaf": [_firstvalue_join],
+        "UltimateParentCompanyOAPermID": [_firstvalue_join],
+        "DTSubjectName": [_firstvalue_join],
+        "UltimateParentOrganisationName": [_firstvalue_join],
+        "DTSimpleType": [_firstvalue_join],
+        "RCSOrganisationSubTypeLeaf": [_firstvalue_join],
+        "PEBackedStatus": [_firstvalue_join],
+        "RCSCountryHeadquartersLeaf": [_firstvalue_join],
+        }
+    list_agg_sum = A_list_pivot_columns + violtrack_list_pivot_columns
+    dict_agg_sum={x: ["sum"] for x in list_agg_sum}
+    dict_agg_colfunctions=dict_agg_colfunctions|dict_agg_sum
+    df=_groupby(df, by, dict_agg_colfunctions)
+
+    #daga_raga
+    df["daga_raga"] = df["daga"] + df["raga"]
+
+    #agencies_sum
+    df["agencies_sum"]=df[violtrack_list_pivot_columns].sum(axis=1)
+
+    #AG_sum
+    df["AG_sum"]=df[violtrack_list_pivot_columns].filter(like='-ag').sum(axis=1)
+
+    #non_AG_sum
+    df["non_AG_sum"] = df["agencies_sum"] - df["AG_sum"]
+
+    #ag_vars
+    ag_vars=[
+        "agencies_sum",
+        "AG_sum",
+        "non_AG_sum",
+        ]
+    
+    #oldvars
+    oldvars = A_list_pivot_columns + ["daga_raga"] + ag_vars
+
+    #_dummy_vars
+    df, dummy_vars = _dummy_vars(df, oldvars)
+
+    #_ln_vars
+    df, ln_vars = _ln_vars(df, oldvars)
+
+    #_lag_vars
+    tuple_periods=(1, 2+1)
+    df, lag_vars = _lag_vars(df, oldvars, tuple_periods)
+
+    #_delta_vars
+    tuple_periods=(1, 2+1)
+    df, delta_vars = _delta_vars(df, oldvars, tuple_periods)
+
+    #_std_vars
+    df, std_vars = _std_vars(df, oldvars)
+
+    #post2018
+    df["post2018"]=np.where(df["year"] >= 2018, 1, 0)
+
+    #state
+    df["state"]=np.where(df["A__contributor_address_state"].notna(), df["A__contributor_address_state"], df["current_parent_HQ_state"])
+
+    #state
+    dict_statename_to_code={
+        'alabama': 'al',
+        'alaska': 'ak',
+        'arizona': 'az',
+        'arkansas': 'ar',
+        'california': 'ca',
+        'colorado': 'co',
+        'connecticut': 'ct',
+        'delaware': 'de',
+        'florida': 'fl',
+        'georgia': 'ga',
+        'hawaii': 'hi',
+        'idaho': 'id',
+        'illinois': 'il',
+        'indiana': 'in',
+        'iowa': 'ia',
+        'kansas': 'ks',
+        'kentucky': 'ky',
+        'louisiana': 'la',
+        'maine': 'me',
+        'maryland': 'md',
+        'massachusetts': 'ma',
+        'michigan': 'mi',
+        'minnesota': 'mn',
+        'mississippi': 'ms',
+        'missouri': 'mo',
+        'montana': 'mt',
+        'nebraska': 'ne',
+        'nevada': 'nv',
+        'new hampshire': 'nh',
+        'new jersey': 'nj',
+        'new mexico': 'nm',
+        'new york': 'ny',
+        'north carolina': 'nc',
+        'north dakota': 'nd',
+        'ohio': 'oh',
+        'oklahoma': 'ok',
+        'oregon': 'or',
+        'pennsylvania': 'pa',
+        'rhode island': 'ri',
+        'south carolina': 'sc',
+        'south dakota': 'sd',
+        'tennessee': 'tn',
+        'texas': 'tx',
+        'utah': 'ut',
+        'vermont': 'vt',
+        'virginia': 'va',
+        'washington': 'wa',
+        'west virginia': 'wv',
+        'wisconsin': 'wi',
+        'wyoming': 'wy',
+        'washington dc': 'dc',
+        }
+    df["state"]=df["state"].replace(dict_statename_to_code)
+
+    #opaque_state_ie
+    dict_statecode_to_opaquedummy={
+        'al': 1, #alabama
+        'ak': 0,
+        'az': 0,
+        'ar': 0,
+        'ca': 0,
+        'co': 0,
+        'ct': 0,
+        'de': 0,
+        'fl': 0,
+        'ga': 0,
+        'hi': 0,
+        'id': 0,
+        'il': 0,
+        'in': 1, #indiana
+        'ia': 0,
+        'ks': 0,
+        'ky': 0,
+        'la': 0,
+        'me': 0,
+        'md': 1, #maryland
+        'ma': 0,
+        'mi': 0,
+        'mn': 0,
+        'ms': 0,
+        'mo': 0,
+        'mt': 0,
+        'ne': 0,
+        'nv': 0,
+        'nh': 0,
+        'nj': 0,
+        'nm': 1, #new mexico
+        'ny': 0,
+        'nc': 0,
+        'nd': 0,
+        'oh': 0,
+        'ok': 0,
+        'or': 0,
+        'pa': 0,
+        'ri': 0,
+        'sc': 1, #south carolina
+        'sd': 0,
+        'tn': 0,
+        'tx': 0,
+        'ut': 0,
+        'vt': 0,
+        'va': 0,
+        'wa': 0,
+        'wv': 0,
+        'wi': 0,
+        'wy': 0,
+        'dc': 0,
+        }
+    #https://cfinst.github.io/#disclosure?question=IE_Report_Exemption_Amount&year=2018
+    #https://cfinst.github.io/#disclosure?question=IE_Target&year=2018
+    df["opaque_state_ie"]=df["state"].replace(dict_statecode_to_opaquedummy)
+
+    #opaque_state_ad
+    dict_statecode_to_opaquedummy={
+        'al': 0, 
+        'ak': 0,
+        'az': 0,
+        'ar': 0,
+        'ca': 0,
+        'co': 0,
+        'ct': 0,
+        'de': 0,
+        'fl': 0,
+        'ga': 0,
+        'hi': 0,
+        'id': 1, #idaho
+        'il': 0,
+        'in': 0, 
+        'ia': 0,
+        'ks': 0,
+        'ky': 0,
+        'la': 0,
+        'me': 0,
+        'md': 0, 
+        'ma': 1, #massachusetts
+        'mi': 0,
+        'mn': 1, #minnesota
+        'ms': 1, #mississippi
+        'mo': 0,
+        'mt': 0,
+        'ne': 0,
+        'nv': 0,
+        'nh': 0,
+        'nj': 0,
+        'nm': 0, 
+        'ny': 1, #new york
+        'nc': 0,
+        'nd': 0,
+        'oh': 0,
+        'ok': 0,
+        'or': 1, #oregon
+        'pa': 0,
+        'ri': 1, #rhode island
+        'sc': 0, 
+        'sd': 0,
+        'tn': 0,
+        'tx': 0,
+        'ut': 0,
+        'vt': 0,
+        'va': 0,
+        'wa': 0,
+        'wv': 0,
+        'wi': 0,
+        'wy': 0,
+        'dc': 0,
+        }
+    #https://cfinst.github.io/#disclosure?question=SponsorID&year=2018
+    df["opaque_state_ad"]=df["state"].replace(dict_statecode_to_opaquedummy)
+
+    #sortvalues
+    sortvalues_cols=[
+        "OAPermID",
+        "year",
+        #"quarter",
+        ]
+    df=df.sort_values(
+        by=sortvalues_cols,
+        )
+
+    #ordered_cols
+    ordered_cols=[
+        "OAPermID",
+        "CommonName",
+        "A__contributor_firm",
+        "current_parent_name",
+        "year",
+        #"quarter", 
+        ] + A_list_pivot_columns + ["daga_raga"] + ag_vars + dummy_vars + ln_vars + lag_vars + delta_vars + std_vars + \
+         ["post2018", "state", "opaque_state_ie", "opaque_state_ad", ] + [ 
+        #A
+        "A__contributor_name",
+        "A__contributor_isfirm",
+        "A__contributor_employer",
+        "A__contributor_address_1",
+        "A__contributor_address_city",
+        "A__contributor_address_state",
+        "A__contributor_address_zip_code",
+        #violtrack
+        "current_parent_ISIN",
+        "current_parent_HQ_country",
+        "current_parent_HQ_state",
+        "current_parent_specific_industry",
+        "current_parent_major_industry",
+        #refinitiv
+        "Gics",
+        "PrimaryRIC",
+        "OwnershipExists",
+        "OrganisationStatus",
+        "MktCapCompanyUsd",
+        "RCSFilingCountryLeaf",
+        "UltimateParentCompanyOAPermID",
+        "DTSubjectName",
+        "UltimateParentOrganisationName",
+        "DTSimpleType",
+        "RCSOrganisationSubTypeLeaf",
+        "PEBackedStatus",
+        "RCSCountryHeadquartersLeaf",
+        ]
+    df=df[ordered_cols]
+
+    #to_csv
+    filepath=f"{results}/{result}.csv"
+    df.to_csv(filepath, index=False)
+
 
 
 
@@ -1508,13 +2349,21 @@ validate="1:1"
 #_pd_merge(folders, items, left_path, left_ons, right_path, right_ons, how, validate)
 
 
-#_rdp_aggregate
+#_rdp_aggregate_quarterly
 folders=["zhao/_merge", "zhao/_merge"]
-items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate"]
-_rdp_aggregate(folders, items)
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "rdp_aggregate_quarterly"]
+#_rdp_aggregate_quarterly(folders, items)
 
 
-#compustat?
+#_rdp_aggregate_yearly
+folders=["zhao/_merge", "zhao/_merge"]
+items=["rdp_ids_A_aggregate_violtrack_aggregate", "_rdp_aggregate_yearly"]
+_rdp_aggregate_yearly(folders, items)
+
+
+
+
+#refinitiv/NETS collect state, industry, other?
 
 
 
@@ -1532,30 +2381,21 @@ print("done")
 
 '''
 #to do
-des stats
-regression
-presentation
 
 
-motivation e.g., headlines huge settlements, companies care
-table opaque states bigger
-less slides, less words
-wood: separating, cirmuvent 
-data and sample slide
-activism, not donation
+
 What is California's, or other state-level LOBBYING disclosure?
 before 2018, check form 990 schedule B
 state AGs departures as exogenous shock to connection
 employ state level PACs, for a subsample
 cross-section state-level corruption, DOJ, cases
+career concerns?
 can firms move hq on putpose? forum shopping
 political exposure when industry is not regulated, e.g., bitcoin
 timing, quarter -4 wrt election date
 donation_t-1
 reg neg ext on PACs
 will violation info be on 8-k?
-career concerns?
-
 
 year=1990
 https://www.followthemoney.org/show-me?dt=1&y={y},{y+1},{y+2},{y+3}&c-exi=1&c-r-oc=Z10#[{1|gro=f-s,f-eid,c-t-id,d-id,d-par,d-empl,d-occupation
@@ -1565,5 +2405,4 @@ fatalities: https://www.osha.gov/fatalities, https://www.osha.gov/fatalities/rep
 injury: https://www.osha.gov/Establishment-Specific-Injury-and-Illness-Data, https://www.osha.gov/severeinjury
 odi: https://www.osha.gov/ords/odi/establishment_search.html
 chemical: https://www.osha.gov/opengov/health-samples, https://www.osha.gov/chemicaldata/
-
 '''

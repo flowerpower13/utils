@@ -4,7 +4,6 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from differences import ATTgt
 import statsmodels.formula.api as smf
 from stargazer.stargazer import Stargazer
 
@@ -16,44 +15,34 @@ from _pd_utils import _todatecols_to_df, _tonumericcols_to_df
 
 #vars
 INTERACT=":"
+obs_quarterly="117,920.00"
+obs_yearly="29,480.00"
 tuples_replace=[
+    #A
+    ("daga_raga_dummy", "Both AG Assn (dummy)"),
+    ("daga_dummy", "Dem. AG Assn (dummy)"),
+    ("raga_dummy", "Rep. AG Assn (dummy)"),
+    ("daga_raga", "Both AG Assn (donation)"),
+    ("daga", "Dem. AG Assn (donation)"),
+    ("raga", "Rep. AG Assn (donation)"),
 
-    #ln amount
-    ("ln_amount_democratic",              "Donation Amount (logs) to Dem. AG assn"),
-    ("ln_amount_republican",              "Donation Amount (logs) to Rep. AG assn"),
-    ("ln_amount_both",                    "Donation Amount (logs) to both AG assn"),
+    #violtrack
+    ("agencies_sum_dummy", "Enforcement (dummy)"),
+    ("non_AG_sum_dummy", "Non-AG Enforcement (dummy)"),
+    ("AG_sum_dummy", "AG Enforcement (dummy)"),
+    ("agencies_sum", "Enforcement (penalty)"),
+    ("non_AG_sum", "Non-AG Enforcement (penalty)"),
+    ("AG_sum", "AG Enforcement (penalty)"),
 
-    #amount
-    ("amount_democratic",                 "Donation Amount to Dem. AG assn"),
-    ("amount_republican",                 "Donation Amount to Rep. AG assn"),
-    ("amount_both",                       "Donation Amount to both AG assn"),
+    #obs_quarterly
+    (obs_quarterly, obs_quarterly.replace(".00", "")),
 
-    #dummy
-    ("dummy_democratic",                  "Donation Likelihood to Dem. AG assn"),
-    ("dummy_republican",                  "Donation Likelihood to Rep. AG assn"),
-    ("dummy_both",                        "Donation Likelihood to any AG assn"),
-
-    #echo lag
-    ("lag_ln_echo_penalty_amount",        "EPA Penalty Amount (logs, lag 1y)"),
-    ("lag_echo_enforcement_dummy",        "EPA Enforcement Likelihood (lag 1y)"),
-    ("lag_echo_penalty_dummy",            "EPA Penalty Likelihood (lag 1y)"),
-    ("lag_echo_penalty_amount",           "EPA Penalty Amount (lag 1y)"),
-
-    #echo
-    ("ln_echo_penalty_amount",            "EPA Penalty Amount (logs)"),
-    ("echo_enforcement_dummy",            "EPA Enforcement Likelihood"),
-    ("echo_penalty_dummy",                "EPA Penalty Likelihood"),
-    ("echo_penalty_amount",               "EPA Penalty Amount"),
-    
-    #crspcompustat
-    ("firm_size",                         "Firm Size"),
-    ("leverage_ratio",                    "Leverage"),
-    ("roa",                               "ROA"),
-    ("mtb",                               "Market-to-Book"),
+    #obs_yearly
+    (obs_yearly, obs_yearly.replace(".00", "")),
     ]
 
 
-#table notes
+#tablenotes
 filepath="zhao/article/tablenotes.txt"
 with open(filepath, "r") as file_object:
     tablenotes=file_object.read()
@@ -84,13 +73,13 @@ def _stylerobject_to_tabletext(styler_object, caption, label, tablenotes):
         "}"             "\n"
 
         #resizebox
-        #"\\resizebox{\\textwidth}{!}{%" "\n"
+        "\\resizebox{\\textwidth}{!}{%" "\n"
 
         #tabular
         f"{tabular}"    "\n"
 
         #resizebox
-        #"}"             "\n"
+        "}"             "\n"
 
         #table notes
         "\\begin{tablenotes}"   "\n"
@@ -105,7 +94,7 @@ def _stylerobject_to_tabletext(styler_object, caption, label, tablenotes):
     return text
 
 
-#save table
+#_save_table
 def _save_table(results, filestem, text):
 
     #folderstem
@@ -126,7 +115,7 @@ def _save_table(results, filestem, text):
         file_object.write(text)
 
 
-#table summary stats
+#_table_summary
 def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results):
 
     #to numeric
@@ -159,7 +148,7 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     styler_object=df.style
 
     #format styler
-    format_styler="{:,.3f}"
+    format_styler="{:,.2f}"
 
     #format cols
     #https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.format.html
@@ -175,11 +164,12 @@ def _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results
     _save_table(results, label, text)
 
 
-#echo summary stats
+#_table_summaries
 results="zhao/article"
 def _table_summaries(results):
 
-    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    #read_csv
+    filepath="zhao/_merge/rdp_aggregate_quarterly.csv"
     df=pd.read_csv(
         filepath,
         dtype="string",
@@ -187,191 +177,132 @@ def _table_summaries(results):
         )
 
     #label
-    label="echo_tablesummary"
+    label="tablesummary_quarterly"
 
     #caption
-    caption="Donations to AG assn and EPA Enforcement"
+    caption="Donations to AG Assn and Enforcement (Quarterly)"
 
     #cols
     cols=[
-        #irs
-        #amount
-        "amount_democratic",
-        "amount_republican",
-        "amount_both",
+        #A
+        "daga",
+        "raga",
+        "daga_dummy",
+        "raga_dummy",
 
-        #dummy
-        "dummy_democratic", 
-        "dummy_republican",
-        "dummy_both",
-
-        #echo
-        "echo_enforcement_dummy",
-        "echo_penalty_dummy",
-        "echo_penalty_amount",
-
-        #crspcompustat
-        "firm_size",
-        "leverage_ratio",
-        "roa",
-        "mtb",
+        #violtrack
+        "agencies_sum",
+        "AG_sum",
+        "non_AG_sum",
+        "agencies_sum_dummy",
+        "AG_sum_dummy",
+        "non_AG_sum_dummy",
         ]
     
-    #getable summary
+    #table summary
+    _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
+
+    #read_csv
+    filepath="zhao/_merge/rdp_aggregate_yearly.csv"
+    df=pd.read_csv(
+        filepath,
+        dtype="string",
+        #nrows=1000,
+        )
+
+    #label
+    label="tablesummary_yearly"
+
+    #caption
+    caption="Donations to AG Assn and Enforcement (Yearly)"
+
+    #cols
+    cols=[
+        #A
+        "daga",
+        "raga",
+        "daga_dummy",
+        "raga_dummy",
+
+        #violtrack
+        "agencies_sum",
+        "AG_sum",
+        "non_AG_sum",
+        "agencies_sum_dummy",
+        "AG_sum_dummy",
+        "non_AG_sum_dummy",
+        ]
+    
+    #table summary
     _table_summary(df, cols, label, caption, tablenotes, tuples_replace, results)
 
 
-#interact var names
-def _interact_varnames(time_dummy, explanvars):
-
-    #init
-    interact_vars=[None]*len(explanvars)
-
-    #interactions
-    for i, col in enumerate(explanvars):  
-
-        #var name
-        interact_var=f"{time_dummy}{INTERACT}{col}"
-
-        #update
-        interact_vars[i]=interact_var
-
-    #return
-    return interact_vars
-
-
-#indepvars
-def _indepvars(time_dummy, explanvars, controlvars):
-
-    #if
-    if time_dummy=="No":
-
-        #interact_vars
-        interact_vars=list()
-
-       #time_dummies
-        time_dummies=list()
-
-        #indepvars
-        indepvars=explanvars + controlvars
-
-    #elif
-    elif time_dummy!="No":
-
-        #interact vars
-        interact_vars=_interact_varnames(time_dummy, explanvars)
-
-        #time_dummies
-        time_dummies=[time_dummy]
-
-        #indepvars
-        indepvars=interact_vars + time_dummies + explanvars +  controlvars
-
-    #return
-    return indepvars, interact_vars, time_dummies
-
-
-#sm results
-def _sm_results(df, depvar, indepvars, clusters, list_fe):
+#_sm_results
+def _sm_results(df, depvar, indepvars_string, indepvars_list, list_fe, dict_cluster):
 
     #https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.OLS.fit.html
 
-    #join
-    join_indepvars=" + ".join(indepvars)
-
     #formula
-    formula=f"{depvar} ~ {join_indepvars}"
+    formula=f"{depvar} ~ {indepvars_string}"
 
-    #for
+    #fe
     for i, dict_fe in enumerate(list_fe):
 
-        #unpack
-        present=dict_fe["present"]
-        colname=dict_fe["colname"]
+        #dict_fe
+        fe_present=dict_fe["present"]
+        fe_colname=dict_fe["colname"]
 
         #if
-        if present=="Yes":
+        if fe_present=="Yes":
 
             #dropna
-            dropna_cols=[colname]
+            dropna_cols=[fe_colname]
             df=df.dropna(subset=dropna_cols)
 
             #factorize
-            df[colname]=pd.factorize(df[colname])[0]
+            df[fe_colname]=pd.factorize(df[fe_colname])[0]
 
             #formula
-            formula=f"{formula} + C({colname})"
+            formula=f"{formula} + C({fe_colname})"
 
-    #if
-    if clusters!=["No"]:
-
-        #dropna
-        dropna_cols=clusters
-        df=df.dropna(subset=dropna_cols)
-
-    #indepvars truly in df
-    indepvars_in_df=[x for x in indepvars if INTERACT not in x]
+    #indepvars_list_indf
+    indepvars_list_indf=[x for x in indepvars_list if INTERACT not in indepvars_list]
 
     #dropna
-    dropna_cols=[depvar] + indepvars_in_df
+    dropna_cols = [depvar] + indepvars_list_indf
     df=df.dropna(subset=dropna_cols)
 
     #to numeric
-    tonumeric_cols=[depvar] + indepvars_in_df
+    tonumeric_cols = [depvar] + indepvars_list_indf
     df=_tonumericcols_to_df(df, tonumeric_cols)
 
-    #model
-    mod=smf.ols(
-        formula=formula,
-        data=df,
-        )
-    
+    #dict_cluster
+    cluster_present=dict_cluster["present"]
+    cluster_colname=dict_cluster["colname"]
+
     #if
-    if clusters==["No"]:
-
-        #res
-        res=mod.fit()
-
-    #elif
-    elif clusters!=["No"]:
+    if cluster_present=="Yes":
 
         #groups
-        groups=[pd.factorize(df[col])[0] for col in clusters]
+        groups=[pd.factorize(df[cluster_colname])[0]]
 
         #res
         res=mod.fit(
             cov_type="cluster",
             cov_kwds={"groups": groups},
             )
+        
+    #mod
+    mod=smf.ols(
+        formula=formula,
+        data=df,
+        )
+
+    #res
+    res=mod.fit()
 
     #return
     return res
-
-
-#ordered cols
-def _ordered_cols(olddict, interact_vars, time_dummies, explanvars):
-
-    #empty
-    if not olddict:
-        olddict["interact_vars"]=list()
-        olddict["time_dummies"]=list()
-        olddict["explanvars"]=list()
-
-    #init
-    newdict=dict()
-
-    #newlist
-    interact_vars=[x for x in interact_vars if x not in olddict["interact_vars"]]
-    time_dummies=[x for x in time_dummies if x not in olddict["time_dummies"]]
-    explanvars=[x for x in explanvars if x not in olddict["explanvars"]]
-    
-    #update
-    newdict["interact_vars"]=olddict["interact_vars"] + interact_vars
-    newdict["time_dummies"]=olddict["time_dummies"] + time_dummies
-    newdict["explanvars"]=olddict["explanvars"] + explanvars
-
-    #return
-    return newdict
 
 
 #fe addline
@@ -379,21 +310,19 @@ def _addline(stargazer, inputs):
 
     #init
     new_dictfe=dict()
-    clusters_presents=[None]*len(inputs)
+    cluster_names=[None]*len(inputs)
 
     #for
     for j, input in enumerate(inputs):
 
-        #list fe
-        list_fe=input["fixedeffects"]
-        clusters=input["clusters"]
-
-        #cluster
-        clusters=[x.capitalize() for x in clusters]
-        clusters_present="-".join(clusters)
+        #cluster_name
+        cluster_name=input["cluster"]["name"]
 
         #update
-        clusters_presents[j]=clusters_present
+        cluster_names[j]=cluster_name
+
+        #list_fe
+        list_fe=input["fixedeffects"]
         
         #for
         for k, dict_fe in enumerate(list_fe):
@@ -417,8 +346,8 @@ def _addline(stargazer, inputs):
         #fe
         stargazer.add_line(name, presents)
 
-    #cluster
-    stargazer.add_line("Cluster", clusters_presents)    
+    #cluster 
+    stargazer.add_line("Cluster", cluster_names)    
 
     #return
     return stargazer
@@ -470,7 +399,7 @@ def _add_elements(text, label, tablenotes):
 
 
 #table reg
-def _table_reg(df, results, controlvars, inputs, label, caption, depvar):
+def _table_reg(df, results, inputs, label, caption, depvar):
 
     #n_models
     n_models=len(inputs)
@@ -484,29 +413,22 @@ def _table_reg(df, results, controlvars, inputs, label, caption, depvar):
     for i, input in enumerate(inputs):
 
         #dict
-        explanvars=input["explanvars"]
-        time_dummy=input["time_dummy"]
+        indepvars_string=input["indepvars"]["string"]
+        indepvars_list=input["indepvars"]["list"]
         df=input["subsample"]["subsample_df"]
         subsample_name=input["subsample"]["subsample_name"]
         list_fe=input["fixedeffects"]
-        clusters=input["clusters"]
-
-        #indepvars
-        indepvars, interact_vars, time_dummies = _indepvars(time_dummy, explanvars, controlvars)
+        dict_cluster=input["cluster"]
 
         #res
-        res=_sm_results(df, depvar, indepvars, clusters, list_fe)
+        res=_sm_results(df, depvar, indepvars_string, indepvars_list, list_fe, dict_cluster)
 
         #update
         models[i]=res
         subsample_names[i]=subsample_name
 
-        #ordered cols
-        olddict=_ordered_cols(olddict, interact_vars, time_dummies, explanvars)
-
-    #unpack 
-    ordered_cols=olddict["interact_vars"] + olddict["time_dummies"] + olddict["explanvars"] + controlvars
-
+    #ordered_cols 
+    ordered_cols=set(indepvars_list)
 
     #https://github.com/StatsReporting/stargazer
     #https://github.com/StatsReporting/stargazer/blob/master/examples.ipynb
@@ -582,7 +504,7 @@ results="zhao/article"
 def _table_regs(results):
 
     #filepath
-    filepath="zhao/_merge/crspcompustat_donations_echo_screen.csv"
+    filepath="zhao/_merge/rdp_aggregate.csv"
 
     #read
     df=pd.read_csv(
@@ -590,102 +512,27 @@ def _table_regs(results):
         dtype="string",
         #nrows=1000,
         )
-    
-    #control vars
-    controlvars=[
-        "firm_size",
-        "leverage_ratio",
-        "roa",
-        "mtb",
-        ]
 
-    #inputs
+    #first
     inputs=[
-
             {
-            "explanvars": ["lag_echo_enforcement_dummy"],
-            "time_dummy": "No",
+            "indepvars": {"string": "post2018", "list": ["post2018"]},
             "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
             "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
-                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
+                            {"name": "IndustryFE",  "present": "No", "colname": "industry_famafrench49"}, 
+                            {"name": "YearFE",      "present": "No", "colname": "year"},
                             ],
-            "clusters": ["state"],
+            "cluster": {"name": "State",  "present": "No", "colname": "state"}, 
             },
-
-            {
-            "explanvars": ["lag_echo_penalty_dummy"],
-            "time_dummy": "No",
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
-                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
-                            ],
-            "clusters": ["state"],
-            },
-
-            {
-            "explanvars": ["lag_ln_echo_penalty_amount"],
-            "time_dummy": "No",
-            "subsample": {"subsample_df": df, "subsample_name": "Full sample"},
-            "fixedeffects": [
-                            {"name": "IndustryFE",  "present": "Yes", "colname": "industry_famafrench49"}, 
-                            {"name": "YearFE",      "present": "Yes", "colname": "fyear"},
-                            ],
-            "clusters": ["state"],
-            },
-
         ]
-    
-    #ln_amount_both
-    depvar="ln_amount_both"
-    label="ln_amount_both"
-    caption="EPA Enforcement and Donation Amount - Both"
+    depvar="daga_raga"
+    label="first_tablereg"
+    caption="Donations and Disclosure Shock"
     #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
-
-    #ln_amount_democratic
-    depvar="ln_amount_democratic"
-    label="ln_amount_democratic"
-    caption="EPA Enforcement and Donation Amount - Democratic"
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
-
-    #ln_amount_republican
-    depvar="ln_amount_republican"
-    label="ln_amount_republican"
-    caption="EPA Enforcement and Donation Amount - Republican"
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
-
-    #dummy_both
-    depvar="dummy_both"
-    label="dummy_both"
-    caption="EPA Enforcement and Donation Likelihood - Both "
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
+    _table_reg(df, results, inputs, label, caption, depvar)
 
 
-    #dummy_democratic
-    depvar="dummy_democratic"
-    label="dummy_democratic"
-    caption="EPA Enforcement and Donation Likelihood - Democratic"
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
-
-
-    #dummy_republican
-    depvar="dummy_republican"
-    label="dummy_republican"
-    caption="EPA Enforcement and Donation Likelihood - Republican"
-    #table reg
-    _table_reg(df, results, controlvars, inputs, label, caption, depvar)
-
-
-
-
-
-#_table_summaries(results)
+_table_summaries(results)
 #_table_regs(results)
 print("done")
 
